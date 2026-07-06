@@ -221,6 +221,9 @@ int l_zombie_newindex(lua_State* L) {
         z->mPosY = static_cast<float>(luaL_checknumber(L, 3));
     } else if (strcmp(key, "vel_x") == 0) {
         z->mVelX = static_cast<float>(luaL_checknumber(L, 3));
+        // mVelX 是动画速率的输入参数，修改后必须重新调用 UpdateAnimSpeed()
+        // 才能更新动画播放速率，进而更新 _ground track velocity（实际移动速度）
+        z->UpdateAnimSpeed();
     } else if (strcmp(key, "row") == 0) {
         z->mRow = static_cast<int32_t>(luaL_checkinteger(L, 3));
     } else if (strcmp(key, "chilled") == 0) {
