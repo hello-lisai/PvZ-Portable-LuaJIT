@@ -56,7 +56,7 @@ namespace {
 lua_State* g_L = nullptr;
 std::mutex g_lua_mutex;
 
-std::vector<ModInfo> g_mods;
+std::vector<ModLua::ModInfo> g_mods;
 
 // 每个 mod 加载后返回的 table，存在 registry 里
 // key = mod 索引（0-based），value = mod 的返回 table
@@ -451,7 +451,7 @@ int l_zombies_register(lua_State* L) {
 
 // 解析 mod.lua 清单（返回 table）
 // 期望 mod.lua 返回一个 table，包含 name/version/author/description/main
-bool ParseManifest(lua_State* L, const std::string& manifestPath, ModInfo& info) {
+bool ParseManifest(lua_State* L, const std::string& manifestPath, ModLua::ModInfo& info) {
     std::string content;
     if (!ReadFile(manifestPath, content)) {
         info.error = "cannot read mod.lua";
@@ -716,7 +716,7 @@ void Initialize() {
     for (auto& entry : std::filesystem::directory_iterator(modsDir)) {
         if (!entry.is_directory()) continue;
         std::string dir = entry.path().string();
-        ModInfo info;
+        ModLua::ModInfo info;
         std::string manifestPath = dir + "/mod.lua";
         int prio = 100;
         if (std::filesystem::exists(manifestPath) && ParseManifest(g_L, manifestPath, info)) {

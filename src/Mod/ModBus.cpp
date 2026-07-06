@@ -10,6 +10,7 @@
 #ifdef PVZ_MOD_API_ENABLED
 
 #include "Lua/LuaRuntime.h"
+#include "../LawnApp.h"  // gLawnApp
 
 namespace {
 
