@@ -42,8 +42,14 @@ jobs:
     - name: Compile PvZ-Portable for Windows (with LuaJIT Mod API)
       shell: msys2 {0}
       run: |
+        echo "=== LuaJIT debug info ==="
+        pacman -Ql mingw-w64-ucrt-x86_64-luajit | grep -E '(\.h$|\.a$|\.pc$)' || true
+        echo "=== pkg-config ==="
+        pkg-config --cflags --libs luajit || true
+        echo "=== CMake configure ==="
         mkdir build
-        cmake -G Ninja -B build -DCMAKE_BUILD_TYPE=Release -DCONSOLE=OFF -DBUILD_STATIC=ON -DCMAKE_COLOR_DIAGNOSTICS=ON
+        cmake -G Ninja -B build -DCMAKE_BUILD_TYPE=Release -DCONSOLE=OFF -DBUILD_STATIC=ON -DCMAKE_COLOR_DIAGNOSTICS=ON -DCMAKE_VERBOSE_MAKEFILE=ON
+        echo "=== CMake build ==="
         cmake --build build
 
         mkdir -p dist

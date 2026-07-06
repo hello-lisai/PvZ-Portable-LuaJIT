@@ -84,28 +84,37 @@ if(PVZ_MOD_API)
 	# 优先用 vcpkg 的 CMake config（如果存在），否则降级到 find_path/find_library
 	find_package(LuaJIT CONFIG QUIET)
 	if(NOT TARGET LuaJIT::LuaJIT)
-		# vcpkg luajit port 不提供 config 文件，手动查找
-		find_path(LUAJIT_INCLUDE_DIR
-			NAMES lua.h
-			PATH_SUFFIXES luajit luajit-2.1 luajit-2.0
-		)
-		find_library(LUAJIT_LIBRARY
-			NAMES luajit-5.1 luajit libluajit-5.1.a
-		)
-		if(LUAJIT_INCLUDE_DIR AND LUAJIT_LIBRARY)
-			add_library(LuaJIT::LuaJIT UNKNOWN IMPORTED)
-			set_target_properties(LuaJIT::LuaJIT PROPERTIES
-				INTERFACE_INCLUDE_DIRECTORIES "${LUAJIT_INCLUDE_DIR}"
-				IMPORTED_LOCATION "${LUAJIT_LIBRARY}"
-			)
+		# 尝试用 pkg-config 查找（MSYS2/Linux/macOS 均提供 luajit.pc）
+		find_package(PkgConfig QUIET)
+		if(PkgConfig_FOUND)
+			pkg_check_modules(LUAJIT IMPORTED_TARGET luajit)
+		endif()
+		if(TARGET PkgConfig::LUAJIT)
+			add_library(LuaJIT::LuaJIT ALIAS PkgConfig::LUAJIT)
 		else()
-			message(FATAL_ERROR
-				"LuaJIT not found. Please install it:\n"
-				"  vcpkg: vcpkg install luajit\n"
-				"  Linux: sudo apt install libluajit-5.1-dev\n"
-				"  macOS: brew install luajit\n"
-				"Or set LUAJIT_INCLUDE_DIR and LUAJIT_LIBRARY manually."
+			# vcpkg luajit port 不提供 config 文件，手动查找
+			find_path(LUAJIT_INCLUDE_DIR
+				NAMES lua.h
+				PATH_SUFFIXES luajit luajit-2.1 luajit-2.0
 			)
+			find_library(LUAJIT_LIBRARY
+				NAMES luajit-5.1 luajit libluajit-5.1.a
+			)
+			if(LUAJIT_INCLUDE_DIR AND LUAJIT_LIBRARY)
+				add_library(LuaJIT::LuaJIT UNKNOWN IMPORTED)
+				set_target_properties(LuaJIT::LuaJIT PROPERTIES
+					INTERFACE_INCLUDE_DIRECTORIES "${LUAJIT_INCLUDE_DIR}"
+					IMPORTED_LOCATION "${LUAJIT_LIBRARY}"
+				)
+			else()
+				message(FATAL_ERROR
+					"LuaJIT not found. Please install it:\n"
+					"  vcpkg: vcpkg install luajit\n"
+					"  Linux: sudo apt install libluajit-5.1-dev\n"
+					"  macOS: brew install luajit\n"
+					"Or set LUAJIT_INCLUDE_DIR and LUAJIT_LIBRARY manually."
+				)
+			endif()
 		endif()
 	endif()
 endif()
