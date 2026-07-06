@@ -13,9 +13,8 @@
 #include <vector>
 
 // Lua C API：通过 LuaBindUtil.h 统一入口引入（含 LuaJIT 兼容宏 lua_absindex / lua_isinteger）
-// LuaJIT 头文件自身已带 extern "C" 保护，可直接 #include。
+// LuaBindUtil.h 已在 extern "C" 块内 include 了 lua.h / lauxlib.h / lualib.h
 #include "LuaBindUtil.h"
-#include <lualib.h>
 
 // 极简 JSON 读写（header-only）
 #include "../Utils/MiniJson.h"

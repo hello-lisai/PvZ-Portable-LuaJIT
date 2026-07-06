@@ -84,16 +84,22 @@ if(PVZ_MOD_API)
 	# 优先用 vcpkg 的 CMake config（如果存在），否则降级到 find_path/find_library
 	find_package(LuaJIT CONFIG QUIET)
 	if(NOT TARGET LuaJIT::LuaJIT)
-		# 尝试用 pkg-config 查找（MSYS2/Linux/macOS 均提供 luajit.pc）
+		# 用 pkg-config 查找（MSYS2/Linux/macOS 均提供 luajit.pc）
 		find_package(PkgConfig QUIET)
 		if(PkgConfig_FOUND)
-			pkg_check_modules(LUAJIT IMPORTED_TARGET luajit)
+			pkg_check_modules(LUAJIT luajit)
 		endif()
-		if(TARGET PkgConfig::LUAJIT)
-			# 不能直接 ALIAS IMPORTED target，用 INTERFACE 库包装一层
-			add_library(LuaJIT::LuaJIT INTERFACE IMPORTED)
-			set_target_properties(LuaJIT::LuaJIT PROPERTIES
-				INTERFACE_LINK_LIBRARIES "PkgConfig::LUAJIT"
+		if(LUAJIT_FOUND)
+			# 用变量直接传递，避免 IMPORTED target 的链接顺序问题
+			find_path(LUAJIT_INCLUDE_DIR
+				NAMES lua.h
+				PATHS ${LUAJIT_INCLUDE_DIRS}
+				NO_DEFAULT_PATH
+			)
+			find_library(LUAJIT_LIBRARY
+				NAMES luajit-5.1 luajit
+				PATHS ${LUAJIT_LIBRARY_DIRS}
+				NO_DEFAULT_PATH
 			)
 		else()
 			# vcpkg luajit port 不提供 config 文件，手动查找
@@ -104,21 +110,22 @@ if(PVZ_MOD_API)
 			find_library(LUAJIT_LIBRARY
 				NAMES luajit-5.1 luajit libluajit-5.1.a
 			)
-			if(LUAJIT_INCLUDE_DIR AND LUAJIT_LIBRARY)
-				add_library(LuaJIT::LuaJIT UNKNOWN IMPORTED)
-				set_target_properties(LuaJIT::LuaJIT PROPERTIES
-					INTERFACE_INCLUDE_DIRECTORIES "${LUAJIT_INCLUDE_DIR}"
-					IMPORTED_LOCATION "${LUAJIT_LIBRARY}"
-				)
-			else()
-				message(FATAL_ERROR
-					"LuaJIT not found. Please install it:\n"
-					"  vcpkg: vcpkg install luajit\n"
-					"  Linux: sudo apt install libluajit-5.1-dev\n"
-					"  macOS: brew install luajit\n"
-					"Or set LUAJIT_INCLUDE_DIR and LUAJIT_LIBRARY manually."
-				)
-			endif()
+		endif()
+		if(LUAJIT_INCLUDE_DIR AND LUAJIT_LIBRARY)
+			message(STATUS "LuaJIT found: include=${LUAJIT_INCLUDE_DIR} lib=${LUAJIT_LIBRARY}")
+			add_library(LuaJIT::LuaJIT UNKNOWN IMPORTED)
+			set_target_properties(LuaJIT::LuaJIT PROPERTIES
+				INTERFACE_INCLUDE_DIRECTORIES "${LUAJIT_INCLUDE_DIR}"
+				IMPORTED_LOCATION "${LUAJIT_LIBRARY}"
+			)
+		else()
+			message(FATAL_ERROR
+				"LuaJIT not found. Please install it:\n"
+				"  vcpkg: vcpkg install luajit\n"
+				"  Linux: sudo apt install libluajit-5.1-dev\n"
+				"  macOS: brew install luajit\n"
+				"Or set LUAJIT_INCLUDE_DIR and LUAJIT_LIBRARY manually."
+			)
 		endif()
 	endif()
 endif()
@@ -331,13 +338,7 @@ else()
 	)
 	# LuaJIT 不支持 wasm，仅在非 EMSCRIPTEN 平台链接
 	if(PVZ_MOD_API)
-		# MinGW 静态链接 libluajit 时，符号顺序可能导致 undefined reference
-		# 用 --whole-archive 强制包含所有符号
-		target_link_libraries(pvz-portable PRIVATE
-			-Wl,--whole-archive
-			LuaJIT::LuaJIT
-			-Wl,--no-whole-archive
-		)
+		target_link_libraries(pvz-portable PRIVATE LuaJIT::LuaJIT)
 	endif()
 endif()
 
