@@ -90,7 +90,11 @@ if(PVZ_MOD_API)
 			pkg_check_modules(LUAJIT IMPORTED_TARGET luajit)
 		endif()
 		if(TARGET PkgConfig::LUAJIT)
-			add_library(LuaJIT::LuaJIT ALIAS PkgConfig::LUAJIT)
+			# 不能直接 ALIAS IMPORTED target，用 INTERFACE 库包装一层
+			add_library(LuaJIT::LuaJIT INTERFACE IMPORTED)
+			set_target_properties(LuaJIT::LuaJIT PROPERTIES
+				INTERFACE_LINK_LIBRARIES "PkgConfig::LUAJIT"
+			)
 		else()
 			# vcpkg luajit port 不提供 config 文件，手动查找
 			find_path(LUAJIT_INCLUDE_DIR

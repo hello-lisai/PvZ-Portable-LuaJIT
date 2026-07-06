@@ -50,7 +50,7 @@ jobs:
         mkdir build
         cmake -G Ninja -B build -DCMAKE_BUILD_TYPE=Release -DCONSOLE=OFF -DBUILD_STATIC=ON -DCMAKE_COLOR_DIAGNOSTICS=ON -DCMAKE_VERBOSE_MAKEFILE=ON
         echo "=== CMake build ==="
-        cmake --build build
+        cmake --build build || (echo "=== RSP file content ==="; cat build/CMakeFiles/pvz-portable.rsp 2>/dev/null; exit 1)
 
         mkdir -p dist
         cp build/pvz-portable.exe dist/
