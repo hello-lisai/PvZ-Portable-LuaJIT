@@ -1,0 +1,16 @@
+{
+  "name": "pvz-portable",
+  "version-string": "0.1",
+  "description": "Plants vs. Zombies Portable - community re-implementation with LuaJIT Mod API",
+  "dependencies": [
+    "luajit",
+    "sdl2",
+    "vorbis",
+    "ogg",
+    "libopenmpt",
+    "mpg123",
+    "zlib",
+    "libpng",
+    "libjpeg-turbo"
+  ]
+}
