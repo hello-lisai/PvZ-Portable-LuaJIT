@@ -508,7 +508,7 @@ bool ParseManifest(lua_State* L, const std::string& manifestPath, ModLua::ModInf
 
 // 加载单个 mod：解析清单 + 加载 main.lua + 收集回调
 void LoadMod(lua_State* L, const std::string& modDir) {
-    ModInfo info;
+    ModLua::ModInfo info;
     info.dir     = modDir;
     info.loaded  = false;
     info.enabled = true;
