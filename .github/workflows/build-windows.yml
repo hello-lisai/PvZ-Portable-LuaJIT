@@ -50,7 +50,7 @@ jobs:
         mkdir build
         cmake -G Ninja -B build -DCMAKE_BUILD_TYPE=Release -DCONSOLE=OFF -DBUILD_STATIC=ON -DCMAKE_COLOR_DIAGNOSTICS=ON -DCMAKE_VERBOSE_MAKEFILE=ON
         echo "=== CMake build ==="
-        cmake --build build || (echo "=== RSP file content ==="; cat build/CMakeFiles/pvz-portable.rsp 2>/dev/null; exit 1)
+        cmake --build build || (echo "=== RSP file content ==="; cat build/CMakeFiles/pvz-portable.rsp 2>/dev/null; echo "=== libluajit symbols ==="; nm D:/a/_temp/msys64/ucrt64/lib/libluajit-5.1.a 2>/dev/null | grep -i openlibs || echo "openlibs NOT FOUND in static lib"; echo "=== dll.a symbols ==="; nm D:/a/_temp/msys64/ucrt64/lib/libluajit-5.1.dll.a 2>/dev/null | grep -i openlibs || echo "openlibs NOT FOUND in dll.a"; exit 1)
 
         mkdir -p dist
         cp build/pvz-portable.exe dist/

@@ -331,7 +331,13 @@ else()
 	)
 	# LuaJIT 不支持 wasm，仅在非 EMSCRIPTEN 平台链接
 	if(PVZ_MOD_API)
-		target_link_libraries(pvz-portable PRIVATE LuaJIT::LuaJIT)
+		# MinGW 静态链接 libluajit 时，符号顺序可能导致 undefined reference
+		# 用 --whole-archive 强制包含所有符号
+		target_link_libraries(pvz-portable PRIVATE
+			-Wl,--whole-archive
+			LuaJIT::LuaJIT
+			-Wl,--no-whole-archive
+		)
 	endif()
 endif()
 
