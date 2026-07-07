@@ -24,6 +24,7 @@
 
 #include <cstdint>
 #include <string>
+#include <vector>
 #include "GameObject.h"
 #include "../GameConstants.h"
 
@@ -428,6 +429,9 @@ public:
     int                             mFirstAllowedWave = 0;
     int                             mPickWeight = 0;
     std::string                     mZombieName;   // Mod API: 改为 std::string 以支持运行时修改
+    // Mod API: 图鉴显示用字段（自定义僵尸专用，原版僵尸仍走资源文件）
+    std::string                     mAlmanacName;        // 图鉴标题（如 "My Custom Zombie"）
+    std::string                     mAlmanacDescription; // 图鉴描述正文
 };
 extern ZombieDefinition gZombieDefs[NUM_ZOMBIE_TYPES];  // Mod API: 移除 const
 
@@ -435,5 +439,13 @@ extern ZombieDefinition gZombieDefs[NUM_ZOMBIE_TYPES];  // Mod API: 移除 const
 
 // Mod API: 动态注册新僵尸类型，返回分配的 ZombieType（>= NUM_ZOMBIE_TYPES）
 ZombieType RegisterZombieDefinition(const ZombieDefinition& theDef);
+
+// Mod API: 自定义僵尸定义的运行时存储（供 AlmanacDialog 查询）
+extern std::vector<ZombieDefinition> gCustomZombieDefs;
+inline int GetCustomZombieCount() { return static_cast<int>(gCustomZombieDefs.size()); }
+inline int GetTotalZombieCount() { return static_cast<int>(ZombieType::NUM_ZOMBIE_TYPES) + GetCustomZombieCount(); }
+// 把自定义僵尸的 ZombieType 转换为 gCustomZombieDefs 的索引（0-based）
+inline int CustomZombieTypeToIndex(ZombieType z) { return static_cast<int>(z) - static_cast<int>(ZombieType::NUM_ZOMBIE_TYPES); }
+inline bool IsCustomZombieType(ZombieType z) { return static_cast<int>(z) >= static_cast<int>(ZombieType::NUM_ZOMBIE_TYPES); }
 
 #endif

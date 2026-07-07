@@ -2398,6 +2398,9 @@ int LawnApp::GetSeedsAvailable()
 // GOTY @Patoke: 0x456FE0
 bool LawnApp::HasSeedType(SeedType theSeedType)
 {
+	// Mod API: 自定义植物（>= NUM_SEED_TYPES）默认视为已解锁，可在图鉴中显示
+	if (IsCustomSeedType(theSeedType)) return true;
+
 	if (IsTrialStageLocked() && theSeedType >= SeedType::SEED_JALAPENO)
 		return false;
 

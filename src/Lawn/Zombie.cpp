@@ -98,8 +98,9 @@ static ZombieType gBossZombieList[] = {
 };
 
 // Mod API: 自定义僵尸定义的运行时存储
+// 注意：非匿名 namespace，因为 Zombie.h 中 extern 声明需要链接到此处定义
+std::vector<ZombieDefinition> gCustomZombieDefs;
 namespace {
-    std::vector<ZombieDefinition> gCustomZombieDefs;
     int gNextCustomZombieType = static_cast<int>(ZombieType::NUM_ZOMBIE_TYPES);
 }
 

@@ -467,6 +467,15 @@ int l_plants_register(lua_State* L) {
     if (lua_isinteger(L, -1)) def.mLaunchRate = static_cast<int>(lua_tointeger(L, -1));
     lua_pop(L, 1);
 
+    // Mod API: 图鉴显示用字段（可选）
+    lua_getfield(L, tblIdx, "almanac_name");
+    if (lua_isstring(L, -1)) def.mAlmanacName = lua_tostring(L, -1);
+    lua_pop(L, 1);
+
+    lua_getfield(L, tblIdx, "almanac_description");
+    if (lua_isstring(L, -1)) def.mAlmanacDescription = lua_tostring(L, -1);
+    lua_pop(L, 1);
+
     SeedType st = RegisterPlantDefinition(def);
     lua_pushinteger(L, static_cast<lua_Integer>(st));
     return 1;
@@ -507,6 +516,15 @@ int l_zombies_register(lua_State* L) {
 
     lua_getfield(L, tblIdx, "pick_weight");
     if (lua_isinteger(L, -1)) def.mPickWeight = static_cast<int>(lua_tointeger(L, -1));
+    lua_pop(L, 1);
+
+    // Mod API: 图鉴显示用字段（可选）
+    lua_getfield(L, tblIdx, "almanac_name");
+    if (lua_isstring(L, -1)) def.mAlmanacName = lua_tostring(L, -1);
+    lua_pop(L, 1);
+
+    lua_getfield(L, tblIdx, "almanac_description");
+    if (lua_isstring(L, -1)) def.mAlmanacDescription = lua_tostring(L, -1);
     lua_pop(L, 1);
 
     ZombieType zt = RegisterZombieDefinition(def);
@@ -750,6 +768,21 @@ void Initialize() {
     lua_newtable(g_L);
     lua_pushcfunction(g_L, l_reanim_register);
     lua_setfield(g_L, -2, "register");
+    // pvz.reanim.types 子表：暴露常用 ReanimationType 枚举值，供注册植物/僵尸时引用
+    lua_newtable(g_L);
+    ModLua::SetIntField(g_L, "NONE",            static_cast<lua_Integer>(ReanimationType::REANIM_NONE));
+    ModLua::SetIntField(g_L, "PEASHOOTER",      static_cast<lua_Integer>(ReanimationType::REANIM_PEASHOOTER));
+    ModLua::SetIntField(g_L, "WALLNUT",         static_cast<lua_Integer>(ReanimationType::REANIM_WALLNUT));
+    ModLua::SetIntField(g_L, "SUNFLOWER",       static_cast<lua_Integer>(ReanimationType::REANIM_SUNFLOWER));
+    ModLua::SetIntField(g_L, "CHERRYBOMB",      static_cast<lua_Integer>(ReanimationType::REANIM_CHERRYBOMB));
+    ModLua::SetIntField(g_L, "REPEATER",        static_cast<lua_Integer>(ReanimationType::REANIM_REPEATER));
+    ModLua::SetIntField(g_L, "SNOWPEA",         static_cast<lua_Integer>(ReanimationType::REANIM_SNOWPEA));
+    ModLua::SetIntField(g_L, "CHOMPER",         static_cast<lua_Integer>(ReanimationType::REANIM_CHOMPER));
+    ModLua::SetIntField(g_L, "ZOMBIE",          static_cast<lua_Integer>(ReanimationType::REANIM_ZOMBIE));
+    ModLua::SetIntField(g_L, "ZOMBIE_FOOTBALL", static_cast<lua_Integer>(ReanimationType::REANIM_ZOMBIE_FOOTBALL));
+    ModLua::SetIntField(g_L, "ZOMBIE_NEWSPAPER",static_cast<lua_Integer>(ReanimationType::REANIM_ZOMBIE_NEWSPAPER));
+    ModLua::SetIntField(g_L, "ZOMBIE_ZAMBONI",  static_cast<lua_Integer>(ReanimationType::REANIM_ZOMBIE_ZAMBONI));
+    lua_setfield(g_L, -2, "types");
     lua_setfield(g_L, -2, "reanim");
 
     // pvz.plants 子表：植物定义注册

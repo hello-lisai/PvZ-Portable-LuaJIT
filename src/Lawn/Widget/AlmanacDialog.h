@@ -96,7 +96,11 @@ public:
 	/*inline*/ void				ShowPlant(SeedType theSeedType);
 	/*inline*/ void				ShowZombie(ZombieType theZombieType);
 };
-extern bool gZombieDefeated[NUM_ZOMBIE_TYPES];
+
+// Mod API: gZombieDefeated 改用函数接口，支持自定义僵尸类型（>= NUM_ZOMBIE_TYPES）
+// 原版僵尸仍用静态数组快速查询，自定义僵尸用 unordered_map
+bool gZombieDefeated_Get(ZombieType z);
+void gZombieDefeated_Set(ZombieType z, bool v);
 
 /*inline*/ void					AlmanacInitForPlayer();
 /*inline*/ void					AlmanacPlayerDefeatedZombie(ZombieType theZombieType);

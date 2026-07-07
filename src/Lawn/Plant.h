@@ -23,6 +23,7 @@
 
 #include <cstdint>
 #include <string>
+#include <vector>
 #include "GameObject.h"
 
 #define MAX_MAGNET_ITEMS 5
@@ -333,6 +334,9 @@ public:
     PlantSubClass           mSubClass = PlantSubClass::SUBCLASS_NORMAL;
     int                     mLaunchRate = 0;
     std::string             mPlantName;   // Mod API: 改为 std::string 以支持运行时修改
+    // Mod API: 图鉴显示用字段（自定义植物专用，原版植物仍走资源文件）
+    std::string             mAlmanacName;        // 图鉴标题（如 "My Custom Plant"）
+    std::string             mAlmanacDescription; // 图鉴描述正文
 };
 extern PlantDefinition gPlantDefs[SeedType::NUM_SEED_TYPES];  // Mod API: 移除 const
 
@@ -340,3 +344,11 @@ extern PlantDefinition gPlantDefs[SeedType::NUM_SEED_TYPES];  // Mod API: 移除
 
 // Mod API: 动态注册新植物类型，返回分配的 SeedType（>= NUM_SEED_TYPES）
 SeedType RegisterPlantDefinition(const PlantDefinition& theDef);
+
+// Mod API: 自定义植物定义的运行时存储（供 AlmanacDialog 查询）
+extern std::vector<PlantDefinition> gCustomPlantDefs;
+inline int GetCustomPlantCount() { return static_cast<int>(gCustomPlantDefs.size()); }
+inline int GetTotalPlantCount() { return static_cast<int>(SeedType::NUM_SEED_TYPES) + GetCustomPlantCount(); }
+// 把自定义植物的 SeedType 转换为 gCustomPlantDefs 的索引（0-based）
+inline int CustomSeedTypeToIndex(SeedType s) { return static_cast<int>(s) - static_cast<int>(SeedType::NUM_SEED_TYPES); }
+inline bool IsCustomSeedType(SeedType s) { return static_cast<int>(s) >= static_cast<int>(SeedType::NUM_SEED_TYPES); }

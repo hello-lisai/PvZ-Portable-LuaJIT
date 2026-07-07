@@ -34,8 +34,27 @@
 #include "../System/ReanimationLawn.h"
 #include "../../Sexy.TodLib/TodStringFile.h"
 #include "widget/WidgetManager.h"
+#include <unordered_map>  // Mod API: gZombieDefeated 改用 map 支持自定义僵尸
 
-bool gZombieDefeated[NUM_ZOMBIE_TYPES] = { false };
+// Mod API: gZombieDefeated 改用 unordered_map，支持自定义僵尸类型（>= NUM_ZOMBIE_TYPES）
+// 原版僵尸仍用数组快速查询，自定义僵尸走 map
+namespace {
+    bool gZombieDefeatedBuiltin[NUM_ZOMBIE_TYPES] = { false };
+    std::unordered_map<int, bool> gZombieDefeatedCustom;
+}
+
+bool gZombieDefeated_Get(ZombieType z) {
+    int idx = static_cast<int>(z);
+    if (idx < NUM_ZOMBIE_TYPES) return gZombieDefeatedBuiltin[idx];
+    auto it = gZombieDefeatedCustom.find(idx);
+    return it != gZombieDefeatedCustom.end() ? it->second : false;
+}
+
+void gZombieDefeated_Set(ZombieType z, bool v) {
+    int idx = static_cast<int>(z);
+    if (idx < NUM_ZOMBIE_TYPES) gZombieDefeatedBuiltin[idx] = v;
+    else gZombieDefeatedCustom[idx] = v;
+}
 
 AlmanacDialog::AlmanacDialog(LawnApp* theApp) : LawnDialog(theApp, DIALOG_ALMANAC, true, theApp->GetString("ALMANAC_HEADER", "Almanac"), "", "", BUTTONS_NONE)
 {
@@ -263,7 +282,13 @@ void AlmanacDialog::Update()
 
 ZombieType AlmanacDialog::GetZombieType(int theIndex)
 {
-	return theIndex < NUM_ZOMBIE_TYPES ? (ZombieType)theIndex : ZOMBIE_INVALID;
+	// Mod API: 支持自定义僵尸（索引 >= NUM_ZOMBIE_TYPES 时从 gCustomZombieDefs 取）
+	if (theIndex < NUM_ZOMBIE_TYPES) return (ZombieType)theIndex;
+	int customIdx = theIndex - NUM_ZOMBIE_TYPES;
+	if (customIdx < GetCustomZombieCount()) {
+		return gCustomZombieDefs[customIdx].mZombieType;
+	}
+	return ZOMBIE_INVALID;
 }
 
 void AlmanacDialog::DrawIndex(Graphics* g)
@@ -291,8 +316,11 @@ void AlmanacDialog::DrawPlants(Graphics* g)
 	TodDrawString(g, "[SUBURBAN_ALMANAC_PLANTS]", BOARD_WIDTH / 2, 48, Sexy::FONT_HOUSEOFTERROR20, Color(213, 159, 43), DrawStringJustification::DS_ALIGN_CENTER);
 
 	SeedType aSeedMouseOn = SeedHitTest(mApp->mWidgetManager->mLastMouseX, mApp->mWidgetManager->mLastMouseY);
-	for (SeedType aSeedType = SeedType::SEED_PEASHOOTER; aSeedType < NUM_ALMANAC_SEEDS; aSeedType = (SeedType)(aSeedType + 1))
+	// Mod API: 遍历范围扩展到原版 + 自定义植物
+	int totalSeeds = GetTotalPlantCount();
+	for (int aSeedIdx = static_cast<int>(SeedType::SEED_PEASHOOTER); aSeedIdx < totalSeeds; aSeedIdx++)
 	{
+		SeedType aSeedType = static_cast<SeedType>(aSeedIdx);
 		int aPosX, aPosY;
 		GetSeedPosition(aSeedType, aPosX, aPosY);
 		if (mApp->HasSeedType(aSeedType))
@@ -345,8 +373,16 @@ void AlmanacDialog::DrawPlants(Graphics* g)
 
 	g->DrawImage(Sexy::IMAGE_ALMANAC_PLANTCARD, 459, 86);
 	const PlantDefinition& aPlantDef = GetPlantDefinition(mSelectedSeed);
-	std::string aName = Plant::GetNameString(mSelectedSeed, SEED_NONE);
-	std::string aDescriptionName = StrFormat("[%s_DESCRIPTION]", aPlantDef.mPlantName.c_str());
+	// Mod API: 自定义植物优先用 mAlmanacName/mAlmanacDescription，原版植物走资源文件
+	std::string aName;
+	std::string aDescriptionName;
+	if (IsCustomSeedType(mSelectedSeed) && !aPlantDef.mAlmanacName.empty()) {
+		aName = aPlantDef.mAlmanacName;
+		aDescriptionName = aPlantDef.mAlmanacDescription;
+	} else {
+		aName = Plant::GetNameString(mSelectedSeed, SEED_NONE);
+		aDescriptionName = StrFormat("[%s_DESCRIPTION]", aPlantDef.mPlantName.c_str());
+	}
 	TodDrawString(g, aName, 617, 288, Sexy::FONT_DWARVENTODCRAFT18YELLOW, Color::White, DS_ALIGN_CENTER);
 	TodDrawStringWrapped(g, aDescriptionName, Rect(485, 309, 258, 230), Sexy::FONT_BRIANNETOD12, Color(40, 50, 90), DS_ALIGN_LEFT);
 
@@ -372,7 +408,9 @@ void AlmanacDialog::DrawZombies(Graphics* g)
 	TodDrawString(g, "[SUBURBAN_ALMANAC_ZOMBIES]", BOARD_WIDTH / 2, 54, Sexy::FONT_DWARVENTODCRAFT24, Color(0, 196, 0), DS_ALIGN_CENTER);
 
 	ZombieType aZombieMouseOn = ZombieHitTest(mApp->mWidgetManager->mLastMouseX, mApp->mWidgetManager->mLastMouseY);
-	for (int i = 0; i < NUM_ALMANAC_ZOMBIES; i++)
+	// Mod API: 遍历范围扩展到原版 + 自定义僵尸
+	int totalZombies = GetTotalZombieCount();
+	for (int i = 0; i < totalZombies; i++)
 	{
 		ZombieType aZombieType = GetZombieType(i);
 		int aPosX, aPosY;
@@ -472,14 +510,25 @@ void AlmanacDialog::DrawZombies(Graphics* g)
 	g->DrawImage(Sexy::IMAGE_ALMANAC_ZOMBIECARD, 455, 78);
 
 	const ZombieDefinition& aZombieDef = GetZombieDefinition(mSelectedZombie);
-	std::string aName = ZombieHasSilhouette(mSelectedZombie) ? "???" : StrFormat("[%s]", aZombieDef.mZombieName.c_str());
+	// Mod API: 自定义僵尸优先用 mAlmanacName/mAlmanacDescription，原版僵尸走资源文件
+	std::string aName;
+	if (IsCustomZombieType(mSelectedZombie) && !aZombieDef.mAlmanacName.empty()) {
+		aName = aZombieDef.mAlmanacName;
+	} else {
+		aName = ZombieHasSilhouette(mSelectedZombie) ? "???" : StrFormat("[%s]", aZombieDef.mZombieName.c_str());
+	}
 	TodDrawString(g, aName, 613, 362, Sexy::FONT_DWARVENTODCRAFT18GREENINSET, Color(190, 255, 235, 255), DS_ALIGN_CENTER);
 
 	std::string aDescription;
 	DrawStringJustification aAlign;
 	if (ZombieHasDescription(mSelectedZombie))
 	{
-		aDescription = TodStringTranslate(StrFormat("[%s_DESCRIPTION]", aZombieDef.mZombieName.c_str()));
+		// Mod API: 自定义僵尸用 mAlmanacDescription
+		if (IsCustomZombieType(mSelectedZombie) && !aZombieDef.mAlmanacDescription.empty()) {
+			aDescription = aZombieDef.mAlmanacDescription;
+		} else {
+			aDescription = TodStringTranslate(StrFormat("[%s_DESCRIPTION]", aZombieDef.mZombieName.c_str()));
+		}
 		aAlign = DS_ALIGN_LEFT;
 	}
 	else
@@ -536,11 +585,16 @@ void AlmanacDialog::Draw(Graphics* g)
 void AlmanacDialog::GetSeedPosition(SeedType theSeedType, int& x, int& y)
 {
 	if (theSeedType == SeedType::SEED_IMITATER)
+	{
 		x = 20, y = 23;
+	}
 	else
 	{
-		x = theSeedType % 8 * 52 + 26;
-		y = theSeedType / 8 * 78 + 92;
+		// Mod API: 自定义植物的 SeedType 可能 >= NUM_ALMANAC_SEEDS，
+		// 仍用 % 8 / / 8 的网格布局，从 Imitater 旁的位置往下排列
+		int idx = static_cast<int>(theSeedType);
+		x = idx % 8 * 52 + 26;
+		y = idx / 8 * 78 + 92;
 	}
 }
 
@@ -548,8 +602,11 @@ SeedType AlmanacDialog::SeedHitTest(int x, int y)
 {
 	if (mMouseVisible && mOpenPage == AlmanacPage::ALMANAC_PAGE_PLANTS)
 	{
-		for (SeedType aSeedType = SeedType::SEED_PEASHOOTER; aSeedType < NUM_ALMANAC_SEEDS; aSeedType = (SeedType)(aSeedType + 1))
+		// Mod API: 遍历范围扩展到原版 + 自定义植物
+		int totalSeeds = GetTotalPlantCount();
+		for (int aSeedIdx = static_cast<int>(SeedType::SEED_PEASHOOTER); aSeedIdx < totalSeeds; aSeedIdx++)
 		{
+			SeedType aSeedType = static_cast<SeedType>(aSeedIdx);
 			if (mApp->HasSeedType(aSeedType))
 			{
 				int aSeedX, aSeedY;
@@ -575,6 +632,9 @@ bool AlmanacDialog::ZombieHasSilhouette(ZombieType theZombieType)
 // GOTY @Patoke: 0x404C50
 bool AlmanacDialog::ZombieIsShown(ZombieType theZombieType)
 {
+	// Mod API: 自定义僵尸默认在图鉴中显示（无解锁进度限制）
+	if (IsCustomZombieType(theZombieType)) return true;
+
 	// 试玩模式下，仅展示潜水僵尸及其之前出现的僵尸
 	if (mApp->IsTrialStageLocked() && theZombieType > ZombieType::ZOMBIE_SNORKEL)
 		return false;
@@ -595,7 +655,7 @@ bool AlmanacDialog::ZombieIsShown(ZombieType theZombieType)
 		int aStart = GetZombieDefinition(theZombieType).mStartingLevel;
 		// 要求已经达到僵尸首次出现的关卡
 		// 对于不能通过自然刷怪出现的僵尸（小鬼僵尸、雪橇僵尸小队、伴舞僵尸），额外要求已通过其首次出现的关卡或已击败过该僵尸
-		return aStart <= aLevel && (aStart != aLevel || !Board::IsZombieTypeSpawnedOnly(theZombieType) || gZombieDefeated[theZombieType]);
+		return aStart <= aLevel && (aStart != aLevel || !Board::IsZombieTypeSpawnedOnly(theZombieType) || gZombieDefeated_Get(theZombieType));
 	}
 
 	return false;
@@ -604,6 +664,9 @@ bool AlmanacDialog::ZombieIsShown(ZombieType theZombieType)
 // GOTY @Patoke: 0x404D50
 bool AlmanacDialog::ZombieHasDescription(ZombieType theZombieType)
 {
+	// Mod API: 自定义僵尸默认有描述（用 mAlmanacDescription）
+	if (IsCustomZombieType(theZombieType)) return true;
+
 	int aLevel = mApp->mPlayerInfo->GetLevel();
 	int aStart = GetZombieDefinition(theZombieType).mStartingLevel;
 
@@ -623,17 +686,21 @@ bool AlmanacDialog::ZombieHasDescription(ZombieType theZombieType)
 
 	// 雪人僵尸在二周目 4-10 关卡至三周目之间，或其他僵尸在冒险模式一周目中的情况，
 	// 要求已经达到僵尸首次出现的关卡，且已通过其首次出现的关卡或已击败过该僵尸
-	return aStart <= aLevel && (aStart != aLevel || gZombieDefeated[theZombieType]);
+	return aStart <= aLevel && (aStart != aLevel || gZombieDefeated_Get(theZombieType));
 }
 
 void AlmanacDialog::GetZombiePosition(ZombieType theZombieType, int& x, int& y)
 {
 	if (theZombieType == ZombieType::ZOMBIE_BOSS)
+	{
 		x = 192, y = 486;
+	}
 	else
 	{
-		x = theZombieType % 5 * 85 + 22;
-		y = theZombieType / 5 * 80 + 86;
+		// Mod API: 自定义僵尸用与原版相同的网格布局
+		int idx = static_cast<int>(theZombieType);
+		x = idx % 5 * 85 + 22;
+		y = idx / 5 * 80 + 86;
 	}
 }
 
@@ -642,7 +709,9 @@ ZombieType AlmanacDialog::ZombieHitTest(int x, int y)
 {
 	if (mMouseVisible && mOpenPage == AlmanacPage::ALMANAC_PAGE_ZOMBIES)
 	{
-		for (int i = 0; i < NUM_ALMANAC_ZOMBIES; i++)
+		// Mod API: 遍历范围扩展到原版 + 自定义僵尸
+		int totalZombies = GetTotalZombieCount();
+		for (int i = 0; i < totalZombies; i++)
 		{
 			ZombieType aZombieType = GetZombieType(i);
 			// @Patoke: added IsShown check
@@ -709,10 +778,12 @@ void AlmanacDialog::KeyDown(KeyCode theKey)
 void AlmanacInitForPlayer()
 {
 	for (int i = 0; i < ZombieType::NUM_ZOMBIE_TYPES; i++)
-		gZombieDefeated[i] = false;
+		gZombieDefeatedBuiltin[i] = false;
+	// Mod API: 同时清空自定义僵尸的击败记录
+	gZombieDefeatedCustom.clear();
 }
 
 void AlmanacPlayerDefeatedZombie(ZombieType theZombieType)
 {
-	gZombieDefeated[theZombieType] = true;
+	gZombieDefeated_Set(theZombieType, true);
 }

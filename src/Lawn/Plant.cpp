@@ -4175,6 +4175,8 @@ void Plant::DrawSeedType(Graphics* g, SeedType theSeedType, SeedType theImitater
             }
 
             Image* aPlantImage = Plant::GetImage(aSeedType);
+            // Mod API: 自定义植物若无 mPlantImage，跳过绘制避免崩溃
+            if (!aPlantImage) return;
             if (aPlantImage->mNumCols <= 2)
             {
                 aCelCol = aPlantImage->mNumCols - 1;
@@ -4966,8 +4968,9 @@ void Plant::Die()
 }
 
 // Mod API: 自定义植物定义的运行时存储
+// 注意：非匿名 namespace，因为 Plant.h 中 extern 声明需要链接到此处定义
+std::vector<PlantDefinition> gCustomPlantDefs;
 namespace {
-    std::vector<PlantDefinition> gCustomPlantDefs;
     int gNextCustomSeedType = static_cast<int>(SeedType::NUM_SEED_TYPES);
 }
 
