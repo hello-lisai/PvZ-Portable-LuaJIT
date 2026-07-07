@@ -63,6 +63,9 @@ enum class ModEvent : int32_t {
     // ====== 经济 ======
     ON_SUN_CHANGED,             // 阳光变化（AddSunMoney/TakeSunMoney）
 
+    // ====== 绘制（只读 POST 事件，mod 可在 HUD 上画自定义内容）======
+    ON_BOARD_DRAW_HUD,          // Board::DrawUITop 末尾，ctx.graphics 指向 Graphics*
+
     // 事件总数（用于静态数组大小）
     COUNT,
 };
@@ -105,6 +108,7 @@ inline const char* ModEventName(ModEvent e) {
     case ModEvent::ON_MOUSE_DOWN_PRE:          return "ON_MOUSE_DOWN_PRE";
     case ModEvent::ON_MOUSE_UP_PRE:            return "ON_MOUSE_UP_PRE";
     case ModEvent::ON_SUN_CHANGED:             return "ON_SUN_CHANGED";
+    case ModEvent::ON_BOARD_DRAW_HUD:          return "ON_BOARD_DRAW_HUD";
     default: return "UNKNOWN";
     }
 }

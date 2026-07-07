@@ -114,3 +114,6 @@ inline void RegisterEnum(lua_State* L, const EnumEntry* entries, size_t count) {
 #define MT_COIN        "PvZ.Coin"
 #define MT_GRIDITEM    "PvZ.GridItem"
 #define MT_LAWNMOWER   "PvZ.LawnMower"
+#define MT_GRAPHICS    "PvZ.Graphics"
+#define MT_IMAGE       "PvZ.Image"
+#define MT_FONT        "PvZ.Font"

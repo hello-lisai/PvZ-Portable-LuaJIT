@@ -29,6 +29,8 @@
 #include "../../Lawn/Plant.h"           // PlantDefinition / RegisterPlantDefinition
 #include "../../Lawn/Zombie.h"          // ZombieDefinition / RegisterZombieDefinition
 #include "../../Sexy.TodLib/Reanimator.h"  // ReanimatorRegisterAnimation
+#include "../../SexyAppFramework/graphics/Graphics.h"  // Graphics（ON_BOARD_DRAW_HUD 事件）
+#include "../../Resources.h"            // FONT_* / IMAGE_* 全局指针（pvz.fonts / pvz.images）
 
 // 对象绑定（在各自 Bind*.cpp 中实现）
 namespace ModLua {
@@ -39,6 +41,7 @@ namespace ModLua {
     void BindCoin(lua_State* L);
     void BindGridItem(lua_State* L);
     void BindLawnMower(lua_State* L);
+    void BindGraphics(lua_State* L);   // Graphics/Image/Font 元表
     void BindEnums(lua_State* L);  // ZombieType / SeedType / KeyCode 等
 
     // 把 C++ 对象 push 成 Lua userdata（各 Bind*.cpp 提供）
@@ -49,6 +52,9 @@ namespace ModLua {
     void PushCoin(lua_State* L, Coin* c);
     void PushGridItem(lua_State* L, GridItem* g);
     void PushLawnMower(lua_State* L, LawnMower* m);
+    void PushGraphics(lua_State* L, Graphics* g);  // ON_BOARD_DRAW_HUD 事件用
+    void PushFont(lua_State* L, _Font* f);          // pvz.fonts 表用
+    void PushImage(lua_State* L, Image* img);        // pvz.images 表用
 }
 
 namespace {
@@ -103,6 +109,7 @@ const char* EventToLuaName(ModEvent e) {
     case ModEvent::ON_MOUSE_DOWN_PRE:          return "on_mouse_down";
     case ModEvent::ON_MOUSE_UP_PRE:            return "on_mouse_up";
     case ModEvent::ON_SUN_CHANGED:             return "on_sun_changed";
+    case ModEvent::ON_BOARD_DRAW_HUD:          return "on_board_draw_hud";
     default: return nullptr;
     }
 }
@@ -706,6 +713,7 @@ void Initialize() {
     BindCoin(g_L);
     BindGridItem(g_L);
     BindLawnMower(g_L);
+    BindGraphics(g_L);
 
     // 提供全局 pvz 表（含 api_version + config 子表）
     lua_newtable(g_L);
@@ -780,6 +788,71 @@ void Initialize() {
     // object_kind: 0=Zombie, 1=Plant, 2=Board, 3=Projectile, 4=Coin, 5=Mower, 6=GridItem
     lua_pushcfunction(g_L, l_field_type_of);
     lua_setfield(g_L, -2, "field_type_of");
+
+    // pvz.fonts 子表：暴露所有全局 FONT_* 指针给 mod
+    // mod 用法: local f = pvz.fonts.BRIANNETOD16; g:set_font(f)
+    lua_newtable(g_L);
+    auto push_font = [&](const char* key, _Font* font) {
+        if (font) { PushFont(g_L, font); lua_setfield(g_L, -2, key); }
+    };
+    push_font("BRIANNETOD12",                    FONT_BRIANNETOD12);
+    push_font("BRIANNETOD16",                    FONT_BRIANNETOD16);
+    push_font("BRIANNETOD32",                    FONT_BRIANNETOD32);
+    push_font("BRIANNETOD32BLACK",               FONT_BRIANNETOD32BLACK);
+    push_font("CONTINUUMBOLD14",                 FONT_CONTINUUMBOLD14);
+    push_font("CONTINUUMBOLD14OUTLINE",          FONT_CONTINUUMBOLD14OUTLINE);
+    push_font("DWARVENTODCRAFT12",               FONT_DWARVENTODCRAFT12);
+    push_font("DWARVENTODCRAFT15",               FONT_DWARVENTODCRAFT15);
+    push_font("DWARVENTODCRAFT18",               FONT_DWARVENTODCRAFT18);
+    push_font("DWARVENTODCRAFT18BRIGHTGREENINSET",FONT_DWARVENTODCRAFT18BRIGHTGREENINSET);
+    push_font("DWARVENTODCRAFT18GREENINSET",     FONT_DWARVENTODCRAFT18GREENINSET);
+    push_font("DWARVENTODCRAFT18YELLOW",         FONT_DWARVENTODCRAFT18YELLOW);
+    push_font("DWARVENTODCRAFT24",               FONT_DWARVENTODCRAFT24);
+    push_font("DWARVENTODCRAFT36BRIGHTGREENINSET",FONT_DWARVENTODCRAFT36BRIGHTGREENINSET);
+    push_font("DWARVENTODCRAFT36GREENINSET",     FONT_DWARVENTODCRAFT36GREENINSET);
+    push_font("HOUSEOFTERROR16",                 FONT_HOUSEOFTERROR16);
+    push_font("HOUSEOFTERROR20",                 FONT_HOUSEOFTERROR20);
+    push_font("HOUSEOFTERROR28",                 FONT_HOUSEOFTERROR28);
+    push_font("PICO129",                         FONT_PICO129);
+    push_font("TINYBOLD",                        FONT_TINYBOLD);
+    lua_setfield(g_L, -2, "fonts");
+
+    // pvz.images 子表：暴露常用 IMAGE_* 指针给 mod（共数百个，这里选最常用的）
+    // mod 用法: local img = pvz.images.BACKGROUND1; g:draw_image(img, 0, 0)
+    lua_newtable(g_L);
+    auto push_img = [&](const char* key, Image* img) {
+        if (img) { PushImage(g_L, img); lua_setfield(g_L, -2, key); }
+    };
+    push_img("BACKGROUND1",          IMAGE_BACKGROUND1);
+    push_img("BACKGROUND2",          IMAGE_BACKGROUND2);
+    push_img("BACKGROUND3",          IMAGE_BACKGROUND3);
+    push_img("BACKGROUND4",          IMAGE_BACKGROUND4);
+    push_img("BACKGROUND5",          IMAGE_BACKGROUND5);
+    push_img("BACKGROUND6BOSS",      IMAGE_BACKGROUND6BOSS);
+    push_img("BACKGROUND1UNSODDED",  IMAGE_BACKGROUND1UNSODDED);
+    push_img("SOD1ROW",              IMAGE_SOD1ROW);
+    push_img("SOD3ROW",              IMAGE_SOD3ROW);
+    push_img("SUNBANK",              IMAGE_SUNBANK);
+    push_img("SHOVEL",               IMAGE_SHOVEL);
+    push_img("SHOVELBANK",           IMAGE_SHOVELBANK);
+    push_img("BLANK",                IMAGE_BLANK);
+    push_img("FOG",                  IMAGE_FOG);
+    push_img("SEEDPACKETFLASH",      IMAGE_SEEDPACKETFLASH);
+    push_img("SEEDPACKETSILHOUETTE", IMAGE_SEEDPACKETSILHOUETTE);
+    push_img("SEEDPACKET_LARGER",    IMAGE_SEEDPACKET_LARGER);
+    push_img("LOADBAR_DIRT",         IMAGE_LOADBAR_DIRT);
+    push_img("LOADBAR_GRASS",        IMAGE_LOADBAR_GRASS);
+    push_img("BUTTON_LEFT",          IMAGE_BUTTON_LEFT);
+    push_img("BUTTON_MIDDLE",        IMAGE_BUTTON_MIDDLE);
+    push_img("BUTTON_RIGHT",         IMAGE_BUTTON_RIGHT);
+    push_img("BUTTON_DOWN_LEFT",     IMAGE_BUTTON_DOWN_LEFT);
+    push_img("BUTTON_DOWN_MIDDLE",   IMAGE_BUTTON_DOWN_MIDDLE);
+    push_img("BUTTON_DOWN_RIGHT",    IMAGE_BUTTON_DOWN_RIGHT);
+    push_img("LOCK",                 IMAGE_LOCK);
+    push_img("LOCK_OPEN",            IMAGE_LOCK_OPEN);
+    push_img("ALMANAC_PLANTCARD",    IMAGE_ALMANAC_PLANTCARD);
+    push_img("ALMANAC_ZOMBIECARD",   IMAGE_ALMANAC_ZOMBIECARD);
+    lua_setfield(g_L, -2, "images");
 
     lua_setglobal(g_L, "pvz");
 
@@ -977,6 +1050,13 @@ void DispatchEvent(ModCtx& ctx) {
         case ModEvent::ON_SUN_CHANGED:
             PushBoard(g_L, ctx.board);
             lua_pushinteger(g_L, ctx.sunDelta);
+            nargs = 2;
+            break;
+        case ModEvent::ON_BOARD_DRAW_HUD:
+            // 参数：board, graphics
+            // graphics 是 light userdata，仅在回调期间有效
+            PushBoard(g_L, ctx.board);
+            PushGraphics(g_L, static_cast<Graphics*>(ctx.graphics));
             nargs = 2;
             break;
         default:

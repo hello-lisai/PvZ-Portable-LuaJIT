@@ -7779,6 +7779,9 @@ void Board::DrawUITop(Graphics* g)
 	mToolTip->Draw(g);
 	DrawDebugText(g);
 	DrawDebugObjectRects(g);
+
+	// Mod API: HUD 绘制钩子，让 mod 在 HUD 顶层画自定义内容
+	MOD_HOOK(ModEvent::ON_BOARD_DRAW_HUD, _ctx.board = this; _ctx.graphics = g);
 }
 
 void Board::Draw(Graphics* g)

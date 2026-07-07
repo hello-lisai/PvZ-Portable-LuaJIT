@@ -15,6 +15,11 @@ struct ModCtx {
     LawnApp*    app    = nullptr;
     Board*      board  = nullptr;
 
+    // ====== 绘制事件 (ON_BOARD_DRAW_HUD) ======
+    // Graphics* 指针，仅在绘制事件回调期间有效
+    // mod 通过 LuaBridge 的 MT_GRAPHICS 元表访问
+    void*       graphics = nullptr;
+
     // ====== 对象创建/销毁 ======
     // 用 void* 是为了避免引入具体类型头文件（ModBus.cpp 内部会 static_cast）
     // 外部 Mod 代码通过 LuaBridge 拿到强类型 userdata

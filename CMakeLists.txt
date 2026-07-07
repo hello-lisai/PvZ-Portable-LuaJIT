@@ -78,6 +78,7 @@ if(PVZ_MOD_API)
 		${CMAKE_CURRENT_SOURCE_DIR}/src/Mod/Lua/BindCoin.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/src/Mod/Lua/BindGridItem.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/src/Mod/Lua/BindLawnMower.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/src/Mod/Lua/BindGraphics.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/src/Mod/Export/PvzExport.cpp
 	)
 
