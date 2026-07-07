@@ -7781,7 +7781,8 @@ void Board::DrawUITop(Graphics* g)
 	DrawDebugObjectRects(g);
 
 	// Mod API: HUD 绘制钩子，让 mod 在 HUD 顶层画自定义内容
-	MOD_HOOK(ModEvent::ON_BOARD_DRAW_HUD, _ctx.board = this; _ctx.graphics = g);
+	// 注意：MOD_HOOK 第二个参数必须是单一表达式，多条赋值用逗号操作符连接
+	MOD_HOOK(ModEvent::ON_BOARD_DRAW_HUD, (_ctx.board = this, _ctx.graphics = g));
 }
 
 void Board::Draw(Graphics* g)
