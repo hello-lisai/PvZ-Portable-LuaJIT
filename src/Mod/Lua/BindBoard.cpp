@@ -262,6 +262,14 @@ int l_board_count_plants(lua_State* L) {
     return 1;
 }
 
+// board:get_ptr() — 返回原始指针（light userdata），供 LuaJIT FFI 使用
+int l_board_get_ptr(lua_State* L) {
+    Board* b = CheckUserdata<Board>(L, 1, MT_BOARD);
+    if (!b) { lua_pushnil(L); return 1; }
+    lua_pushlightuserdata(L, b);
+    return 1;
+}
+
 // board:__index 分发
 int l_board_index(lua_State* L) {
     Board* b = CheckUserdata<Board>(L, 1, MT_BOARD);
@@ -290,6 +298,7 @@ int l_board_index(lua_State* L) {
         {"for_each_zombie",       l_board_for_each_zombie},
         {"for_each_plant",        l_board_for_each_plant},
         {"for_each_projectile",   l_board_for_each_projectile},
+        {"get_ptr",               l_board_get_ptr},
         {"for_each_coin",         l_board_for_each_coin},
         {"count_zombies",         l_board_count_zombies},
         {"count_plants",          l_board_count_plants},

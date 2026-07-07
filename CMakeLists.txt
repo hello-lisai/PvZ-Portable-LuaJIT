@@ -78,6 +78,7 @@ if(PVZ_MOD_API)
 		${CMAKE_CURRENT_SOURCE_DIR}/src/Mod/Lua/BindCoin.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/src/Mod/Lua/BindGridItem.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/src/Mod/Lua/BindLawnMower.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/src/Mod/Export/PvzExport.cpp
 	)
 
 	# 查找 LuaJIT：vcpkg 把头文件放在 include/luajit/ 子目录，库文件名因平台而异
@@ -283,6 +284,7 @@ target_compile_definitions(pvz-portable PRIVATE
 	$<$<BOOL:${PVZ_DEBUG}>:PVZ_DEBUG>
 	$<$<BOOL:${DO_FIX_BUGS}>:DO_FIX_BUGS>
 	$<$<BOOL:${PVZ_MOD_API}>:PVZ_MOD_API_ENABLED>
+	$<$<BOOL:${PVZ_MOD_API}>:PVZ_EXPORTS>
 )
 target_compile_features(pvz-portable PRIVATE cxx_std_20)
 set_target_properties(pvz-portable PROPERTIES CXX_EXTENSIONS OFF)

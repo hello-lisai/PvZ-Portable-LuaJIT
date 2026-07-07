@@ -87,6 +87,14 @@ int l_plant_squish(lua_State* L) {
     return 0;
 }
 
+// plant:get_ptr() — 返回原始指针（light userdata），供 LuaJIT FFI 使用
+int l_plant_get_ptr(lua_State* L) {
+    Plant* p = CheckUserdata<Plant>(L, 1, MT_PLANT);
+    if (!p) { lua_pushnil(L); return 1; }
+    lua_pushlightuserdata(L, p);
+    return 1;
+}
+
 int l_plant_index(lua_State* L) {
     Plant* p = CheckUserdata<Plant>(L, 1, MT_PLANT);
     if (!p) { lua_pushnil(L); return 1; }
@@ -112,6 +120,7 @@ int l_plant_index(lua_State* L) {
         {"die",         l_plant_die},
         {"do_special",  l_plant_do_special},
         {"squish",      l_plant_squish},
+        {"get_ptr",     l_plant_get_ptr},
     };
     for (auto& m : methods) {
         if (strcmp(key, m.name) == 0) {

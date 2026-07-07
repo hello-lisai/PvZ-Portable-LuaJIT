@@ -420,6 +420,9 @@ build-*/
 mods/config.json
 mods/*/config.json
 
+# 本地游戏运行时目录（含 exe / 资源 / 部署的 mod 副本），不入库
+pvzmod/
+
 # IDE
 .vscode/
 .idea/

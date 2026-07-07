@@ -155,6 +155,16 @@ int l_zombie_die_with_loot(lua_State* L) {
     return 0;
 }
 
+// zombie:get_ptr() — 返回原始指针（light userdata），供 LuaJIT FFI 使用
+// 例：local ptr = zombie:get_ptr()
+//     ffi.C.pvz_zombie_take_damage(ptr, 9999, 0)
+int l_zombie_get_ptr(lua_State* L) {
+    Zombie* z = CheckUserdata<Zombie>(L, 1, MT_ZOMBIE);
+    if (!z) { lua_pushnil(L); return 1; }
+    lua_pushlightuserdata(L, z);
+    return 1;
+}
+
 // zombie:__index
 int l_zombie_index(lua_State* L) {
     Zombie* z = CheckUserdata<Zombie>(L, 1, MT_ZOMBIE);
@@ -190,6 +200,7 @@ int l_zombie_index(lua_State* L) {
         {"apply_chill",      l_zombie_apply_chill},
         {"die",              l_zombie_die},
         {"die_with_loot",    l_zombie_die_with_loot},
+        {"get_ptr",          l_zombie_get_ptr},
     };
     for (auto& m : methods) {
         if (strcmp(key, m.name) == 0) {

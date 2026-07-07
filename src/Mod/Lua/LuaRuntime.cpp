@@ -15,6 +15,7 @@
 // Lua C API：通过 LuaBindUtil.h 统一入口引入（含 LuaJIT 兼容宏 lua_absindex / lua_isinteger）
 // LuaBindUtil.h 已在 extern "C" 块内 include 了 lua.h / lauxlib.h / lualib.h
 #include "LuaBindUtil.h"
+#include "../Export/PvzExport.h"
 
 // 极简 JSON 读写（header-only）
 #include "../Utils/MiniJson.h"
@@ -299,6 +300,30 @@ int l_config_all(lua_State* L) {
     std::string modDir = GetCurrentModDir();
     if (modDir.empty()) { lua_newtable(L); return 1; }
     PushJsonValue(L, GetModConfig(modDir));
+    return 1;
+}
+
+// =============================================================================
+// pvz.offset_of.* —— 内存偏移查询 API（第二步：直接读写内存）
+// mod 用 ffi.cast("char*", ptr) + offset 直接读写对象字段，绕过所有 getter/setter
+// =============================================================================
+
+// pvz.offset_of.zombie(field_name) → 返回字段在 Zombie 对象内的字节偏移，-1 表示未知
+int l_offset_of_zombie(lua_State* L) {
+    const char* field = luaL_checkstring(L, 1);
+    lua_pushinteger(L, pvz_offset_of_zombie(field));
+    return 1;
+}
+
+int l_offset_of_plant(lua_State* L) {
+    const char* field = luaL_checkstring(L, 1);
+    lua_pushinteger(L, pvz_offset_of_plant(field));
+    return 1;
+}
+
+int l_offset_of_board(lua_State* L) {
+    const char* field = luaL_checkstring(L, 1);
+    lua_pushinteger(L, pvz_offset_of_board(field));
     return 1;
 }
 
@@ -696,6 +721,17 @@ void Initialize() {
     lua_pushcfunction(g_L, l_zombies_register);
     lua_setfield(g_L, -2, "register");
     lua_setfield(g_L, -2, "zombies");
+
+    // pvz.offset_of 子表：内存偏移查询（第二步：直接读写内存）
+    // 返回字段在对象内的字节偏移，mod 用 ffi.cast + offset 直接读写
+    lua_newtable(g_L);
+    lua_pushcfunction(g_L, l_offset_of_zombie);
+    lua_setfield(g_L, -2, "zombie");
+    lua_pushcfunction(g_L, l_offset_of_plant);
+    lua_setfield(g_L, -2, "plant");
+    lua_pushcfunction(g_L, l_offset_of_board);
+    lua_setfield(g_L, -2, "board");
+    lua_setfield(g_L, -2, "offset_of");
 
     lua_setglobal(g_L, "pvz");
 
