@@ -248,13 +248,14 @@ PVZ_API int pvz_plant_get_state(void* p) {
     return static_cast<int>(static_cast<Plant*>(p)->mState);
 }
 
-PVZ_API float pvz_plant_get_x(void* p) {
-    if (!p) return 0.0f;
+// 注意：mX/mY 继承自 GameObject，类型为 int32_t
+PVZ_API int pvz_plant_get_x(void* p) {
+    if (!p) return 0;
     return static_cast<Plant*>(p)->mX;
 }
 
-PVZ_API float pvz_plant_get_y(void* p) {
-    if (!p) return 0.0f;
+PVZ_API int pvz_plant_get_y(void* p) {
+    if (!p) return 0;
     return static_cast<Plant*>(p)->mY;
 }
 
@@ -305,11 +306,6 @@ PVZ_API int pvz_board_get_level(void* b) {
     return static_cast<Board*>(b)->mLevel;
 }
 
-PVZ_API int pvz_board_get_game_mode(void* b) {
-    if (!b) return -1;
-    return static_cast<int>(static_cast<Board*>(b)->mGameMode);
-}
-
 // ====== 内存偏移查询（第二步） ======
 // 返回字段在对象内的字节偏移，-1 表示字段名未知
 // mod 用 ffi.cast + offset 直接读写内存，绕过所有 getter/setter
@@ -358,7 +354,9 @@ PVZ_API int pvz_offset_of_board(const char* field_name) {
     using B = Board;
     if (strcmp(field_name, "sun_money")       == 0) return offsetof(B, mSunMoney);
     if (strcmp(field_name, "level")           == 0) return offsetof(B, mLevel);
-    if (strcmp(field_name, "game_mode")       == 0) return offsetof(B, mGameMode);
+    if (strcmp(field_name, "current_wave")    == 0) return offsetof(B, mCurrentWave);
+    if (strcmp(field_name, "num_waves")       == 0) return offsetof(B, mNumWaves);
+    if (strcmp(field_name, "main_counter")    == 0) return offsetof(B, mMainCounter);
     if (strcmp(field_name, "level_complete")  == 0) return offsetof(B, mLevelComplete);
     return -1;
 }

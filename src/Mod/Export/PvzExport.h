@@ -99,8 +99,9 @@ PVZ_API void  pvz_plant_set_health(void* p, int v);
 PVZ_API int   pvz_plant_get_max_health(void* p);
 PVZ_API void  pvz_plant_set_max_health(void* p, int v);
 PVZ_API int   pvz_plant_get_state(void* p);
-PVZ_API float pvz_plant_get_x(void* p);
-PVZ_API float pvz_plant_get_y(void* p);
+// 注意：Plant 的 mX/mY 继承自 GameObject，类型为 int32_t（非 float）
+PVZ_API int   pvz_plant_get_x(void* p);
+PVZ_API int   pvz_plant_get_y(void* p);
 
 // ====== Board 导出 API ======
 // 对应 Board 类的公开方法（src/Lawn/Board.h）
@@ -116,7 +117,6 @@ PVZ_API void  pvz_board_init_level(void* b);
 PVZ_API int   pvz_board_get_sun_money(void* b);
 PVZ_API void  pvz_board_set_sun_money(void* b, int v);
 PVZ_API int   pvz_board_get_level(void* b);
-PVZ_API int   pvz_board_get_game_mode(void* b);
 
 // ====== 内存偏移查询（第二步） ======
 // 返回关键字段在对象内的字节偏移，供 mod 用 ffi 直接读写内存
