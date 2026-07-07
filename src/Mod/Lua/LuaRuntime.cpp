@@ -327,6 +327,40 @@ int l_offset_of_board(lua_State* L) {
     return 1;
 }
 
+int l_offset_of_projectile(lua_State* L) {
+    const char* field = luaL_checkstring(L, 1);
+    lua_pushinteger(L, pvz_offset_of_projectile(field));
+    return 1;
+}
+
+int l_offset_of_coin(lua_State* L) {
+    const char* field = luaL_checkstring(L, 1);
+    lua_pushinteger(L, pvz_offset_of_coin(field));
+    return 1;
+}
+
+int l_offset_of_mower(lua_State* L) {
+    const char* field = luaL_checkstring(L, 1);
+    lua_pushinteger(L, pvz_offset_of_mower(field));
+    return 1;
+}
+
+int l_offset_of_griditem(lua_State* L) {
+    const char* field = luaL_checkstring(L, 1);
+    lua_pushinteger(L, pvz_offset_of_griditem(field));
+    return 1;
+}
+
+// pvz.field_type_of(object_kind, field_name) → 返回字段类型代号
+//   1=int32, 2=int64, 3=float, 4=double, 5=bool, 6=pointer, 0=未知
+// object_kind: 0=Zombie, 1=Plant, 2=Board, 3=Projectile, 4=Coin, 5=Mower, 6=GridItem
+int l_field_type_of(lua_State* L) {
+    int kind = static_cast<int>(luaL_checkinteger(L, 1));
+    const char* field = luaL_checkstring(L, 2);
+    lua_pushinteger(L, pvz_field_type_of(kind, field));
+    return 1;
+}
+
 // =============================================================================
 // pvz.waves.* —— 出怪系统运行时修改 API
 // =============================================================================
@@ -731,7 +765,21 @@ void Initialize() {
     lua_setfield(g_L, -2, "plant");
     lua_pushcfunction(g_L, l_offset_of_board);
     lua_setfield(g_L, -2, "board");
+    lua_pushcfunction(g_L, l_offset_of_projectile);
+    lua_setfield(g_L, -2, "projectile");
+    lua_pushcfunction(g_L, l_offset_of_coin);
+    lua_setfield(g_L, -2, "coin");
+    lua_pushcfunction(g_L, l_offset_of_mower);
+    lua_setfield(g_L, -2, "mower");
+    lua_pushcfunction(g_L, l_offset_of_griditem);
+    lua_setfield(g_L, -2, "griditem");
     lua_setfield(g_L, -2, "offset_of");
+
+    // pvz.field_type_of(object_kind, field_name) → 字段类型代号
+    //   1=int32, 2=int64, 3=float, 4=double, 5=bool, 6=pointer, 0=未知
+    // object_kind: 0=Zombie, 1=Plant, 2=Board, 3=Projectile, 4=Coin, 5=Mower, 6=GridItem
+    lua_pushcfunction(g_L, l_field_type_of);
+    lua_setfield(g_L, -2, "field_type_of");
 
     lua_setglobal(g_L, "pvz");
 

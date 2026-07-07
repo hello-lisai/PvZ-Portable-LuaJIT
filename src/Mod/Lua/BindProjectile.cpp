@@ -61,6 +61,14 @@ int l_proj_die(lua_State* L) {
     return 0;
 }
 
+// projectile:get_ptr() — 返回原始指针（light userdata），供 LuaJIT FFI 使用
+int l_proj_get_ptr(lua_State* L) {
+    Projectile* p = CheckUserdata<Projectile>(L, 1, MT_PROJECTILE);
+    if (!p) { lua_pushnil(L); return 1; }
+    lua_pushlightuserdata(L, p);
+    return 1;
+}
+
 int l_proj_index(lua_State* L) {
     Projectile* p = CheckUserdata<Projectile>(L, 1, MT_PROJECTILE);
     if (!p) { lua_pushnil(L); return 1; }
@@ -82,6 +90,10 @@ int l_proj_index(lua_State* L) {
 
     if (strcmp(key, "die") == 0) {
         lua_pushcfunction(L, l_proj_die);
+        return 1;
+    }
+    if (strcmp(key, "get_ptr") == 0) {
+        lua_pushcfunction(L, l_proj_get_ptr);
         return 1;
     }
     lua_pushnil(L);

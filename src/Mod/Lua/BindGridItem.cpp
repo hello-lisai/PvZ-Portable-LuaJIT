@@ -75,6 +75,14 @@ int l_griditem_die(lua_State* L) {
     return 0;
 }
 
+// griditem:get_ptr() — 返回原始指针（light userdata），供 LuaJIT FFI 使用
+int l_griditem_get_ptr(lua_State* L) {
+    GridItem* g = CheckUserdata<GridItem>(L, 1, MT_GRIDITEM);
+    if (!g) { lua_pushnil(L); return 1; }
+    lua_pushlightuserdata(L, g);
+    return 1;
+}
+
 int l_griditem_index(lua_State* L) {
     GridItem* g = CheckUserdata<GridItem>(L, 1, MT_GRIDITEM);
     if (!g) { lua_pushnil(L); return 1; }
@@ -98,6 +106,10 @@ int l_griditem_index(lua_State* L) {
 
     if (strcmp(key, "die") == 0) {
         lua_pushcfunction(L, l_griditem_die);
+        return 1;
+    }
+    if (strcmp(key, "get_ptr") == 0) {
+        lua_pushcfunction(L, l_griditem_get_ptr);
         return 1;
     }
     lua_pushnil(L);

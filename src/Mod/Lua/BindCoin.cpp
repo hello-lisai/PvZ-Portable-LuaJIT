@@ -61,6 +61,14 @@ int l_coin_collect(lua_State* L) {
     return 0;
 }
 
+// coin:get_ptr() — 返回原始指针（light userdata），供 LuaJIT FFI 使用
+int l_coin_get_ptr(lua_State* L) {
+    Coin* c = CheckUserdata<Coin>(L, 1, MT_COIN);
+    if (!c) { lua_pushnil(L); return 1; }
+    lua_pushlightuserdata(L, c);
+    return 1;
+}
+
 int l_coin_index(lua_State* L) {
     Coin* c = CheckUserdata<Coin>(L, 1, MT_COIN);
     if (!c) { lua_pushnil(L); return 1; }
@@ -85,6 +93,10 @@ int l_coin_index(lua_State* L) {
     }
     if (strcmp(key, "collect") == 0) {
         lua_pushcfunction(L, l_coin_collect);
+        return 1;
+    }
+    if (strcmp(key, "get_ptr") == 0) {
+        lua_pushcfunction(L, l_coin_get_ptr);
         return 1;
     }
     lua_pushnil(L);

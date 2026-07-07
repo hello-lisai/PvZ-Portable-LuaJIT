@@ -117,16 +117,152 @@ PVZ_API void  pvz_board_init_level(void* b);
 PVZ_API int   pvz_board_get_sun_money(void* b);
 PVZ_API void  pvz_board_set_sun_money(void* b, int v);
 PVZ_API int   pvz_board_get_level(void* b);
+PVZ_API int   pvz_board_get_current_wave(void* b);
+PVZ_API int   pvz_board_get_num_waves(void* b);
+PVZ_API int   pvz_board_get_main_counter(void* b);
+PVZ_API int   pvz_board_get_paused(void* b);
+
+// ====== Projectile 导出 API ======
+// 对应 Projectile 类（src/Lawn/Projectile.h），继承自 GameObject
+
+PVZ_API void  pvz_projectile_die(void* p);
+PVZ_API void  pvz_projectile_do_impact(void* p, void* zombie);
+PVZ_API void  pvz_projectile_do_splash_damage(void* p, void* zombie);
+PVZ_API void  pvz_projectile_update_motion(void* p);
+PVZ_API void  pvz_projectile_convert_to_fireball(void* p, int grid_x);
+PVZ_API void  pvz_projectile_convert_to_pea(void* p, int grid_x);
+
+// Projectile 字段 getter/setter
+PVZ_API int   pvz_projectile_get_type(void* p);
+PVZ_API int   pvz_projectile_get_motion_type(void* p);
+PVZ_API int   pvz_projectile_get_row(void* p);          // 继承自 GameObject
+PVZ_API int   pvz_projectile_get_x(void* p);            // 继承自 GameObject (int32)
+PVZ_API int   pvz_projectile_get_y(void* p);            // 继承自 GameObject (int32)
+PVZ_API float pvz_projectile_get_pos_x(void* p);
+PVZ_API void  pvz_projectile_set_pos_x(void* p, float v);
+PVZ_API float pvz_projectile_get_pos_y(void* p);
+PVZ_API void  pvz_projectile_set_pos_y(void* p, float v);
+PVZ_API float pvz_projectile_get_vel_x(void* p);
+PVZ_API void  pvz_projectile_set_vel_x(void* p, float v);
+PVZ_API float pvz_projectile_get_vel_y(void* p);
+PVZ_API void  pvz_projectile_set_vel_y(void* p, float v);
+PVZ_API int   pvz_projectile_get_age(void* p);
+PVZ_API int   pvz_projectile_get_dead(void* p);
+PVZ_API int   pvz_projectile_get_damage_range_flags(void* p);
+PVZ_API int   pvz_projectile_get_target_zombie_id(void* p);
+
+// ====== Coin 导出 API ======
+// 对应 Coin 类（src/Lawn/Coin.h），继承自 GameObject
+
+PVZ_API void  pvz_coin_die(void* c);
+PVZ_API void  pvz_coin_collect(void* c);
+PVZ_API void  pvz_coin_start_fade(void* c);
+PVZ_API int   pvz_coin_get_sun_value(void* c);
+PVZ_API int   pvz_coin_is_money(void* c);
+PVZ_API int   pvz_coin_is_sun(void* c);
+PVZ_API int   pvz_coin_is_level_award(void* c);
+
+// Coin 字段 getter/setter
+PVZ_API int   pvz_coin_get_type(void* c);
+PVZ_API int   pvz_coin_get_motion(void* c);
+PVZ_API int   pvz_coin_get_row(void* c);                // 继承自 GameObject
+PVZ_API int   pvz_coin_get_x(void* c);                  // 继承自 GameObject (int32)
+PVZ_API int   pvz_coin_get_y(void* c);                  // 继承自 GameObject (int32)
+PVZ_API float pvz_coin_get_pos_x(void* c);
+PVZ_API void  pvz_coin_set_pos_x(void* c, float v);
+PVZ_API float pvz_coin_get_pos_y(void* c);
+PVZ_API void  pvz_coin_set_pos_y(void* c, float v);
+PVZ_API float pvz_coin_get_vel_x(void* c);
+PVZ_API void  pvz_coin_set_vel_x(void* c, float v);
+PVZ_API float pvz_coin_get_vel_y(void* c);
+PVZ_API void  pvz_coin_set_vel_y(void* c, float v);
+PVZ_API int   pvz_coin_get_age(void* c);
+PVZ_API int   pvz_coin_get_dead(void* c);
+PVZ_API int   pvz_coin_get_being_collected(void* c);
+
+// ====== LawnMower 导出 API ======
+// 对应 LawnMower 类（src/Lawn/LawnMower.h），不继承 GameObject
+
+PVZ_API void  pvz_mower_start(void* m);
+PVZ_API void  pvz_mower_die(void* m);
+PVZ_API void  pvz_mower_squish(void* m);
+PVZ_API void  pvz_mower_enable_super(void* m, int enable);
+
+// LawnMower 字段 getter/setter
+PVZ_API int   pvz_mower_get_state(void* m);
+PVZ_API int   pvz_mower_get_type(void* m);
+PVZ_API int   pvz_mower_get_row(void* m);
+PVZ_API float pvz_mower_get_pos_x(void* m);
+PVZ_API void  pvz_mower_set_pos_x(void* m, float v);
+PVZ_API float pvz_mower_get_pos_y(void* m);
+PVZ_API int   pvz_mower_get_dead(void* m);
+PVZ_API int   pvz_mower_get_visible(void* m);
+
+// ====== GridItem 导出 API ======
+// 对应 GridItem 类（src/Lawn/GridItem.h），不继承 GameObject
+
+PVZ_API void  pvz_griditem_die(void* g);
+PVZ_API void  pvz_griditem_open_portal(void* g);
+PVZ_API void  pvz_griditem_close_portal(void* g);
+PVZ_API int   pvz_griditem_is_open_portal(void* g);
+
+// GridItem 字段 getter/setter
+PVZ_API int   pvz_griditem_get_type(void* g);
+PVZ_API int   pvz_griditem_get_state(void* g);
+PVZ_API int   pvz_griditem_get_grid_x(void* g);
+PVZ_API int   pvz_griditem_get_grid_y(void* g);
+PVZ_API float pvz_griditem_get_pos_x(void* g);
+PVZ_API void  pvz_griditem_set_pos_x(void* g, float v);
+PVZ_API float pvz_griditem_get_pos_y(void* g);
+PVZ_API void  pvz_griditem_set_pos_y(void* g, float v);
+PVZ_API int   pvz_griditem_get_dead(void* g);
+PVZ_API int   pvz_griditem_get_zombie_type(void* g);
+PVZ_API int   pvz_griditem_get_seed_type(void* g);
+
+// ====== LawnApp 全局 API ======
+// 对应 LawnApp 类（src/LawnApp.h），全局单例 gLawnApp
+// mod 无需传指针，直接调用即可
+
+PVZ_API void* pvz_app_get();                    // 返回 gLawnApp 指针
+PVZ_API void* pvz_app_get_board();              // 返回当前 Board 指针
+PVZ_API int   pvz_app_get_level();
+PVZ_API int   pvz_app_get_game_mode();
+PVZ_API int   pvz_app_get_game_scene();
+PVZ_API int   pvz_app_get_board_result();
+PVZ_API int   pvz_app_is_adventure_mode();
+PVZ_API int   pvz_app_is_survival_mode();
+PVZ_API int   pvz_app_is_challenge_mode();
+PVZ_API int   pvz_app_is_puzzle_mode();
+PVZ_API int   pvz_app_is_night();
+PVZ_API int   pvz_app_is_final_boss_level();
+PVZ_API int   pvz_app_has_finished_adventure();
+PVZ_API void  pvz_app_end_level();
+PVZ_API void  pvz_app_kill_board();
+PVZ_API void  pvz_app_show_game_selector();
+PVZ_API int   pvz_app_save_file_exists();
+PVZ_API void  pvz_app_play_foley(int foley_type);
+PVZ_API void  pvz_app_toggle_slow_mo();
+PVZ_API void  pvz_app_toggle_fast_mo();
 
 // ====== 内存偏移查询（第二步） ======
 // 返回关键字段在对象内的字节偏移，供 mod 用 ffi 直接读写内存
-// 例：local off = pvz.offset_of("zombie", "health")
+// 例：local off = pvz.offset_of.zombie("health")
 //     local ptr = ffi.cast("char*", zombie:get_ptr())
 //     local health = ffi.cast("int*", ptr + off)[0]
 
 PVZ_API int pvz_offset_of_zombie(const char* field_name);
 PVZ_API int pvz_offset_of_plant(const char* field_name);
 PVZ_API int pvz_offset_of_board(const char* field_name);
+PVZ_API int pvz_offset_of_projectile(const char* field_name);
+PVZ_API int pvz_offset_of_coin(const char* field_name);
+PVZ_API int pvz_offset_of_mower(const char* field_name);
+PVZ_API int pvz_offset_of_griditem(const char* field_name);
+
+// ====== 字段类型查询（增强：让 mod 知道字段类型以正确 cast 指针） ======
+// 返回字段类型代号：
+//   1 = int32, 2 = int64, 3 = float, 4 = double, 5 = bool, 6 = pointer, 0 = 未知
+PVZ_API int pvz_field_type_of(int object_kind, const char* field_name);
+// object_kind: 0=Zombie, 1=Plant, 2=Board, 3=Projectile, 4=Coin, 5=Mower, 6=GridItem
 
 #ifdef __cplusplus
 } // extern "C"

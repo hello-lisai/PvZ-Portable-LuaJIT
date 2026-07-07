@@ -76,6 +76,14 @@ int l_mower_enable_super(lua_State* L) {
     return 0;
 }
 
+// mower:get_ptr() — 返回原始指针（light userdata），供 LuaJIT FFI 使用
+int l_mower_get_ptr(lua_State* L) {
+    LawnMower* m = CheckUserdata<LawnMower>(L, 1, MT_LAWNMOWER);
+    if (!m) { lua_pushnil(L); return 1; }
+    lua_pushlightuserdata(L, m);
+    return 1;
+}
+
 int l_mower_index(lua_State* L) {
     LawnMower* m = CheckUserdata<LawnMower>(L, 1, MT_LAWNMOWER);
     if (!m) { lua_pushnil(L); return 1; }
@@ -108,6 +116,10 @@ int l_mower_index(lua_State* L) {
     }
     if (strcmp(key, "enable_super") == 0) {
         lua_pushcfunction(L, l_mower_enable_super);
+        return 1;
+    }
+    if (strcmp(key, "get_ptr") == 0) {
+        lua_pushcfunction(L, l_mower_get_ptr);
         return 1;
     }
     lua_pushnil(L);
