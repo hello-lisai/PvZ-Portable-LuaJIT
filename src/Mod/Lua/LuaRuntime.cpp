@@ -27,6 +27,7 @@
 #include "../../Lawn/Challenge.h"        // gZombieWaves / gZombieAllowedLevels
 #include "../../Lawn/Board.h"            // MAX_ZOMBIE_WAVES / MAX_ZOMBIES_IN_WAVE
 #include "../../Lawn/Plant.h"           // PlantDefinition / RegisterPlantDefinition
+#include "../../SexyAppFramework/paklib/PakInterface.h"  // gPakInterface / AddModOverlayDir
 #include "../../Lawn/Zombie.h"          // ZombieDefinition / RegisterZombieDefinition
 #include "../../Sexy.TodLib/Reanimator.h"  // ReanimatorRegisterAnimation
 #include "../../SexyAppFramework/graphics/Graphics.h"  // Graphics（ON_BOARD_DRAW_HUD 事件）
@@ -425,6 +426,30 @@ int l_reanim_register(lua_State* L) {
     return 1;
 }
 
+// pvz.resources.mount(dir) → 挂载额外资源覆盖目录
+// dir: 目录路径（绝对路径或相对于资源目录）
+// 挂载后，该目录下的文件会优先于 pak 被读取
+// 返回 true 表示挂载成功
+int l_resources_mount(lua_State* L) {
+    const char* dir = luaL_checkstring(L, 1);
+    if (gPakInterface) {
+        gPakInterface->AddModOverlayDir(dir);
+        lua_pushboolean(L, 1);
+    } else {
+        lua_pushboolean(L, 0);
+    }
+    return 1;
+}
+
+// pvz.resources.unmount(dir) → 移除已挂载的资源覆盖目录
+int l_resources_unmount(lua_State* L) {
+    const char* dir = luaL_checkstring(L, 1);
+    if (gPakInterface) {
+        gPakInterface->RemoveModOverlayDir(dir);
+    }
+    return 0;
+}
+
 // pvz.plants.register(definition_table) → 注册新植物类型，返回 SeedType
 // definition_table 字段：
 //   name (string, 必需)         植物名称
@@ -639,6 +664,14 @@ void LoadMod(lua_State* L, const std::string& modDir) {
         return;
     }
 
+    // Mod API: 自动挂载 mod 目录为资源覆盖目录
+    // 这让 mod 能覆盖 pak 内的同名文件（如 .reanim/.xml/.txt/.ogg/.png 等）
+    // mod 目录下的文件路径需与 pak 内路径一致才能覆盖
+    // 例如：mod 目录下放 reanim/peashooter.reanim 可覆盖原版 peashooter 动画
+    if (gPakInterface) {
+        gPakInterface->AddModOverlayDir(modDir);
+    }
+
     // 加载 main.lua
     std::string mainPath = modDir + "/" + mainFile;
     std::string content;
@@ -784,6 +817,15 @@ void Initialize() {
     ModLua::SetIntField(g_L, "ZOMBIE_ZAMBONI",  static_cast<lua_Integer>(ReanimationType::REANIM_ZOMBIE_ZAMBONI));
     lua_setfield(g_L, -2, "types");
     lua_setfield(g_L, -2, "reanim");
+
+    // pvz.resources 子表：资源覆盖目录管理
+    // mod 目录默认已自动挂载，此 API 用于挂载额外目录
+    lua_newtable(g_L);
+    lua_pushcfunction(g_L, l_resources_mount);
+    lua_setfield(g_L, -2, "mount");
+    lua_pushcfunction(g_L, l_resources_unmount);
+    lua_setfield(g_L, -2, "unmount");
+    lua_setfield(g_L, -2, "resources");
 
     // pvz.plants 子表：植物定义注册
     lua_newtable(g_L);

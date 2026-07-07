@@ -191,8 +191,30 @@ PFILE* PakInterface::FOpen(const char* theFileName, const char* anAccess)
 {
 	if ((strcasecmp(anAccess, "r") == 0) || (strcasecmp(anAccess, "rb") == 0) || (strcasecmp(anAccess, "rt") == 0))
 	{
-		std::string aKey = NormalizePakPath(theFileName);
-		auto anItr = mPakRecordMap.find(aKey);
+		// Mod API: 优先从 mod 覆盖目录查找（后挂载的优先级更高，倒序遍历）
+		// 这让 mod 能覆盖 pak 内的同名文件（如 .reanim/.xml/.txt/.ogg 等）
+		// 注意：文件系统查找用原始路径（保留大小写），不经过 NormalizePakPath 大写化
+		std::string aRawName = theFileName;
+		// 去掉可能的 "./" 前缀
+		if (aRawName.size() >= 2 && aRawName[0] == '.' && aRawName[1] == '/')
+			aRawName = aRawName.substr(2);
+		for (auto it = mModOverlayDirs.rbegin(); it != mModOverlayDirs.rend(); ++it)
+		{
+			const std::string& aOverlayBase = *it;
+			std::string aOverlayPath = aOverlayBase + "/" + aRawName;
+			FILE* aFP = fcaseopen(aOverlayPath.c_str(), anAccess);
+			if (aFP)
+			{
+				PFILE* aPFP = new PFILE;
+				aPFP->mRecord = nullptr;
+				aPFP->mPos = 0;
+				aPFP->mFP = aFP;
+				return aPFP;
+			}
+		}
+
+		std::string aNormKey = NormalizePakPath(theFileName);
+		auto anItr = mPakRecordMap.find(aNormKey);
 		if (anItr != mPakRecordMap.end())
 		{
 			PFILE* aPFP = new PFILE;
@@ -222,6 +244,26 @@ PFILE* PakInterface::FOpen(const char* theFileName, const char* anAccess)
 	aPFP->mPos = 0;
 	aPFP->mFP = aFP;
 	return aPFP;
+}
+
+// Mod API: 挂载 mod 资源覆盖目录
+void PakInterface::AddModOverlayDir(const std::string& theDir)
+{
+	// 去重：如果已挂载则不重复添加
+	for (const auto& d : mModOverlayDirs)
+	{
+		if (d == theDir) return;
+	}
+	mModOverlayDirs.push_back(theDir);
+}
+
+// Mod API: 移除已挂载的 mod 资源覆盖目录
+void PakInterface::RemoveModOverlayDir(const std::string& theDir)
+{
+	mModOverlayDirs.erase(
+		std::remove(mModOverlayDirs.begin(), mModOverlayDirs.end(), theDir),
+		mModOverlayDirs.end()
+	);
 }
 
 int PakInterface::FClose(PFILE* theFile)

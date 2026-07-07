@@ -29,6 +29,7 @@
 #include <list>
 #include <string>
 #include <string_view>
+#include <vector>
 #include <cstdint>
 
 class PakCollection;
@@ -95,6 +96,11 @@ public:
 	PakCollectionList		mPakCollectionList;		//+0x4：通过 AddPakFile() 添加的各个资源包的内存映射文件数据的链表
 	PakRecordMap			mPakRecordMap;			//+0x10：所有已添加的资源包中的所有资源文件的、从文件名到文件数据的映射容器
 
+	// Mod API: mod 资源覆盖目录列表
+	// FOpen 查询顺序：mod 覆盖目录 > pak 记录 > 资源目录
+	// 用 vector 保持挂载顺序，后挂载的优先级更高（栈式覆盖）
+	std::vector<std::string>	mModOverlayDirs;
+
 	static std::string		NormalizePakPath(std::string_view theFileName);
 
 public:
@@ -103,6 +109,11 @@ public:
 	~PakInterface();
 
 	bool					AddPakFile(const std::string& theFileName);
+	// Mod API: 挂载 mod 资源覆盖目录，后续 FOpen 会优先从此目录查找文件
+	// theDir 应为绝对路径或相对于资源目录的路径
+	void					AddModOverlayDir(const std::string& theDir);
+	// Mod API: 移除已挂载的 mod 资源覆盖目录
+	void					RemoveModOverlayDir(const std::string& theDir);
 	PFILE*					FOpen(const char* theFileName, const char* theAccess) override;
 	int						FClose(PFILE* theFile) override;
 	int						FSeek(PFILE* theFile, long theOffset, int theOrigin) override;
