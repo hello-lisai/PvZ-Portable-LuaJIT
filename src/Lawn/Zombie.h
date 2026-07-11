@@ -304,7 +304,7 @@ public:
     // 检查魅惑僵尸越右界死亡（提取自 CheckForBoardEdge）
     bool                            CheckMindControlEdgeDeath();
     // 判断目标僵尸是否为魅惑攻击目标（提取自 FindZombieTarget）
-    bool                            IsMindControlAttackTarget(const Zombie* other) const;
+    bool                            IsMindControlAttackTarget(Zombie* other);
     // 执行魅惑攻击逻辑（提取自 CheckIfPreyCaught）
     bool                            TryMindControlAttack();
     // 为粒子应用魅惑紫色（提取自 OverrideParticleColor）

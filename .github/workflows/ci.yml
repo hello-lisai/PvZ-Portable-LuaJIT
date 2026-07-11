@@ -30,6 +30,7 @@ jobs:
         pacman -Syu --noconfirm
         pacman -S --noconfirm \
           cmake \
+          git \
           libjpeg-turbo \
           libogg \
           libopenmpt \

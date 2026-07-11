@@ -6959,7 +6959,7 @@ bool Zombie::CheckMindControlEdgeDeath()
 
 // 判断目标僵尸是否为魅惑攻击目标
 // 提取自 FindZombieTarget 第 6359-6367 行的核心条件
-bool Zombie::IsMindControlAttackTarget(const Zombie* other) const
+bool Zombie::IsMindControlAttackTarget(Zombie* other)
 {
     if (!other) return false;
     return mMindControlled != other->mMindControlled &&
