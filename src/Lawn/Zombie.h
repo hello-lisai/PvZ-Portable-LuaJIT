@@ -235,6 +235,10 @@ public:
     bool                            IsOnHighGround();
     void                            DropLoot();
     bool                            TrySpawnLevelAward();
+    // ===== 关卡奖励小函数（提取自 TrySpawnLevelAward）=====
+    bool                            CanSpawnLevelAward();            // 检查前置条件（关卡类型/波次/僵尸状态）
+    CoinType                        PickLevelAwardCoinType(int aCenterX, int aCenterY);  // 按关卡类型/编号选择奖励硬币类型
+    // ===== 关卡奖励小函数结束 =====
     /*inline*/ void                 StartZombieSound();
     void                            StopZombieSound();
     void                            UpdateZombieJackInTheBox();
@@ -281,6 +285,12 @@ public:
     void                            UpdateAnimSpeed();
     /*inline*/ void                 ReanimShowPrefix(const char* theTrackPrefix, int theRenderGroup);
     void                            PlayDeathAnim(unsigned int theDamageFlags);
+    // ===== 死亡动画小函数（提取自 PlayDeathAnim）=====
+    bool                            CanPlayDeathAnim();                                      // 前置检查，返回 false 表示已处理（DieNoLoot 已调用）
+    void                            ClearDeathStatusEffects();                               // 清理冰冻/黄油/恶心脸状态
+    float                           GetDeathAnimRate(Reanimation* aBodyReanim);              // 按僵尸类型获取死亡动画速率
+    const char*                     GetDeathTrackName(Reanimation* aBodyReanim, float& aDeathAnimRate);  // 选择死亡轨道名（可能修改速率）
+    // ===== 死亡动画小函数结束 =====
     void                            UpdateDeath();
     void                            DrawShadow(Graphics* g);
     bool                            HasShadow();
@@ -318,6 +328,15 @@ public:
     // ===== 魅惑相关小函数结束 =====
     bool                            IsFlying();
     void                            DropHead(unsigned int theDamageFlags);
+    // ===== 掉头小函数（提取自 DropHead）=====
+    void                            GetHeadDropPos(float& aPosX, float& aPosY, int& aRenderOrder);  // 计算头部掉落位置
+    ParticleEffect                  GetHeadDropParticleEffect();                                   // 按状态选择粒子效果
+    void                            HandleHeadDropTypeSpecifics(unsigned int theDamageFlags);      // 类型特定处理（Pogo/Balloon 等）
+    void                            OverrideHeadParticleImage(TodParticleSystem* aParticle);       // 按类型设置头部粒子图片
+    void                            DropHeadMustache(float aPosX, float aPosY, int aRenderOrder);  // 胡子模式掉落
+    void                            DropHeadFuture(float aPosX, float aPosY, int aRenderOrder);    // 未来模式掉落
+    void                            DropHeadPinata(float aPosX, float aPosY, int aRenderOrder);    // 皮纳塔模式掉落
+    // ===== 掉头小函数结束 =====
     bool                            CanTargetPlant(Plant* thePlant, ZombieAttackType theAttackType);
     void                            UpdateZombieCatapult();
     Plant*                          FindCatapultTarget();
@@ -379,6 +398,12 @@ public:
     // ===== TakeBodyDamage 小函数结束 =====
     int                             GetBodyDamageIndex();
     void                            ApplyBurn();
+    // ===== 燃烧小函数（提取自 ApplyBurn）=====
+    bool                            IsBurnInstantDeathPhase();                                      // 判断是否处于立即死亡阶段
+    void                            HandleBurnFrozenState();                                        // 处理冻结/特殊状态燃烧（不立即死亡）
+    void                            GetCharredReanimInfo(ReanimationType& aReanimType, float& aCharredPosX, float& aCharredPosY);  // 获取焦黑动画类型和位置
+    void                            SetupCharredReanim(Reanimation* aCharredReanim);                // 设置焦黑动画帧/缩放/镜像
+    // ===== 燃烧小函数结束 =====
     void                            UpdateBurn();
     bool                            ZombieNotWalking();
     Zombie*                         FindZombieTarget();

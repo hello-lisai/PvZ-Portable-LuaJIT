@@ -140,6 +140,8 @@ static void BindSol2Zombie(sol::state_view& lua) {
         "is_on_high_ground", &Zombie::IsOnHighGround,
         "drop_loot", &Zombie::DropLoot,
         "try_spawn_level_award", &Zombie::TrySpawnLevelAward,
+        "can_spawn_level_award", &Zombie::CanSpawnLevelAward,
+        "pick_level_award_coin_type", &Zombie::PickLevelAwardCoinType,
         "stop_zombie_sound", &Zombie::StopZombieSound,
         "update_zombie_jack_in_the_box", &Zombie::UpdateZombieJackInTheBox,
         // draw_zombie_head: 跳过 (has reference param) — void                            DrawZombieHead(Graphics* g, const ZombieDrawPosition& theDrawPos, int theFrame);
@@ -180,6 +182,10 @@ static void BindSol2Zombie(sol::state_view& lua) {
         "stop_eating", &Zombie::StopEating,
         "update_anim_speed", &Zombie::UpdateAnimSpeed,
         "play_death_anim", &Zombie::PlayDeathAnim,
+        "can_play_death_anim", &Zombie::CanPlayDeathAnim,
+        "clear_death_status_effects", &Zombie::ClearDeathStatusEffects,
+        // get_death_anim_rate: 跳过 (has unregistered pointer param (Reanimation*)) — float                           GetDeathAnimRate(Reanimation* aBodyReanim);              // 按僵尸类型获取死亡动画速率
+        // get_death_track_name: 跳过 (has reference param) — const char*                     GetDeathTrackName(Reanimation* aBodyReanim, float& aDeathAnimRate);  // 选择死亡轨道名（可能修改速率）
         "update_death", &Zombie::UpdateDeath,
         // draw_shadow: 跳过 (has unregistered pointer param (Graphics*)) — void                            DrawShadow(Graphics* g);
         "has_shadow", &Zombie::HasShadow,
@@ -204,6 +210,13 @@ static void BindSol2Zombie(sol::state_view& lua) {
         // apply_mind_control_particle_tint: 跳过 (has unregistered pointer param (TodParticleSystem*)) — void                            ApplyMindControlParticleTint(TodParticleSystem* aParticle);
         "is_flying", &Zombie::IsFlying,
         "drop_head", &Zombie::DropHead,
+        // get_head_drop_pos: 跳过 (has reference param) — void                            GetHeadDropPos(float& aPosX, float& aPosY, int& aRenderOrder);  // 计算头部掉落位置
+        "get_head_drop_particle_effect", &Zombie::GetHeadDropParticleEffect,
+        "handle_head_drop_type_specifics", &Zombie::HandleHeadDropTypeSpecifics,
+        // override_head_particle_image: 跳过 (has unregistered pointer param (TodParticleSystem*)) — void                            OverrideHeadParticleImage(TodParticleSystem* aParticle);       // 按类型设置头部粒子图片
+        "drop_head_mustache", &Zombie::DropHeadMustache,
+        "drop_head_future", &Zombie::DropHeadFuture,
+        "drop_head_pinata", &Zombie::DropHeadPinata,
         "can_target_plant", &Zombie::CanTargetPlant,
         "update_zombie_catapult", &Zombie::UpdateZombieCatapult,
         "find_catapult_target", &Zombie::FindCatapultTarget,
@@ -255,6 +268,10 @@ static void BindSol2Zombie(sol::state_view& lua) {
         "take_body_damage_boss", &Zombie::TakeBodyDamageBoss,
         "get_body_damage_index", &Zombie::GetBodyDamageIndex,
         "apply_burn", &Zombie::ApplyBurn,
+        "is_burn_instant_death_phase", &Zombie::IsBurnInstantDeathPhase,
+        "handle_burn_frozen_state", &Zombie::HandleBurnFrozenState,
+        // get_charred_reanim_info: 跳过 (has reference param) — void                            GetCharredReanimInfo(ReanimationType& aReanimType, float& aCharredPosX, float& aCharredPosY);  // 获取焦黑动画类型和位置
+        // setup_charred_reanim: 跳过 (has unregistered pointer param (Reanimation*)) — void                            SetupCharredReanim(Reanimation* aCharredReanim);                // 设置焦黑动画帧/缩放/镜像
         "update_burn", &Zombie::UpdateBurn,
         "zombie_not_walking", &Zombie::ZombieNotWalking,
         "find_zombie_target", &Zombie::FindZombieTarget,
