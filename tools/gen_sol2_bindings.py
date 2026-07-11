@@ -375,6 +375,11 @@ def should_bind_member(member: MemberInfo) -> Tuple[bool, str]:
     for bad_type in UNBINDABLE_VALUE_TYPES:
         if bad_type in member_type_clean:
             return False, f"unbindable value type ({bad_type})"
+    # 跳过指针类型成员变量（sol2 无法处理不完整类型的指针成员）
+    if '*' in member.type:
+        ptr_type = member_type_clean
+        if ptr_type and ptr_type not in REGISTERED_USERTYPES:
+            return False, f"pointer to unregistered type ({ptr_type}*)"
     return True, ""
 
 
@@ -398,32 +403,40 @@ def generate_binding_code(class_info: ClassInfo, mt_name: str, bind_func_name: s
     lines.append(f"        sol::no_constructor,")
 
     entries = []
+    bind_entries = []  # 实际的绑定条目（非注释），用于确定最后一个不加逗号
 
     # 绑定成员变量
     for member in class_info.members:
         can_bind, reason = should_bind_member(member)
         if not can_bind:
-            entries.append(f"        // {member.name}: 跳过 ({reason})")
+            entries.append(("comment", f"        // {member.name}: 跳过 ({reason})"))
             continue
-        entries.append(f'        "{member.name}", &{class_info.name}::{member.name},')
+        entries.append(("bind", f'        "{member.name}", &{class_info.name}::{member.name}'))
 
     # 绑定方法
     for method in class_info.methods:
         can_bind, reason = should_bind_method(method)
         if not can_bind:
             lua_name = to_snake_case(method.name)
-            entries.append(f"        // {lua_name}: 跳过 ({reason}) — {method.raw_line}")
+            entries.append(("comment", f"        // {lua_name}: 跳过 ({reason}) — {method.raw_line}"))
             continue
         lua_name = to_snake_case(method.name)
-        entries.append(f'        "{lua_name}", &{class_info.name}::{method.name},')
+        entries.append(("bind", f'        "{lua_name}", &{class_info.name}::{method.name}'))
 
-    # 写入 entries
-    for entry in entries:
-        lines.append(entry)
+    # 找到最后一个 bind 条目的索引
+    last_bind_idx = -1
+    for i in range(len(entries) - 1, -1, -1):
+        if entries[i][0] == "bind":
+            last_bind_idx = i
+            break
 
-    # 移除最后一个逗号
-    if entries and entries[-1].endswith(','):
-        lines[-1] = lines[-1].rstrip(',')
+    # 写入 entries，最后一个 bind 不加逗号
+    for i, (kind, content) in enumerate(entries):
+        if kind == "bind":
+            suffix = "" if i == last_bind_idx else ","
+            lines.append(content + suffix)
+        else:
+            lines.append(content)
 
     lines.append("    );")
     lines.append("}")

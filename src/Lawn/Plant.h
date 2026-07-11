@@ -217,12 +217,34 @@ public:
     Plant();
 
     void                    PlantInitialize(int theGridX, int theGridY, SeedType theSeedType, SeedType theImitaterType);
+    // ===== 植物初始化小函数（提取自 PlantInitialize switch-case）=====
+    void                    InitPlantBodyReanim(const PlantDefinition& aPlantDef, Reanimation*& aBodyReanim);  // 创建 Body Reanimation 并基础设置
+    void                    InitPlantPeashooterFamily(const PlantDefinition& aPlantDef);   // 豌豆射手家族（含 repeater/leftpeater/gatlingpea）
+    void                    InitPlantSplitPea(const PlantDefinition& aPlantDef);           // 双发射手
+    void                    InitPlantThreepeater(const PlantDefinition& aPlantDef);        // 三线射手
+    void                    InitPlantWallnutFamily(Reanimation* aBodyReanim);              // 坚果家族（坚果/爆炸坚果/巨型坚果/高坚果）
+    void                    InitPlantCherryJalapeno(Reanimation* aBodyReanim);             // 樱桃/辣椒
+    void                    InitPlantPotatoMine(Reanimation* aBodyReanim);                 // 土豆雷
+    void                    InitPlantGraveBuster(Reanimation* aBodyReanim);                // 墓碑吞噬者
+    void                    InitPlantSunShroom(Reanimation* aBodyReanim);                  // 阳光菇
+    void                    InitPlantPumpkinShell(Reanimation* aBodyReanim);               // 南瓜头
+    void                    InitPlantCobCannon(Reanimation* aBodyReanim);                  // 玉米加农炮
+    void                    InitPlantFlowerPotOrLilyPad();                                 // 花盆/荷叶（无敌状态设置）
+    void                    InitPlantByType(SeedType theSeedType, const PlantDefinition& aPlantDef, Reanimation* aBodyReanim);  // switch 分发
+    // ===== 植物初始化小函数结束 =====
     void                    Update();
     void                    Animate();
     void                    Draw(Graphics* g);
     void                    MouseDown(int x, int y, int theClickCount);
     void                    DoSpecial();
     void                    Fire(Zombie* theTargetZombie, int theRow, PlantWeapon thePlantWeapon = PlantWeapon::WEAPON_PRIMARY);
+    // ===== 发射投射物相关小函数（提取自 Fire）=====
+    ProjectileType          GetFireProjectileType(PlantWeapon thePlantWeapon);              // 按植物类型返回投射物类型
+    void                    GetFireOrigin(PlantWeapon thePlantWeapon, int& aOriginX, int& aOriginY);  // 计算发射点坐标
+    void                    PlayFireSound();                                                // 播放发射音效
+    void                    PlayFireMuzzleParticle(int aOriginX, int aOriginY);            // 创建枪口粒子特效
+    void                    SetupProjectileMotion(Projectile* aProjectile, Zombie* theTargetZombie, int theRow, PlantWeapon thePlantWeapon, int aOriginX, int aOriginY);  // 设置投射物运动类型
+    // ===== 发射投射物相关小函数结束 =====
     Zombie*                 FindTargetZombie(int theRow, PlantWeapon thePlantWeapon = PlantWeapon::WEAPON_PRIMARY);
     void                    Die();
     void                    UpdateProductionPlant();

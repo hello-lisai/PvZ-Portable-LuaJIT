@@ -107,6 +107,10 @@ static void BindSol2Zombie(sol::state_view& lua) {
         "check_if_prey_caught", &Zombie::CheckIfPreyCaught,
         "eat_zombie", &Zombie::EatZombie,
         "eat_plant", &Zombie::EatPlant,
+        "is_plant_inedible_at_eating", &Zombie::IsPlantInedibleAtEating,
+        "try_trigger_plant_on_eating", &Zombie::TryTriggerPlantOnEating,
+        "handle_i_zombie_sunflower_drop", &Zombie::HandleIZombieSunflowerDrop,
+        "handle_plant_eaten_death", &Zombie::HandlePlantEatenDeath,
         "update", &Zombie::Update,
         "die_no_loot", &Zombie::DieNoLoot,
         // draw: 跳过 (has unregistered pointer param (Graphics*)) — void                            Draw(Graphics* g);
@@ -209,6 +213,46 @@ static void BindSol2Zombie(sol::state_view& lua) {
         "gargantuar_smash_attack", &Zombie::GargantuarSmashAttack,
         "gargantuar_throw_imp", &Zombie::GargantuarThrowImp,
         "gargantuar_should_smash", &Zombie::GargantuarShouldSmash,
+        "init_zombie_type_normal", &Zombie::InitZombieTypeNormal,
+        "init_zombie_type_ducky_tube", &Zombie::InitZombieTypeDuckyTube,
+        "init_zombie_type_conehead", &Zombie::InitZombieTypeConehead,
+        "init_zombie_type_buckethead", &Zombie::InitZombieTypeBuckethead,
+        "init_zombie_type_door", &Zombie::InitZombieTypeDoor,
+        "init_zombie_type_ladder", &Zombie::InitZombieTypeLadder,
+        // init_zombie_type_bungee: 跳过 (has reference param) — void                            InitZombieTypeBungee(RenderLayer& aRenderLayer, int& aRenderOffset);  // 蹦极僵尸初始化
+        "init_zombie_type_football", &Zombie::InitZombieTypeFootball,
+        // init_zombie_type_digger: 跳过 (has reference param) — void                            InitZombieTypeDigger(int& aRenderOffset);  // 矿工僵尸初始化
+        "init_zombie_type_polevaulter", &Zombie::InitZombieTypePolevaulter,
+        "init_zombie_type_dolphin_rider", &Zombie::InitZombieTypeDolphinRider,
+        // init_zombie_type_gargantuar: 跳过 (has reference param) — void                            InitZombieTypeGargantuar(int& aRenderOffset);  // 伽刚特尔初始化
+        // init_zombie_type_zamboni: 跳过 (has reference param) — void                            InitZombieTypeZamboni(int& aRenderOffset);  // 雪犁僵尸初始化
+        "init_zombie_type_catapult", &Zombie::InitZombieTypeCatapult,
+        "init_zombie_type_snorkel", &Zombie::InitZombieTypeSnorkel,
+        "init_zombie_type_jack_in_the_box", &Zombie::InitZombieTypeJackInTheBox,
+        // init_zombie_type_bobsled: 跳过 (has reference param) — void                            InitZombieTypeBobsled(Zombie* theParentZombie, int& aRenderOffset);  // 雪橇僵尸初始化
+        "init_zombie_type_pogo", &Zombie::InitZombieTypePogo,
+        "init_zombie_type_newspaper", &Zombie::InitZombieTypeNewspaper,
+        "init_zombie_type_balloon", &Zombie::InitZombieTypeBalloon,
+        "init_zombie_type_dancing", &Zombie::InitZombieTypeDancing,
+        "init_zombie_type_backup_dancer", &Zombie::InitZombieTypeBackupDancer,
+        "init_zombie_type_imp", &Zombie::InitZombieTypeImp,
+        // init_zombie_type_boss: 跳过 (has reference param) — void                            InitZombieTypeBoss(RenderLayer& aRenderLayer);  // Boss僵尸初始化
+        "update_boss_idle", &Zombie::UpdateBossIdle,
+        "update_boss_spawning", &Zombie::UpdateBossSpawning,
+        "update_boss_bungees_enter", &Zombie::UpdateBossBungeesEnter,
+        "update_boss_stomping", &Zombie::UpdateBossStomping,
+        "update_boss_bungee_exit", &Zombie::UpdateBossBungeeExit,
+        "update_boss_drop_rv", &Zombie::UpdateBossDropRV,
+        "update_boss_head_enter", &Zombie::UpdateBossHeadEnter,
+        "update_boss_head_spit", &Zombie::UpdateBossHeadSpit,
+        "update_boss_head_leave", &Zombie::UpdateBossHeadLeave,
+        // get_zombie_fall_time: 跳过 (has unregistered pointer param (Reanimation*)) — float                           GetZombieFallTime(Reanimation* aBodyReanim);  // 获取僵尸倒地时间
+        // update_boss_death_explosions: 跳过 (has unregistered pointer param (Reanimation*)) — void                            UpdateBossDeathExplosions(Reanimation* aBodyReanim);  // Boss死亡爆炸序列
+        "update_zamboni_catapult_death", &Zombie::UpdateZamboniCatapultDeath,
+        "take_body_damage_zamboni", &Zombie::TakeBodyDamageZamboni,
+        "take_body_damage_catapult", &Zombie::TakeBodyDamageCatapult,
+        "take_body_damage_gargantuar", &Zombie::TakeBodyDamageGargantuar,
+        "take_body_damage_boss", &Zombie::TakeBodyDamageBoss,
         "get_body_damage_index", &Zombie::GetBodyDamageIndex,
         "apply_burn", &Zombie::ApplyBurn,
         "update_burn", &Zombie::UpdateBurn,
@@ -374,12 +418,30 @@ static void BindSol2Plant(sol::state_view& lua) {
         "mIsOnBoard", &Plant::mIsOnBoard,
         "mHighlighted", &Plant::mHighlighted,
         "plant_initialize", &Plant::PlantInitialize,
+        // init_plant_body_reanim: 跳过 (has reference param) — void                    InitPlantBodyReanim(const PlantDefinition& aPlantDef, Reanimation*& aBodyReanim);  // 创建 Body Reanimation 并基础设置
+        // init_plant_peashooter_family: 跳过 (has reference param) — void                    InitPlantPeashooterFamily(const PlantDefinition& aPlantDef);   // 豌豆射手家族（含 repeater/leftpeater/gatlingpea）
+        // init_plant_split_pea: 跳过 (has reference param) — void                    InitPlantSplitPea(const PlantDefinition& aPlantDef);           // 双发射手
+        // init_plant_threepeater: 跳过 (has reference param) — void                    InitPlantThreepeater(const PlantDefinition& aPlantDef);        // 三线射手
+        // init_plant_wallnut_family: 跳过 (has unregistered pointer param (Reanimation*)) — void                    InitPlantWallnutFamily(Reanimation* aBodyReanim);              // 坚果家族（坚果/爆炸坚果/巨型坚果/高坚果）
+        // init_plant_cherry_jalapeno: 跳过 (has unregistered pointer param (Reanimation*)) — void                    InitPlantCherryJalapeno(Reanimation* aBodyReanim);             // 樱桃/辣椒
+        // init_plant_potato_mine: 跳过 (has unregistered pointer param (Reanimation*)) — void                    InitPlantPotatoMine(Reanimation* aBodyReanim);                 // 土豆雷
+        // init_plant_grave_buster: 跳过 (has unregistered pointer param (Reanimation*)) — void                    InitPlantGraveBuster(Reanimation* aBodyReanim);                // 墓碑吞噬者
+        // init_plant_sun_shroom: 跳过 (has unregistered pointer param (Reanimation*)) — void                    InitPlantSunShroom(Reanimation* aBodyReanim);                  // 阳光菇
+        // init_plant_pumpkin_shell: 跳过 (has unregistered pointer param (Reanimation*)) — void                    InitPlantPumpkinShell(Reanimation* aBodyReanim);               // 南瓜头
+        // init_plant_cob_cannon: 跳过 (has unregistered pointer param (Reanimation*)) — void                    InitPlantCobCannon(Reanimation* aBodyReanim);                  // 玉米加农炮
+        "init_plant_flower_pot_or_lily_pad", &Plant::InitPlantFlowerPotOrLilyPad,
+        // init_plant_by_type: 跳过 (has reference param) — void                    InitPlantByType(SeedType theSeedType, const PlantDefinition& aPlantDef, Reanimation* aBodyReanim);  // switch 分发
         "update", &Plant::Update,
         "animate", &Plant::Animate,
         // draw: 跳过 (has unregistered pointer param (Graphics*)) — void                    Draw(Graphics* g);
         "mouse_down", &Plant::MouseDown,
         "do_special", &Plant::DoSpecial,
         // fire: 跳过 (has default param) — void                    Fire(Zombie* theTargetZombie, int theRow, PlantWeapon thePlantWeapon = PlantWeapon::WEAPON_PRIMARY);
+        "get_fire_projectile_type", &Plant::GetFireProjectileType,
+        // get_fire_origin: 跳过 (has reference param) — void                    GetFireOrigin(PlantWeapon thePlantWeapon, int& aOriginX, int& aOriginY);  // 计算发射点坐标
+        "play_fire_sound", &Plant::PlayFireSound,
+        "play_fire_muzzle_particle", &Plant::PlayFireMuzzleParticle,
+        "setup_projectile_motion", &Plant::SetupProjectileMotion,
         // find_target_zombie: 跳过 (has default param) — Zombie*                 FindTargetZombie(int theRow, PlantWeapon thePlantWeapon = PlantWeapon::WEAPON_PRIMARY);
         "die", &Plant::Die,
         "update_production_plant", &Plant::UpdateProductionPlant,
@@ -465,23 +527,23 @@ static void BindSol2Plant(sol::state_view& lua) {
 static void BindSol2Board(sol::state_view& lua) {
     auto ut = lua.new_usertype<Board>("PvZ.Board",
         sol::no_constructor,
-        "mApp", &Board::mApp,
+        // mApp: 跳过 (pointer to unregistered type (LawnApp*))
         // mZombies: 跳过 (complex type (DataArray<Zombie>))
         // mPlants: 跳过 (complex type (DataArray<Plant>))
         // mProjectiles: 跳过 (complex type (DataArray<Projectile>))
         // mCoins: 跳过 (complex type (DataArray<Coin>))
         // mLawnMowers: 跳过 (complex type (DataArray<LawnMower>))
         // mGridItems: 跳过 (complex type (DataArray<GridItem>))
-        "mCursorObject", &Board::mCursorObject,
-        "mCursorPreview", &Board::mCursorPreview,
-        "mAdvice", &Board::mAdvice,
-        "mSeedBank", &Board::mSeedBank,
-        "mMenuButton", &Board::mMenuButton,
-        "mStoreButton", &Board::mStoreButton,
+        // mCursorObject: 跳过 (pointer to unregistered type (CursorObject*))
+        // mCursorPreview: 跳过 (pointer to unregistered type (CursorPreview*))
+        // mAdvice: 跳过 (pointer to unregistered type (MessageWidget*))
+        // mSeedBank: 跳过 (pointer to unregistered type (SeedBank*))
+        // mMenuButton: 跳过 (pointer to unregistered type (GameButton*))
+        // mStoreButton: 跳过 (pointer to unregistered type (GameButton*))
         "mIgnoreMouseUp", &Board::mIgnoreMouseUp,
-        "mToolTip", &Board::mToolTip,
-        "mCutScene", &Board::mCutScene,
-        "mChallenge", &Board::mChallenge,
+        // mToolTip: 跳过 (pointer to unregistered type (ToolTipWidget*))
+        // mCutScene: 跳过 (pointer to unregistered type (CutScene*))
+        // mChallenge: 跳过 (pointer to unregistered type (Challenge*))
         "mPaused", &Board::mPaused,
         // mGridSquareType: 跳过 (array member)
         // mGridCelLook: 跳过 (array member)
@@ -881,7 +943,7 @@ static void BindSol2Coin(sol::state_view& lua) {
 static void BindSol2GridItem(sol::state_view& lua) {
     auto ut = lua.new_usertype<GridItem>("PvZ.GridItem",
         sol::no_constructor,
-        "mApp", &GridItem::mApp,
+        // mApp: 跳过 (pointer to unregistered type (LawnApp*))
         "mBoard", &GridItem::mBoard,
         "mGridItemType", &GridItem::mGridItemType,
         "mGridItemState", &GridItem::mGridItemState,
@@ -921,7 +983,7 @@ static void BindSol2GridItem(sol::state_view& lua) {
         "update_rake", &GridItem::UpdateRake,
         "rake_find_zombie", &GridItem::RakeFindZombie,
         // draw_i_zombie_brain: 跳过 (has unregistered pointer param (Sexy::Graphics*)) — void					DrawIZombieBrain(Sexy::Graphics* g);
-        "update_brain", &GridItem::UpdateBrain,
+        "update_brain", &GridItem::UpdateBrain
         // draw_stinky: 跳过 (has unregistered pointer param (Sexy::Graphics*)) — void					DrawStinky(Sexy::Graphics* g);
     );
 }
@@ -931,7 +993,7 @@ static void BindSol2GridItem(sol::state_view& lua) {
 static void BindSol2LawnMower(sol::state_view& lua) {
     auto ut = lua.new_usertype<LawnMower>("PvZ.LawnMower",
         sol::no_constructor,
-        "mApp", &LawnMower::mApp,
+        // mApp: 跳过 (pointer to unregistered type (LawnApp*))
         "mBoard", &LawnMower::mBoard,
         "mPosX", &LawnMower::mPosX,
         "mPosY", &LawnMower::mPosY,

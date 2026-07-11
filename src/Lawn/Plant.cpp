@@ -161,6 +161,45 @@ void Plant::PlantInitialize(int theGridX, int theGridY, SeedType theSeedType, Se
     mRenderOrder = CalcRenderOrder();
 
     Reanimation* aBodyReanim = nullptr;
+    InitPlantBodyReanim(aPlantDef, aBodyReanim);
+
+    if (IsNocturnal(mSeedType) && mBoard && !mBoard->StageIsNight())
+        SetSleeping(true);
+
+    if (mLaunchRate > 0)
+    {
+        if (MakesSun())
+            mLaunchCounter = RandRangeInt(300, mLaunchRate / 2);
+        else
+            mLaunchCounter = RandRangeInt(0, mLaunchRate);
+    }
+    else
+        mLaunchCounter = 0;
+
+    InitPlantByType(theSeedType, aPlantDef, aBodyReanim);
+
+    if ((mApp->mGameMode == GameMode::GAMEMODE_CHALLENGE_BIG_TIME) &&
+        (theSeedType == SeedType::SEED_WALLNUT || theSeedType == SeedType::SEED_SUNFLOWER || theSeedType == SeedType::SEED_MARIGOLD))
+    {
+        mPlantHealth *= 2;
+    }
+    mPlantMaxHealth = mPlantHealth;
+
+    if (mSeedType != SeedType::SEED_FLOWERPOT && IsOnBoard())
+    {
+        TOD_ASSERT(mBoard);
+        Plant* aFlowerPot = mBoard->GetFlowerPotAt(mPlantCol, mRow);
+        if (aFlowerPot)
+            mApp->ReanimationGet(aFlowerPot->mBodyReanimID)->mAnimRate = 0.0f;
+    }
+}
+
+// ===== 植物初始化小函数（提取自 PlantInitialize）=====
+
+// 创建 Body Reanimation 并基础设置
+void Plant::InitPlantBodyReanim(const PlantDefinition& aPlantDef, Reanimation*& aBodyReanim)
+{
+    aBodyReanim = nullptr;
     if (aPlantDef.mReanimationType != ReanimationType::REANIM_NONE)
     {
         float aOffsetY = PlantDrawHeightOffset(mBoard, this, mSeedType, mPlantCol, mRow);
@@ -184,109 +223,84 @@ void Plant::PlantInitialize(int theGridX, int theGridY, SeedType theSeedType, Se
         mBodyReanimID = mApp->ReanimationGetID(aBodyReanim);
         mBlinkCountdown = 400 + Sexy::Rand(400);
     }
+}
 
-    if (IsNocturnal(mSeedType) && mBoard && !mBoard->StageIsNight())
-        SetSleeping(true);
-
-    if (mLaunchRate > 0)
+// 豌豆射手家族（含 repeater/leftpeater/gatlingpea/snowpea）
+void Plant::InitPlantPeashooterFamily(const PlantDefinition& aPlantDef)
+{
+    Reanimation* aBodyReanim = mApp->ReanimationGet(mBodyReanimID);
+    if (aBodyReanim)
     {
-        if (MakesSun())
-            mLaunchCounter = RandRangeInt(300, mLaunchRate / 2);
-        else
-            mLaunchCounter = RandRangeInt(0, mLaunchRate);
-    }
-    else
-        mLaunchCounter = 0;
-
-    switch (theSeedType)
-    {
-    case SeedType::SEED_BLOVER:
-    {
-        mDoSpecialCountdown = 50;
-
-        if (IsInPlay())
-        {
-            aBodyReanim->SetFramesForLayer("anim_blow");
-            aBodyReanim->mLoopType = ReanimLoopType::REANIM_PLAY_ONCE_AND_HOLD;
-            aBodyReanim->mAnimRate = 20.0f;
-        }
-        else
-        {
-            aBodyReanim->SetFramesForLayer("anim_idle");
-            aBodyReanim->mAnimRate = 10.0f;
-        }
-
-        break;
-    }
-    case SeedType::SEED_PEASHOOTER:
-    case SeedType::SEED_SNOWPEA:
-    case SeedType::SEED_REPEATER:
-    case SeedType::SEED_LEFTPEATER:
-    case SeedType::SEED_GATLINGPEA:
-        if (aBodyReanim)
-        {
-            aBodyReanim->mAnimRate = RandRangeFloat(15.0f, 20.0f);
-            Reanimation* aHeadReanim = mApp->AddReanimation(0.0f, 0.0f, mRenderOrder + 2, aPlantDef.mReanimationType);
-            aHeadReanim->mLoopType = ReanimLoopType::REANIM_LOOP;
-            aHeadReanim->mAnimRate = aBodyReanim->mAnimRate;
-            aHeadReanim->SetFramesForLayer("anim_head_idle");
-            mHeadReanimID = mApp->ReanimationGetID(aHeadReanim);
-
-            if (aBodyReanim->TrackExists("anim_stem"))
-                aHeadReanim->AttachToAnotherReanimation(aBodyReanim, "anim_stem");
-            else if (aBodyReanim->TrackExists("anim_idle"))
-                aHeadReanim->AttachToAnotherReanimation(aBodyReanim, "anim_idle");
-        }
-        break;
-    case SeedType::SEED_SPLITPEA:
-    {
-        TOD_ASSERT(aBodyReanim);
-
         aBodyReanim->mAnimRate = RandRangeFloat(15.0f, 20.0f);
-        Reanimation* aHeadReanim1 = mApp->AddReanimation(0.0f, 0.0f, mRenderOrder + 2, aPlantDef.mReanimationType);
-        aHeadReanim1->mLoopType = ReanimLoopType::REANIM_LOOP;
-        aHeadReanim1->mAnimRate = aBodyReanim->mAnimRate;
-        aHeadReanim1->SetFramesForLayer("anim_head_idle");
-        aHeadReanim1->AttachToAnotherReanimation(aBodyReanim, "anim_idle");
-        mHeadReanimID = mApp->ReanimationGetID(aHeadReanim1);
+        Reanimation* aHeadReanim = mApp->AddReanimation(0.0f, 0.0f, mRenderOrder + 2, aPlantDef.mReanimationType);
+        aHeadReanim->mLoopType = ReanimLoopType::REANIM_LOOP;
+        aHeadReanim->mAnimRate = aBodyReanim->mAnimRate;
+        aHeadReanim->SetFramesForLayer("anim_head_idle");
+        mHeadReanimID = mApp->ReanimationGetID(aHeadReanim);
 
-        Reanimation* aHeadReanim2 = mApp->AddReanimation(0.0f, 0.0f, mRenderOrder + 2, aPlantDef.mReanimationType);
-        aHeadReanim2->mLoopType = ReanimLoopType::REANIM_LOOP;
-        aHeadReanim2->mAnimRate = aBodyReanim->mAnimRate;
-        aHeadReanim2->SetFramesForLayer("anim_splitpea_idle");
-        aHeadReanim2->AttachToAnotherReanimation(aBodyReanim, "anim_idle");
-        mHeadReanimID2 = mApp->ReanimationGetID(aHeadReanim2);
-
-        break;
+        if (aBodyReanim->TrackExists("anim_stem"))
+            aHeadReanim->AttachToAnotherReanimation(aBodyReanim, "anim_stem");
+        else if (aBodyReanim->TrackExists("anim_idle"))
+            aHeadReanim->AttachToAnotherReanimation(aBodyReanim, "anim_idle");
     }
-    case SeedType::SEED_THREEPEATER:
+}
+
+// 双发射手
+void Plant::InitPlantSplitPea(const PlantDefinition& aPlantDef)
+{
+    Reanimation* aBodyReanim = mApp->ReanimationGet(mBodyReanimID);
+    TOD_ASSERT(aBodyReanim);
+
+    aBodyReanim->mAnimRate = RandRangeFloat(15.0f, 20.0f);
+    Reanimation* aHeadReanim1 = mApp->AddReanimation(0.0f, 0.0f, mRenderOrder + 2, aPlantDef.mReanimationType);
+    aHeadReanim1->mLoopType = ReanimLoopType::REANIM_LOOP;
+    aHeadReanim1->mAnimRate = aBodyReanim->mAnimRate;
+    aHeadReanim1->SetFramesForLayer("anim_head_idle");
+    aHeadReanim1->AttachToAnotherReanimation(aBodyReanim, "anim_idle");
+    mHeadReanimID = mApp->ReanimationGetID(aHeadReanim1);
+
+    Reanimation* aHeadReanim2 = mApp->AddReanimation(0.0f, 0.0f, mRenderOrder + 2, aPlantDef.mReanimationType);
+    aHeadReanim2->mLoopType = ReanimLoopType::REANIM_LOOP;
+    aHeadReanim2->mAnimRate = aBodyReanim->mAnimRate;
+    aHeadReanim2->SetFramesForLayer("anim_splitpea_idle");
+    aHeadReanim2->AttachToAnotherReanimation(aBodyReanim, "anim_idle");
+    mHeadReanimID2 = mApp->ReanimationGetID(aHeadReanim2);
+}
+
+// 三线射手
+void Plant::InitPlantThreepeater(const PlantDefinition& aPlantDef)
+{
+    Reanimation* aBodyReanim = mApp->ReanimationGet(mBodyReanimID);
+    TOD_ASSERT(aBodyReanim);
+
+    aBodyReanim->mAnimRate = RandRangeFloat(15.0f, 20.0f);
+    Reanimation* aHeadReanim1 = mApp->AddReanimation(0.0f, 0.0f, mRenderOrder + 2, aPlantDef.mReanimationType);
+    aHeadReanim1->mLoopType = ReanimLoopType::REANIM_LOOP;
+    aHeadReanim1->mAnimRate = aBodyReanim->mAnimRate;
+    aHeadReanim1->SetFramesForLayer("anim_head_idle1");
+    aHeadReanim1->AttachToAnotherReanimation(aBodyReanim, "anim_head1");
+    mHeadReanimID = mApp->ReanimationGetID(aHeadReanim1);
+
+    Reanimation* aHeadReanim2 = mApp->AddReanimation(0.0f, 0.0f, mRenderOrder + 2, aPlantDef.mReanimationType);
+    aHeadReanim2->mLoopType = ReanimLoopType::REANIM_LOOP;
+    aHeadReanim2->mAnimRate = aBodyReanim->mAnimRate;
+    aHeadReanim2->SetFramesForLayer("anim_head_idle2");
+    aHeadReanim2->AttachToAnotherReanimation(aBodyReanim, "anim_head2");
+    mHeadReanimID2 = mApp->ReanimationGetID(aHeadReanim2);
+
+    Reanimation* aHeadReanim3 = mApp->AddReanimation(0.0f, 0.0f, mRenderOrder + 2, aPlantDef.mReanimationType);
+    aHeadReanim3->mLoopType = ReanimLoopType::REANIM_LOOP;
+    aHeadReanim3->mAnimRate = aBodyReanim->mAnimRate;
+    aHeadReanim3->SetFramesForLayer("anim_head_idle3");
+    aHeadReanim3->AttachToAnotherReanimation(aBodyReanim, "anim_head3");
+    mHeadReanimID3 = mApp->ReanimationGetID(aHeadReanim3);
+}
+
+// 坚果家族（坚果/爆炸坚果/巨型坚果/高坚果）
+void Plant::InitPlantWallnutFamily(Reanimation* aBodyReanim)
+{
+    switch (mSeedType)
     {
-        TOD_ASSERT(aBodyReanim);
-
-        aBodyReanim->mAnimRate = RandRangeFloat(15.0f, 20.0f);
-        Reanimation* aHeadReanim1 = mApp->AddReanimation(0.0f, 0.0f, mRenderOrder + 2, aPlantDef.mReanimationType);
-        aHeadReanim1->mLoopType = ReanimLoopType::REANIM_LOOP;
-        aHeadReanim1->mAnimRate = aBodyReanim->mAnimRate;
-        aHeadReanim1->SetFramesForLayer("anim_head_idle1");
-        aHeadReanim1->AttachToAnotherReanimation(aBodyReanim, "anim_head1");
-        mHeadReanimID = mApp->ReanimationGetID(aHeadReanim1);
-
-        Reanimation* aHeadReanim2 = mApp->AddReanimation(0.0f, 0.0f, mRenderOrder + 2, aPlantDef.mReanimationType);
-        aHeadReanim2->mLoopType = ReanimLoopType::REANIM_LOOP;
-        aHeadReanim2->mAnimRate = aBodyReanim->mAnimRate;
-        aHeadReanim2->SetFramesForLayer("anim_head_idle2");
-        aHeadReanim2->AttachToAnotherReanimation(aBodyReanim, "anim_head2");
-        mHeadReanimID2 = mApp->ReanimationGetID(aHeadReanim2);
-
-        Reanimation* aHeadReanim3 = mApp->AddReanimation(0.0f, 0.0f, mRenderOrder + 2, aPlantDef.mReanimationType);
-        aHeadReanim3->mLoopType = ReanimLoopType::REANIM_LOOP;
-        aHeadReanim3->mAnimRate = aBodyReanim->mAnimRate;
-        aHeadReanim3->SetFramesForLayer("anim_head_idle3");
-        aHeadReanim3->AttachToAnotherReanimation(aBodyReanim, "anim_head3");
-        mHeadReanimID3 = mApp->ReanimationGetID(aHeadReanim3);
-
-        break;
-    }
     case SeedType::SEED_WALLNUT:
         mPlantHealth = 4000;
         mBlinkCountdown = 1000 + Sexy::Rand(1000);
@@ -294,7 +308,7 @@ void Plant::PlantInitialize(int theGridX, int theGridY, SeedType theSeedType, Se
     case SeedType::SEED_EXPLODE_O_NUT:
         mPlantHealth = 4000;
         mBlinkCountdown = 1000 + Sexy::Rand(1000);
-        aBodyReanim->mColorOverride = Color(255, 64, 64);
+        if (aBodyReanim) aBodyReanim->mColorOverride = Color(255, 64, 64);
         break;
     case SeedType::SEED_GIANT_WALLNUT:
         mPlantHealth = 4000;
@@ -304,6 +318,165 @@ void Plant::PlantInitialize(int theGridX, int theGridY, SeedType theSeedType, Se
         mPlantHealth = 8000;
         mHeight = 80;
         mBlinkCountdown = 1000 + Sexy::Rand(1000);
+        break;
+    default:
+        break;
+    }
+}
+
+// 樱桃/辣椒
+void Plant::InitPlantCherryJalapeno(Reanimation* aBodyReanim)
+{
+    TOD_ASSERT(aBodyReanim);
+
+    if (IsInPlay())
+    {
+        mDoSpecialCountdown = 100;
+
+        aBodyReanim->SetFramesForLayer("anim_explode");
+        aBodyReanim->mLoopType = ReanimLoopType::REANIM_PLAY_ONCE_AND_HOLD;
+
+        mApp->PlayFoley(FoleyType::FOLEY_REVERSE_EXPLOSION);
+    }
+}
+
+// 土豆雷
+void Plant::InitPlantPotatoMine(Reanimation* aBodyReanim)
+{
+    TOD_ASSERT(aBodyReanim);
+
+    aBodyReanim->mAnimRate = 12.0f;
+
+    if (IsInPlay())
+    {
+        aBodyReanim->AssignRenderGroupToTrack("anim_glow", RENDER_GROUP_HIDDEN);
+        mStateCountdown = 1500;
+    }
+    else
+    {
+        aBodyReanim->SetFramesForLayer("anim_armed");
+        mState = PlantState::STATE_POTATO_ARMED;
+    }
+}
+
+// 墓碑吞噬者
+void Plant::InitPlantGraveBuster(Reanimation* aBodyReanim)
+{
+    TOD_ASSERT(aBodyReanim);
+
+    if (IsInPlay())
+    {
+        aBodyReanim->SetFramesForLayer("anim_land");
+        aBodyReanim->mLoopType = ReanimLoopType::REANIM_PLAY_ONCE_AND_HOLD;
+
+        mState = PlantState::STATE_GRAVEBUSTER_LANDING;
+        mApp->PlayFoley(FoleyType::FOLEY_GRAVEBUSTERCHOMP);
+    }
+}
+
+// 阳光菇
+void Plant::InitPlantSunShroom(Reanimation* aBodyReanim)
+{
+    TOD_ASSERT(aBodyReanim);
+
+    aBodyReanim->mFrameBasePose = 6;
+
+    if (IsInPlay())
+    {
+        mX += Sexy::Rand(10) - 5;
+        mY += Sexy::Rand(10) - 5;
+    }
+    else if (mIsAsleep)
+        aBodyReanim->SetFramesForLayer("anim_bigsleep");
+    else
+        aBodyReanim->SetFramesForLayer("anim_bigidle");
+
+    mState = PlantState::STATE_SUNSHROOM_SMALL;
+    mStateCountdown = 12000;
+}
+
+// 南瓜头
+void Plant::InitPlantPumpkinShell(Reanimation* aBodyReanim)
+{
+    mPlantHealth = 4000;
+    mWidth = 120;
+
+    TOD_ASSERT(aBodyReanim);
+    aBodyReanim->AssignRenderGroupToTrack("Pumpkin_back", 1);
+}
+
+// 玉米加农炮
+void Plant::InitPlantCobCannon(Reanimation* aBodyReanim)
+{
+    if (IsInPlay())
+    {
+        mState = PlantState::STATE_COBCANNON_ARMING;
+        mStateCountdown = 500;
+
+        TOD_ASSERT(aBodyReanim);
+        aBodyReanim->SetFramesForLayer("anim_unarmed_idle");
+    }
+}
+
+// 花盆/荷叶（无敌状态设置）
+void Plant::InitPlantFlowerPotOrLilyPad()
+{
+    if (IsInPlay())
+    {
+        if (mSeedType == SeedType::SEED_FLOWERPOT)
+        {
+            mState = PlantState::STATE_FLOWERPOT_INVULNERABLE;
+            mStateCountdown = 100;
+        }
+        else  // SEED_LILYPAD
+        {
+            mState = PlantState::STATE_LILYPAD_INVULNERABLE;
+            mStateCountdown = 100;
+        }
+    }
+}
+
+// switch 分发：按植物类型调用对应的初始化小函数
+void Plant::InitPlantByType(SeedType theSeedType, const PlantDefinition& aPlantDef, Reanimation* aBodyReanim)
+{
+    switch (theSeedType)
+    {
+    case SeedType::SEED_BLOVER:
+    {
+        mDoSpecialCountdown = 50;
+        if (IsInPlay())
+        {
+            TOD_ASSERT(aBodyReanim);
+            aBodyReanim->SetFramesForLayer("anim_blow");
+            aBodyReanim->mLoopType = ReanimLoopType::REANIM_PLAY_ONCE_AND_HOLD;
+            aBodyReanim->mAnimRate = 20.0f;
+        }
+        else
+        {
+            TOD_ASSERT(aBodyReanim);
+            aBodyReanim->SetFramesForLayer("anim_idle");
+            aBodyReanim->mAnimRate = 10.0f;
+        }
+        break;
+    }
+    case SeedType::SEED_PEASHOOTER:
+    case SeedType::SEED_SNOWPEA:
+    case SeedType::SEED_REPEATER:
+    case SeedType::SEED_LEFTPEATER:
+    case SeedType::SEED_GATLINGPEA:
+        InitPlantPeashooterFamily(aPlantDef);
+        break;
+    case SeedType::SEED_SPLITPEA:
+        InitPlantSplitPea(aPlantDef);
+        break;
+    case SeedType::SEED_THREEPEATER:
+        InitPlantThreepeater(aPlantDef);
+        break;
+    case SeedType::SEED_WALLNUT:
+    case SeedType::SEED_EXPLODE_O_NUT:
+    case SeedType::SEED_GIANT_WALLNUT:
+    case SeedType::SEED_TALLNUT:
+        InitPlantWallnutFamily(aBodyReanim);
         break;
     case SeedType::SEED_GARLIC:
         TOD_ASSERT(aBodyReanim);
@@ -321,76 +494,17 @@ void Plant::PlantInitialize(int theGridX, int theGridY, SeedType theSeedType, Se
         break;
     case SeedType::SEED_CHERRYBOMB:
     case SeedType::SEED_JALAPENO:
-    {
-        TOD_ASSERT(aBodyReanim);
-
-        if (IsInPlay())
-        {
-            mDoSpecialCountdown = 100;
-
-            aBodyReanim->SetFramesForLayer("anim_explode");
-            aBodyReanim->mLoopType = ReanimLoopType::REANIM_PLAY_ONCE_AND_HOLD;
-
-            mApp->PlayFoley(FoleyType::FOLEY_REVERSE_EXPLOSION);
-        }
-
+        InitPlantCherryJalapeno(aBodyReanim);
         break;
-    }
     case SeedType::SEED_POTATOMINE:
-    {
-        TOD_ASSERT(aBodyReanim);
-
-        aBodyReanim->mAnimRate = 12.0f;
-
-        if (IsInPlay())
-        {
-            aBodyReanim->AssignRenderGroupToTrack("anim_glow", RENDER_GROUP_HIDDEN);
-            mStateCountdown = 1500;
-        }
-        else
-        {
-            aBodyReanim->SetFramesForLayer("anim_armed");
-            mState = PlantState::STATE_POTATO_ARMED;
-        }
-
+        InitPlantPotatoMine(aBodyReanim);
         break;
-    }
     case SeedType::SEED_GRAVEBUSTER:
-    {
-        TOD_ASSERT(aBodyReanim);
-
-        if (IsInPlay())
-        {
-            aBodyReanim->SetFramesForLayer("anim_land");
-            aBodyReanim->mLoopType = ReanimLoopType::REANIM_PLAY_ONCE_AND_HOLD;
-
-            mState = PlantState::STATE_GRAVEBUSTER_LANDING;
-            mApp->PlayFoley(FoleyType::FOLEY_GRAVEBUSTERCHOMP);
-        }
-
+        InitPlantGraveBuster(aBodyReanim);
         break;
-    }
     case SeedType::SEED_SUNSHROOM:
-    {
-        TOD_ASSERT(aBodyReanim);
-
-        aBodyReanim->mFrameBasePose = 6;
-
-        if (IsInPlay())
-        {
-            mX += Sexy::Rand(10) - 5;
-            mY += Sexy::Rand(10) - 5;
-        }
-        else if (mIsAsleep)
-            aBodyReanim->SetFramesForLayer("anim_bigsleep");
-        else
-            aBodyReanim->SetFramesForLayer("anim_bigidle");
-
-        mState = PlantState::STATE_SUNSHROOM_SMALL;
-        mStateCountdown = 12000;
-
+        InitPlantSunShroom(aBodyReanim);
         break;
-    }
     case SeedType::SEED_PUFFSHROOM:
     case SeedType::SEED_SEASHROOM:
         if (IsInPlay())
@@ -400,21 +514,14 @@ void Plant::PlantInitialize(int theGridX, int theGridY, SeedType theSeedType, Se
         }
         break;
     case SeedType::SEED_PUMPKINSHELL:
-    {
-        mPlantHealth = 4000;
-        mWidth = 120;
-
-        TOD_ASSERT(aBodyReanim);
-        aBodyReanim->AssignRenderGroupToTrack("Pumpkin_back", 1);
+        InitPlantPumpkinShell(aBodyReanim);
         break;
-    }
     case SeedType::SEED_CHOMPER:
         mState = PlantState::STATE_READY;
         break;
     case SeedType::SEED_PLANTERN:
     {
         mStateCountdown = 50;
-
         if (!IsOnBoard() || mApp->mGameMode != GameMode::GAMEMODE_CHALLENGE_ZEN_GARDEN)
         {
             AddAttachedParticle(mX + 40, mY + 40, static_cast<int>(RenderLayer::RENDER_LAYER_FOG) + 1, ParticleEffect::PARTICLE_LANTERN_SHINE);
@@ -423,7 +530,6 @@ void Plant::PlantInitialize(int theGridX, int theGridY, SeedType theSeedType, Se
         {
             mApp->PlaySample(Sexy::SOUND_PLANTERN);
         }
-        
         break;
     }
     case SeedType::SEED_TORCHWOOD:
@@ -442,14 +548,7 @@ void Plant::PlantInitialize(int theGridX, int theGridY, SeedType theSeedType, Se
         mState = PlantState::STATE_READY;
         break;
     case SeedType::SEED_COBCANNON:
-        if (IsInPlay())
-        {
-            mState = PlantState::STATE_COBCANNON_ARMING;
-            mStateCountdown = 500;
-
-            TOD_ASSERT(aBodyReanim);
-            aBodyReanim->SetFramesForLayer("anim_unarmed_idle");
-        }
+        InitPlantCobCannon(aBodyReanim);
         break;
     case SeedType::SEED_KERNELPULT:
         TOD_ASSERT(aBodyReanim);
@@ -466,41 +565,19 @@ void Plant::PlantInitialize(int theGridX, int theGridY, SeedType theSeedType, Se
     case SeedType::SEED_SPROUT:
         break;
     case SeedType::SEED_FLOWERPOT:
-        if (IsInPlay())
-        {
-            mState = PlantState::STATE_FLOWERPOT_INVULNERABLE;
-            mStateCountdown = 100;
-        }
-        break;
     case SeedType::SEED_LILYPAD:
-        if (IsInPlay())
-        {
-            mState = PlantState::STATE_LILYPAD_INVULNERABLE;
-            mStateCountdown = 100;
-        }
+        InitPlantFlowerPotOrLilyPad();
         break;
     case SeedType::SEED_TANGLEKELP:
         TOD_ASSERT(aBodyReanim);
         aBodyReanim->SetTruncateDisappearingFrames();
+        // 注意：原代码此处无 break（fallthrough 到 default），保持不变
     default:
         break;
     }
-    
-    if ((mApp->mGameMode == GameMode::GAMEMODE_CHALLENGE_BIG_TIME) &&
-        (theSeedType == SeedType::SEED_WALLNUT || theSeedType == SeedType::SEED_SUNFLOWER || theSeedType == SeedType::SEED_MARIGOLD))
-    {
-        mPlantHealth *= 2;
-    }
-    mPlantMaxHealth = mPlantHealth;
-
-    if (mSeedType != SeedType::SEED_FLOWERPOT && IsOnBoard())
-    {
-        TOD_ASSERT(mBoard);
-        Plant* aFlowerPot = mBoard->GetFlowerPotAt(mPlantCol, mRow);
-        if (aFlowerPot)
-            mApp->ReanimationGet(aFlowerPot->mBodyReanimID)->mAnimRate = 0.0f;
-    }
 }
+
+// ===== 植物初始化小函数结束 =====
 
 int Plant::CalcRenderOrder()
 {
@@ -4496,6 +4573,26 @@ void Plant::Fire(Zombie* theTargetZombie, int theRow, PlantWeapon thePlantWeapon
         return;
     }
 
+    ProjectileType aProjectileType = GetFireProjectileType(thePlantWeapon);
+
+    PlayFireSound();
+
+    int aOriginX, aOriginY;
+    GetFireOrigin(thePlantWeapon, aOriginX, aOriginY);
+
+    PlayFireMuzzleParticle(aOriginX, aOriginY);
+
+    Projectile* aProjectile = mBoard->AddProjectile(aOriginX, aOriginY, mRenderOrder - 1, theRow, aProjectileType);
+    aProjectile->mDamageRangeFlags = GetDamageRangeFlags(thePlantWeapon);
+
+    SetupProjectileMotion(aProjectile, theTargetZombie, theRow, thePlantWeapon, aOriginX, aOriginY);
+}
+
+// ===== 发射投射物相关小函数（提取自 Fire）=====
+
+// 按植物类型返回投射物类型
+ProjectileType Plant::GetFireProjectileType(PlantWeapon thePlantWeapon)
+{
     ProjectileType aProjectileType;
     switch (mSeedType)
     {
@@ -4542,18 +4639,12 @@ void Plant::Fire(Zombie* theTargetZombie, int theRow, PlantWeapon thePlantWeapon
     {
         aProjectileType = ProjectileType::PROJECTILE_BUTTER;
     }
+    return aProjectileType;
+}
 
-    mApp->PlayFoley(FoleyType::FOLEY_THROW);
-    if (mSeedType == SeedType::SEED_SNOWPEA || mSeedType == SeedType::SEED_WINTERMELON)
-    {
-        mApp->PlayFoley(FoleyType::FOLEY_SNOW_PEA_SPARKLES);
-    }
-    else if (mSeedType == SeedType::SEED_PUFFSHROOM || mSeedType == SeedType::SEED_SCAREDYSHROOM || mSeedType == SeedType::SEED_SEASHROOM)
-    {
-        mApp->PlayFoley(FoleyType::FOLEY_PUFF);
-    }
-
-    int aOriginX, aOriginY;
+// 计算发射点坐标
+void Plant::GetFireOrigin(PlantWeapon thePlantWeapon, int& aOriginX, int& aOriginY)
+{
     if (mSeedType == SeedType::SEED_PUFFSHROOM)
     {
         aOriginX = mX + 40;
@@ -4662,7 +4753,25 @@ void Plant::Fire(Zombie* theTargetZombie, int theRow, PlantWeapon thePlantWeapon
     {
         aOriginY -= 5;
     }
-    
+}
+
+// 播放发射音效
+void Plant::PlayFireSound()
+{
+    mApp->PlayFoley(FoleyType::FOLEY_THROW);
+    if (mSeedType == SeedType::SEED_SNOWPEA || mSeedType == SeedType::SEED_WINTERMELON)
+    {
+        mApp->PlayFoley(FoleyType::FOLEY_SNOW_PEA_SPARKLES);
+    }
+    else if (mSeedType == SeedType::SEED_PUFFSHROOM || mSeedType == SeedType::SEED_SCAREDYSHROOM || mSeedType == SeedType::SEED_SEASHROOM)
+    {
+        mApp->PlayFoley(FoleyType::FOLEY_PUFF);
+    }
+}
+
+// 创建枪口粒子特效
+void Plant::PlayFireMuzzleParticle(int aOriginX, int aOriginY)
+{
     if (mSeedType == SeedType::SEED_SNOWPEA)
     {
         int aRenderPosition = Board::MakeRenderOrder(RenderLayer::RENDER_LAYER_LAWN_MOWER, mRow, 1);
@@ -4678,10 +4787,11 @@ void Plant::Fire(Zombie* theTargetZombie, int theRow, PlantWeapon thePlantWeapon
         int aRenderPosition = Board::MakeRenderOrder(RenderLayer::RENDER_LAYER_LAWN_MOWER, mRow, 1);
         mApp->AddTodParticle(aOriginX + 27, aOriginY + 13, aRenderPosition, ParticleEffect::PARTICLE_PUFFSHROOM_MUZZLE);
     }
+}
 
-    Projectile* aProjectile = mBoard->AddProjectile(aOriginX, aOriginY, mRenderOrder - 1, theRow, aProjectileType);
-    aProjectile->mDamageRangeFlags = GetDamageRangeFlags(thePlantWeapon);
-
+// 设置投射物运动类型
+void Plant::SetupProjectileMotion(Projectile* aProjectile, Zombie* theTargetZombie, int theRow, PlantWeapon thePlantWeapon, int aOriginX, int aOriginY)
+{
     if (mSeedType == SeedType::SEED_CABBAGEPULT || mSeedType == SeedType::SEED_KERNELPULT ||
         mSeedType == SeedType::SEED_MELONPULT || mSeedType == SeedType::SEED_WINTERMELON)
     {
@@ -4770,6 +4880,8 @@ void Plant::Fire(Zombie* theTargetZombie, int theRow, PlantWeapon thePlantWeapon
         aProjectile->mCobTargetRow = mBoard->PixelToGridYKeepOnBoard(mTargetX, mTargetY);
     }
 }
+
+// ===== 发射投射物相关小函数结束 =====
 
 Zombie* Plant::FindTargetZombie(int theRow, PlantWeapon thePlantWeapon)
 {

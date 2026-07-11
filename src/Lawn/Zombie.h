@@ -196,6 +196,12 @@ public:
     void                            CheckIfPreyCaught();
     void                            EatZombie(Zombie* theZombie);
     void                            EatPlant(Plant* thePlant);
+    // ===== 吃植物相关小函数（提取自 EatPlant）=====
+    bool                            IsPlantInedibleAtEating(Plant* thePlant);       // 判定植物是否不可被啃食（辣椒/樱桃/毁灭菇/冰菇/催眠菇等）
+    bool                            TryTriggerPlantOnEating(Plant* thePlant);       // 尝试触发植物（三叶草/冰菇），返回 true 表示已触发应中止啃食
+    void                            HandleIZombieSunflowerDrop(Plant* thePlant);    // IZombie 模式向日葵被啃食时掉落阳光
+    void                            HandlePlantEatenDeath(Plant* thePlant);         // 植物被吃完时的死亡处理
+    // ===== 吃植物相关小函数结束 =====
     void                            Update();
     void                            DieNoLoot();
     /*inline*/ void                 DieWithLoot();
@@ -323,6 +329,54 @@ public:
     void                            GargantuarThrowImp();          // 投掷小鬼
     bool                            GargantuarShouldSmash();       // 检查是否需要砸击
     // ===== 伽刚特尔小函数结束 =====
+    // ===== ZombieInitialize 小函数（提取自 ZombieInitialize）=====
+    void                            InitZombieTypeNormal();        // 普通僵尸初始化
+    void                            InitZombieTypeDuckyTube();     // 鸭子救生圈僵尸初始化
+    void                            InitZombieTypeConehead();      // 路障僵尸初始化
+    void                            InitZombieTypeBuckethead();    // 铁桶僵尸初始化
+    void                            InitZombieTypeDoor();          // 铁栅门僵尸初始化
+    void                            InitZombieTypeLadder();        // 梯子僵尸初始化
+    void                            InitZombieTypeBungee(RenderLayer& aRenderLayer, int& aRenderOffset);  // 蹦极僵尸初始化
+    void                            InitZombieTypeFootball();      // 橄榄球僵尸初始化
+    void                            InitZombieTypeDigger(int& aRenderOffset);  // 矿工僵尸初始化
+    void                            InitZombieTypePolevaulter();   // 撑杆僵尸初始化
+    void                            InitZombieTypeDolphinRider();  // 海豚骑士僵尸初始化
+    void                            InitZombieTypeGargantuar(int& aRenderOffset);  // 伽刚特尔初始化
+    void                            InitZombieTypeZamboni(int& aRenderOffset);  // 雪犁僵尸初始化
+    void                            InitZombieTypeCatapult();      // 投石车僵尸初始化
+    void                            InitZombieTypeSnorkel();       // 潜水僵尸初始化
+    void                            InitZombieTypeJackInTheBox();  // 开罐器僵尸初始化
+    void                            InitZombieTypeBobsled(Zombie* theParentZombie, int& aRenderOffset);  // 雪橇僵尸初始化
+    void                            InitZombieTypePogo();          // 弹跳僵尸初始化
+    void                            InitZombieTypeNewspaper();     // 读报僵尸初始化
+    void                            InitZombieTypeBalloon();       // 气球僵尸初始化
+    void                            InitZombieTypeDancing();       // 舞王僵尸初始化
+    void                            InitZombieTypeBackupDancer();  // 伴舞僵尸初始化
+    void                            InitZombieTypeImp();           // 小鬼僵尸初始化
+    void                            InitZombieTypeBoss(RenderLayer& aRenderLayer);  // Boss僵尸初始化
+    // ===== ZombieInitialize 小函数结束 =====
+    // ===== UpdateBoss 小函数（提取自 UpdateBoss）=====
+    void                            UpdateBossIdle();              // Boss空闲阶段
+    void                            UpdateBossSpawning();          // Boss召唤阶段
+    void                            UpdateBossBungeesEnter();      // Boss蹦极进入阶段
+    void                            UpdateBossStomping();          // Boss踩踏阶段
+    void                            UpdateBossBungeeExit();        // Boss蹦极退出阶段
+    void                            UpdateBossDropRV();            // Boss砸车阶段
+    void                            UpdateBossHeadEnter();         // Boss头部进入阶段
+    void                            UpdateBossHeadSpit();          // Boss头部吐球阶段
+    void                            UpdateBossHeadLeave();         // Boss头部离开阶段
+    // ===== UpdateBoss 小函数结束 =====
+    // ===== UpdateDeath 小函数（提取自 UpdateDeath）=====
+    float                           GetZombieFallTime(Reanimation* aBodyReanim);  // 获取僵尸倒地时间
+    void                            UpdateBossDeathExplosions(Reanimation* aBodyReanim);  // Boss死亡爆炸序列
+    bool                            UpdateZamboniCatapultDeath();  // 雪犁/投石车死亡爆炸
+    // ===== UpdateDeath 小函数结束 =====
+    // ===== TakeBodyDamage 小函数（提取自 TakeBodyDamage）=====
+    void                            TakeBodyDamageZamboni(unsigned int theDamageFlags, int aDamageIndexBeforeDamage, int aDamageIndexAfterDamage);  // 雪犁受伤状态切换
+    void                            TakeBodyDamageCatapult(unsigned int theDamageFlags, int aDamageIndexBeforeDamage, int aDamageIndexAfterDamage);  // 投石车受伤状态切换
+    void                            TakeBodyDamageGargantuar(int aDamageIndexBeforeDamage, int aDamageIndexAfterDamage);  // 伽刚特尔受伤状态切换
+    void                            TakeBodyDamageBoss(unsigned int theDamageFlags, int aDamageIndexBeforeDamage, int aDamageIndexAfterDamage, int aBodyHealthOrigin);  // Boss受伤状态切换
+    // ===== TakeBodyDamage 小函数结束 =====
     int                             GetBodyDamageIndex();
     void                            ApplyBurn();
     void                            UpdateBurn();
