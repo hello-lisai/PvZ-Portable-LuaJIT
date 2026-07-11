@@ -810,7 +810,6 @@ static void BindSol2Board(sol::state_view& lua) {
         "highlight_plants_for_mouse", &Board::HighlightPlantsForMouse,
         "clear_fog_around_plant", &Board::ClearFogAroundPlant,
         "puzzle_save_streak", &Board::PuzzleSaveStreak,
-        "get_squirrel_at", &Board::GetSquirrelAt,
         "get_zen_tool_at", &Board::GetZenToolAt,
         "is_plant_in_gold_watering_can_range", &Board::IsPlantInGoldWateringCanRange,
         "stage_has_zombie_walk_in_from_right", &Board::StageHasZombieWalkInFromRight,

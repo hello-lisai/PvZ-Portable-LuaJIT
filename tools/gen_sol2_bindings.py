@@ -59,6 +59,8 @@ SKIP_METHOD_NAMES = {
     # 已手动绑定的（避免冲突）
     # Zombie
     'get_ptr',  # 已有手动绑定
+    # Board — 实现被注释掉的方法（头文件有声明但 .cpp 中被 #if 0 或注释）
+    'GetSquirrelAt',  # Board.cpp 中实现被注释掉，链接时会报 undefined reference
 }
 
 
