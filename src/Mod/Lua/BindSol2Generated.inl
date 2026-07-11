@@ -183,7 +183,7 @@ static void BindSol2Zombie(sol::state_view& lua) {
         "update_death", &Zombie::UpdateDeath,
         // draw_shadow: 跳过 (has unregistered pointer param (Graphics*)) — void                            DrawShadow(Graphics* g);
         "has_shadow", &Zombie::HasShadow,
-        "load_reanim", &Zombie::LoadReanim,
+        // load_reanim: 跳过 (returns unregistered pointer type (Reanimation*)) — Reanimation*                    LoadReanim(ReanimationType theReanimationType);
         "take_shield_damage", &Zombie::TakeShieldDamage,
         "take_helm_damage", &Zombie::TakeHelmDamage,
         "take_body_damage", &Zombie::TakeBodyDamage,
@@ -262,7 +262,7 @@ static void BindSol2Zombie(sol::state_view& lua) {
         "get_dancer_phase", &Zombie::GetDancerPhase,
         "is_moving_at_chilled_speed", &Zombie::IsMovingAtChilledSpeed,
         "start_walk_anim", &Zombie::StartWalkAnim,
-        "add_attached_reanim", &Zombie::AddAttachedReanim,
+        // add_attached_reanim: 跳过 (returns unregistered pointer type (Reanimation*)) — Reanimation*                    AddAttachedReanim(int thePosX, int thePosY, ReanimationType theReanimType);
         "drag_under", &Zombie::DragUnder,
         // draw_butter: 跳过 (has reference param) — void                            DrawButter(Graphics* g, const ZombieDrawPosition& theDrawPos);
         "is_immobilizied", &Zombie::IsImmobilizied,
@@ -481,7 +481,7 @@ static void BindSol2Plant(sol::state_view& lua) {
         "update_blink", &Plant::UpdateBlink,
         "play_body_reanim", &Plant::PlayBodyReanim,
         "update_magnet_shroom", &Plant::UpdateMagnetShroom,
-        "get_free_magnet_item", &Plant::GetFreeMagnetItem,
+        // get_free_magnet_item: 跳过 (returns unregistered pointer type (MagnetItem*)) — MagnetItem*             GetFreeMagnetItem();
         // draw_magnet_items: 跳过 (has unregistered pointer param (Graphics*)) — void                    DrawMagnetItems(Graphics* g);
         "update_doom_shroom", &Plant::UpdateDoomShroom,
         "update_ice_shroom", &Plant::UpdateIceShroom,
@@ -513,7 +513,7 @@ static void BindSol2Plant(sol::state_view& lua) {
         "update_cactus", &Plant::UpdateCactus,
         "star_fruit_fire", &Plant::StarFruitFire,
         "update_tanglekelp", &Plant::UpdateTanglekelp,
-        // attach_blink_anim: 跳过 (has unregistered pointer param (Reanimation*)) — Reanimation*            AttachBlinkAnim(Reanimation* theReanimBody);
+        // attach_blink_anim: 跳过 (returns unregistered pointer type (Reanimation*)) — Reanimation*            AttachBlinkAnim(Reanimation* theReanimBody);
         "update_reanim_color", &Plant::UpdateReanimColor,
         "is_upgradable_to", &Plant::IsUpgradableTo,
         "is_part_of_upgradable_to", &Plant::IsPartOfUpgradableTo,

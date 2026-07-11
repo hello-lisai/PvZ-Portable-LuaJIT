@@ -342,6 +342,12 @@ def should_bind_method(method: MethodInfo) -> Tuple[bool, str]:
         if bad_type in return_type_clean:
             return False, f"returns unbindable type ({bad_type})"
 
+    # 检查返回值是否是指向未注册 usertype 的指针
+    if '*' in method.return_type:
+        if return_type_clean and return_type_clean not in REGISTERED_USERTYPES:
+            if return_type_clean not in ('char', 'void'):
+                return False, f"returns unregistered pointer type ({return_type_clean}*)"
+
     # 检查参数中是否包含未注册 usertype 的指针类型
     if method.params and method.params.strip() != 'void':
         for param in method.params.split(','):
