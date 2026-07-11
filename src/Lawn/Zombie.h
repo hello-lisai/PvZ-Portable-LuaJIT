@@ -193,6 +193,9 @@ public:
 
     void                            ZombieInitialize(int theRow, ZombieType theType, bool theVariant, Zombie* theParentZombie, int theFromWave);
     void                            Animate();
+    // ===== 僵尸动画小函数 =====
+    void                            GetChewSoundTriggerFrame(float& theLeftHandTime, float& theRightHandTime);  // 按 mZombieType 获取咀嚼音效触发时间点
+    // ===== 僵尸动画小函数结束 =====
     void                            CheckIfPreyCaught();
     void                            EatZombie(Zombie* theZombie);
     void                            EatPlant(Plant* thePlant);
@@ -256,6 +259,11 @@ public:
     Rect                            GetZombieRect();
     Rect                            GetZombieAttackRect();
     void                            UpdateZombieWalking();
+    // ===== 僵尸行走更新小函数 =====
+    float                           CalcWalkingSpeed(Reanimation* aBodyReanim);   // 按 mZombiePhase/mZombieType 分支计算行走速度
+    void                            UpdateWalkingDustParticles(Reanimation* aBodyReanim); // 扬尘粒子生成（Football/Polevaulter）
+    void                            UpdateWalkingFrameFallback();                  // 无动画时的帧回退逻辑
+    // ===== 僵尸行走更新小函数结束 =====
     void                            UpdateZombieBobsled();
     void                            BobsledCrash();
     Plant*                          IsStandingOnSpikeweed();
@@ -266,6 +274,11 @@ public:
     void                            PoolSplash(bool theInToPoolSound);
     void                            UpdateZombieFlyer();
     void                            UpdateZombiePogo();
+
+    // ===== 弹跳僵尸更新小函数 =====
+    float                           GetPogoBounceHeight();
+    void                            UpdatePogoBouncePhase();
+
     void                            UpdateZombieNewspaper();
     void                            LandFlyer(unsigned int theDamageFlags);
     void                            UpdateZombieDigger();
@@ -294,6 +307,11 @@ public:
     int                             GetShieldDamageIndex();
     void                            DrawReanim(Graphics* g, const ZombieDrawPosition& theDrawPos, int theBaseRenderGroup);
     void                            UpdatePlaying();
+    // ===== 僵尸游戏更新小函数（提取自 UpdatePlaying）=====
+    void                            UpdatePlayingGroanSound();        // 呻吟声播放（按 mZombieType 分支）
+    void                            UpdatePlayingStatusCounters();    // 状态计数器更新（冰冻/黄油等）
+    void                            UpdatePlayingContinuousDamage();  // 持续掉血逻辑（无头/低血量）
+    // ===== 僵尸游戏更新小函数结束 =====
     bool                            NeedsMoreBackupDancers();
     void                            ConvertToNormalZombie();
     void                            UpdateDancerWalking() { ; }
@@ -319,6 +337,10 @@ public:
     void                            AttachShield();
     void                            DetachShield();
     void                            UpdateReanim();
+    // ===== 重新动画更新小函数（提取自 UpdateReanim）=====
+    void                            UpdateReanimShakeAndScale(Reanimation* aBodyReanim, float& anOffsetX, float& anOffsetY);  // 抖动/偏移/缩放（Catapult/Zamboni/Football）
+    void                            UpdateReanimMirror(bool& anOpposite);  // 镜像处理（Dancer/BackupDancer）
+    // ===== 重新动画更新小函数结束 =====
     void                            GetTrackPosition(const char* theTrackName, float& thePosX, float& thePosY);
     void                            LoadPlainZombieReanim();
     void                            ShowDoorArms(bool theShow);
@@ -504,11 +526,17 @@ public:
     void                            AnimateChewSound();
     void                            AnimateChewEffect();
     void                            UpdateActions();
+    void                            UpdateActionsByHeight();
+    void                            UpdateActionsByType();
     void                            CheckForBoardEdge();
     void                            UpdateYeti();
     void                            DrawBossPart(Graphics* g, BossPart theBossPart);
     void                            BossSetupReanim();
     void                            MowDown();
+    // ===== 割草机碾压小函数 =====
+    bool                            HandleMowDownSpecialDeath();   // Catapult/Zamboni 特殊爆炸死亡，返回 true 表示已处理
+    void                            HandleMowDownDrops();          // 掉落物分派（Flag、Polevaulter、Newspaper/Balloon、Pogo）
+    // ===== 割草机碾压小函数结束 =====
     void                            UpdateMowered();
     void                            DropFlag();
     void                            DropPole();
@@ -522,6 +550,11 @@ public:
     void                            UpdateZombieJalapenoHead();
     void                            ApplyBossSmokeParticles(bool theEnable);
     void                            UpdateZombiquarium();
+    // ===== 水族箱僵尸更新小函数 =====
+    void                            UpdateZombiquariumBite(Reanimation* aBodyReanim);
+    void                            UpdateZombiquariumAccel(float& aMaxSpeed);
+    void                            UpdateZombiquariumBackAndForth(float aVelX, float& aMaxSpeed);
+    void                            UpdateZombiquariumDrift(float& aMaxSpeed);
     bool                            ZombiquariumFindClosestBrain();
     void                            UpdateZombieGatlingHead();
     void                            UpdateZombieSquashHead();
@@ -552,6 +585,10 @@ public:
     void                            BurnRow(int theRow);
     void                            SetupReanimForLostHead();
     void                            SetupReanimForLostArm(unsigned int theDamageFlags);
+    // ===== 断臂动画设置小函数 =====
+    void                            HideLostArmTracks();
+    void                            SetupLostArmImageOverride(float& aPosX, float& aPosY);
+    void                            SetupLostArmParticleImage(unsigned int theDamageFlags, float aPosX, float aPosY);
     bool                            IsSquashTarget(Plant* theExcept);
     static /*inline*/ bool			IsZombotany(ZombieType theZombieType);
 };

@@ -105,6 +105,7 @@ static void BindSol2Zombie(sol::state_view& lua) {
         "mLastPortalX", &Zombie::mLastPortalX,
         "zombie_initialize", &Zombie::ZombieInitialize,
         "animate", &Zombie::Animate,
+        // get_chew_sound_trigger_frame: 跳过 (has reference param) — void                            GetChewSoundTriggerFrame(float& theLeftHandTime, float& theRightHandTime);  // 按 mZombieType 获取咀嚼音效触发时间点
         "check_if_prey_caught", &Zombie::CheckIfPreyCaught,
         "eat_zombie", &Zombie::EatZombie,
         "eat_plant", &Zombie::EatPlant,
@@ -160,6 +161,9 @@ static void BindSol2Zombie(sol::state_view& lua) {
         // get_zombie_rect: 跳过 (returns unbindable type (Rect)) — Rect                            GetZombieRect();
         // get_zombie_attack_rect: 跳过 (returns unbindable type (Rect)) — Rect                            GetZombieAttackRect();
         "update_zombie_walking", &Zombie::UpdateZombieWalking,
+        // calc_walking_speed: 跳过 (has unregistered pointer param (Reanimation*)) — float                           CalcWalkingSpeed(Reanimation* aBodyReanim);   // 按 mZombiePhase/mZombieType 分支计算行走速度
+        // update_walking_dust_particles: 跳过 (has unregistered pointer param (Reanimation*)) — void                            UpdateWalkingDustParticles(Reanimation* aBodyReanim); // 扬尘粒子生成（Football/Polevaulter）
+        "update_walking_frame_fallback", &Zombie::UpdateWalkingFrameFallback,
         "update_zombie_bobsled", &Zombie::UpdateZombieBobsled,
         "bobsled_crash", &Zombie::BobsledCrash,
         "is_standing_on_spikeweed", &Zombie::IsStandingOnSpikeweed,
@@ -169,6 +173,8 @@ static void BindSol2Zombie(sol::state_view& lua) {
         "pool_splash", &Zombie::PoolSplash,
         "update_zombie_flyer", &Zombie::UpdateZombieFlyer,
         "update_zombie_pogo", &Zombie::UpdateZombiePogo,
+        "get_pogo_bounce_height", &Zombie::GetPogoBounceHeight,
+        "update_pogo_bounce_phase", &Zombie::UpdatePogoBouncePhase,
         "update_zombie_newspaper", &Zombie::UpdateZombieNewspaper,
         "land_flyer", &Zombie::LandFlyer,
         "update_zombie_digger", &Zombie::UpdateZombieDigger,
@@ -194,6 +200,9 @@ static void BindSol2Zombie(sol::state_view& lua) {
         "get_shield_damage_index", &Zombie::GetShieldDamageIndex,
         // draw_reanim: 跳过 (has reference param) — void                            DrawReanim(Graphics* g, const ZombieDrawPosition& theDrawPos, int theBaseRenderGroup);
         "update_playing", &Zombie::UpdatePlaying,
+        "update_playing_groan_sound", &Zombie::UpdatePlayingGroanSound,
+        "update_playing_status_counters", &Zombie::UpdatePlayingStatusCounters,
+        "update_playing_continuous_damage", &Zombie::UpdatePlayingContinuousDamage,
         "needs_more_backup_dancers", &Zombie::NeedsMoreBackupDancers,
         "convert_to_normal_zombie", &Zombie::ConvertToNormalZombie,
         "start_eating", &Zombie::StartEating,
@@ -216,6 +225,8 @@ static void BindSol2Zombie(sol::state_view& lua) {
         "attach_shield", &Zombie::AttachShield,
         "detach_shield", &Zombie::DetachShield,
         "update_reanim", &Zombie::UpdateReanim,
+        // update_reanim_shake_and_scale: 跳过 (has reference param) — void                            UpdateReanimShakeAndScale(Reanimation* aBodyReanim, float& anOffsetX, float& anOffsetY);  // 抖动/偏移/缩放（Catapult/Zamboni/Football）
+        // update_reanim_mirror: 跳过 (has reference param) — void                            UpdateReanimMirror(bool& anOpposite);  // 镜像处理（Dancer/BackupDancer）
         // get_track_position: 跳过 (has reference param) — void                            GetTrackPosition(const char* theTrackName, float& thePosX, float& thePosY);
         "load_plain_zombie_reanim", &Zombie::LoadPlainZombieReanim,
         "show_door_arms", &Zombie::ShowDoorArms,
@@ -375,11 +386,15 @@ static void BindSol2Zombie(sol::state_view& lua) {
         "animate_chew_sound", &Zombie::AnimateChewSound,
         "animate_chew_effect", &Zombie::AnimateChewEffect,
         "update_actions", &Zombie::UpdateActions,
+        "update_actions_by_height", &Zombie::UpdateActionsByHeight,
+        "update_actions_by_type", &Zombie::UpdateActionsByType,
         "check_for_board_edge", &Zombie::CheckForBoardEdge,
         "update_yeti", &Zombie::UpdateYeti,
         // draw_boss_part: 跳过 (has unregistered pointer param (Graphics*)) — void                            DrawBossPart(Graphics* g, BossPart theBossPart);
         "boss_setup_reanim", &Zombie::BossSetupReanim,
         "mow_down", &Zombie::MowDown,
+        "handle_mow_down_special_death", &Zombie::HandleMowDownSpecialDeath,
+        "handle_mow_down_drops", &Zombie::HandleMowDownDrops,
         "update_mowered", &Zombie::UpdateMowered,
         "drop_flag", &Zombie::DropFlag,
         "drop_pole", &Zombie::DropPole,
@@ -393,6 +408,10 @@ static void BindSol2Zombie(sol::state_view& lua) {
         "update_zombie_jalapeno_head", &Zombie::UpdateZombieJalapenoHead,
         "apply_boss_smoke_particles", &Zombie::ApplyBossSmokeParticles,
         "update_zombiquarium", &Zombie::UpdateZombiquarium,
+        // update_zombiquarium_bite: 跳过 (has unregistered pointer param (Reanimation*)) — void                            UpdateZombiquariumBite(Reanimation* aBodyReanim);
+        // update_zombiquarium_accel: 跳过 (has reference param) — void                            UpdateZombiquariumAccel(float& aMaxSpeed);
+        // update_zombiquarium_back_and_forth: 跳过 (has reference param) — void                            UpdateZombiquariumBackAndForth(float aVelX, float& aMaxSpeed);
+        // update_zombiquarium_drift: 跳过 (has reference param) — void                            UpdateZombiquariumDrift(float& aMaxSpeed);
         "zombiquarium_find_closest_brain", &Zombie::ZombiquariumFindClosestBrain,
         "update_zombie_gatling_head", &Zombie::UpdateZombieGatlingHead,
         "update_zombie_squash_head", &Zombie::UpdateZombieSquashHead,
@@ -417,6 +436,9 @@ static void BindSol2Zombie(sol::state_view& lua) {
         "burn_row", &Zombie::BurnRow,
         "setup_reanim_for_lost_head", &Zombie::SetupReanimForLostHead,
         "setup_reanim_for_lost_arm", &Zombie::SetupReanimForLostArm,
+        "hide_lost_arm_tracks", &Zombie::HideLostArmTracks,
+        // setup_lost_arm_image_override: 跳过 (has reference param) — void                            SetupLostArmImageOverride(float& aPosX, float& aPosY);
+        "setup_lost_arm_particle_image", &Zombie::SetupLostArmParticleImage,
         "is_squash_target", &Zombie::IsSquashTarget
         // is_zombotany: 跳过 (static method) — static  bool			IsZombotany(ZombieType theZombieType);
     );
