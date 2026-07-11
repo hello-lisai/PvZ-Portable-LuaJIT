@@ -73,6 +73,7 @@ class MethodInfo:
     is_static: bool
     is_inline: bool  # 有 {} 实现的
     raw_line: str
+    is_overloaded: bool = False  # 是否为重载方法（同名多个）
 
 
 @dataclass
@@ -145,6 +146,9 @@ def parse_class_body(class_body: str, class_name: str) -> ClassInfo:
     in_public = False
     current_access = 'private'
 
+    # 先收集所有方法，最后检测重载
+    raw_methods = []
+
     for line in lines:
         stripped = line.strip()
 
@@ -212,16 +216,14 @@ def parse_class_body(class_body: str, class_name: str) -> ClassInfo:
             if method_name.startswith('operator'):
                 continue
 
-            # 跳过 static 方法
+            # 跳过 static 方法（但仍收集到 raw_methods 用于重载检测，should_bind_method 会跳过）
             is_static = 'static' in return_type
-            if is_static:
-                continue
 
             # 跳过手动绑定的
             if method_name in SKIP_METHOD_NAMES:
                 continue
 
-            info.methods.append(MethodInfo(
+            raw_methods.append(MethodInfo(
                 return_type=return_type,
                 name=method_name,
                 params=params,
@@ -275,6 +277,19 @@ def parse_class_body(class_body: str, class_name: str) -> ClassInfo:
             ))
             continue
 
+    # 检测重载方法（同名方法出现多次），跳过所有重载（sol2 无法自动解析）
+    method_name_counts = {}
+    for m in raw_methods:
+        method_name_counts[m.name] = method_name_counts.get(m.name, 0) + 1
+
+    for m in raw_methods:
+        if method_name_counts[m.name] > 1:
+            # 标记为重载，should_bind_method 会跳过
+            m.is_overloaded = True
+        else:
+            m.is_overloaded = False
+        info.methods.append(m)
+
     return info
 
 
@@ -327,6 +342,14 @@ def extract_param_types(params: str) -> List[str]:
 
 def should_bind_method(method: MethodInfo) -> Tuple[bool, str]:
     """判断方法是否可以自动绑定，返回 (可绑定, 原因)"""
+    # 跳过重载方法（sol2 无法自动解析 &Class::OverloadedName）
+    if method.is_overloaded:
+        return False, "overloaded method (needs manual binding)"
+
+    # 跳过 static 方法
+    if method.is_static:
+        return False, "static method"
+
     # 跳过返回引用的方法
     if '&' in method.return_type and '&&' not in method.return_type:
         return False, "returns reference"

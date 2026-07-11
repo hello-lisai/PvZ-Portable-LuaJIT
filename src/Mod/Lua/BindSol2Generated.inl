@@ -304,6 +304,8 @@ static void BindSol2Zombie(sol::state_view& lua) {
         "start_walk_anim", &Zombie::StartWalkAnim,
         // add_attached_reanim: 跳过 (returns unregistered pointer type (Reanimation*)) — Reanimation*                    AddAttachedReanim(int thePosX, int thePosY, ReanimationType theReanimType);
         "drag_under", &Zombie::DragUnder,
+        // setup_door_arms: 跳过 (static method) — static  void          SetupDoorArms(Reanimation* aReanim, bool theShow);
+        // setup_reanim_layers: 跳过 (static method) — static void                     SetupReanimLayers(Reanimation* aReanim, ZombieType theZombieType);
         "is_on_board", &Zombie::IsOnBoard,
         // draw_butter: 跳过 (has reference param) — void                            DrawButter(Graphics* g, const ZombieDrawPosition& theDrawPos);
         "is_immobilizied", &Zombie::IsImmobilizied,
@@ -382,6 +384,7 @@ static void BindSol2Zombie(sol::state_view& lua) {
         "drop_flag", &Zombie::DropFlag,
         "drop_pole", &Zombie::DropPole,
         // draw_boss_back_arm: 跳过 (has reference param) — void                            DrawBossBackArm(Graphics* g, const ZombieDrawPosition& theDrawPos);
+        // preload_zombie_resources: 跳过 (static method) — static void                     PreloadZombieResources(ZombieType theZombieType);
         "boss_start_death", &Zombie::BossStartDeath,
         "remove_cold_effects", &Zombie::RemoveColdEffects,
         "boss_head_spit_effect", &Zombie::BossHeadSpitEffect,
@@ -408,11 +411,14 @@ static void BindSol2Zombie(sol::state_view& lua) {
         "remove_butter", &Zombie::RemoveButter,
         "balloon_propeller_hat_spin", &Zombie::BalloonPropellerHatSpin,
         "do_daisies", &Zombie::DoDaisies,
+        // zombie_type_can_go_on_high_ground: 跳过 (static method) — static  bool          ZombieTypeCanGoOnHighGround(ZombieType theZombieType);
+        // zombie_type_can_go_in_pool: 跳过 (static method) — static  bool          ZombieTypeCanGoInPool(ZombieType theZombieType);
         "setup_water_track", &Zombie::SetupWaterTrack,
         "burn_row", &Zombie::BurnRow,
         "setup_reanim_for_lost_head", &Zombie::SetupReanimForLostHead,
         "setup_reanim_for_lost_arm", &Zombie::SetupReanimForLostArm,
         "is_squash_target", &Zombie::IsSquashTarget
+        // is_zombotany: 跳过 (static method) — static  bool			IsZombotany(ZombieType theZombieType);
     );
 }
 
@@ -507,6 +513,16 @@ static void BindSol2Plant(sol::state_view& lua) {
         "update_shooter", &Plant::UpdateShooter,
         "find_target_and_fire", [](Plant* self, int theRow) -> bool { return self->FindTargetAndFire(theRow, PlantWeapon::WEAPON_PRIMARY); },
         "launch_threepeater", &Plant::LaunchThreepeater,
+        // get_image: 跳过 (static method) — static Image*           GetImage(SeedType theSeedType);
+        // get_cost: 跳过 (static method) — static int              GetCost(SeedType theSeedType, SeedType theImitaterType = SeedType::SEED_NONE);
+        // get_name_string: 跳过 (static method) — static std::string       GetNameString(SeedType theSeedType, SeedType theImitaterType = SeedType::SEED_NONE);
+        // get_tool_tip: 跳过 (static method) — static std::string       GetToolTip(SeedType theSeedType);
+        // get_refresh_time: 跳过 (static method) — static int              GetRefreshTime(SeedType theSeedType, SeedType theImitaterType = SeedType::SEED_NONE);
+        // is_nocturnal: 跳过 (static method) — static  bool  IsNocturnal(SeedType theSeedtype);
+        // is_fungus: 跳过 (static method) — static  bool  IsFungus(SeedType theSeedType);
+        // is_aquatic: 跳过 (static method) — static  bool  IsAquatic(SeedType theSeedType);
+        // is_flying: 跳过 (static method) — static  bool  IsFlying(SeedType theSeedtype);
+        // is_upgrade: 跳过 (static method) — static  bool  IsUpgrade(SeedType theSeedtype);
         "update_abilities", &Plant::UpdateAbilities,
         "squish", &Plant::Squish,
         "do_row_area_damage", &Plant::DoRowAreaDamage,
@@ -524,6 +540,7 @@ static void BindSol2Plant(sol::state_view& lua) {
         // add_attached_particle: 跳过 (returns unbindable type (TodParticle)) — TodParticleSystem*      AddAttachedParticle(int thePosX, int thePosY, int theRenderPosition, ParticleEffect theEffect);
         // get_pea_head_offset: 跳过 (has reference param) — void                    GetPeaHeadOffset(int& theOffsetX, int& theOffsetY);
         "makes_sun", &Plant::MakesSun,
+        // draw_seed_type: 跳过 (static method) — static void             DrawSeedType(Graphics* g, SeedType theSeedType, SeedType theImitaterType, DrawVariation theDrawVariation, float thePosX, float thePosY);
         "kill_all_plants_near_doom", &Plant::KillAllPlantsNearDoom,
         "is_on_high_ground", &Plant::IsOnHighGround,
         "update_torchwood", &Plant::UpdateTorchwood,
@@ -586,6 +603,7 @@ static void BindSol2Plant(sol::state_view& lua) {
         "update_reanim", &Plant::UpdateReanim,
         "spike_rock_take_damage", &Plant::SpikeRockTakeDamage,
         "is_spiky", &Plant::IsSpiky,
+        // preload_plant_resources: 跳过 (static method) — static  void  PreloadPlantResources(SeedType theSeedType);
         "is_in_play", &Plant::IsInPlay,
         "play_idle_anim", &Plant::PlayIdleAnim,
         "update_flower_pot", &Plant::UpdateFlowerPot,
@@ -828,10 +846,12 @@ static void BindSol2Board(sol::state_view& lua) {
         "kill_all_plants_in_radius", &Board::KillAllPlantsInRadius,
         "get_pumpkin_at", &Board::GetPumpkinAt,
         "get_flower_pot_at", &Board::GetFlowerPotAt,
+        // can_zombie_spawn_on_level: 跳过 (static method) — static bool						CanZombieSpawnOnLevel(ZombieType theZombieType, int theLevel);
         "is_zombie_wave_distribution_ok", &Board::IsZombieWaveDistributionOk,
         "pick_background", &Board::PickBackground,
         "init_zombie_waves", &Board::InitZombieWaves,
         "init_survival_stage", &Board::InitSurvivalStage,
+        // make_render_order: 跳过 (static method) — static  int			MakeRenderOrder(RenderLayer theRenderLayer, int theRow, int theLayerOffset);
         "update_game", &Board::UpdateGame,
         "init_zombie_waves_for_level", &Board::InitZombieWavesForLevel,
         "seed_not_recommended_for_level", &Board::SeedNotRecommendedForLevel,
@@ -839,6 +859,7 @@ static void BindSol2Board(sol::state_view& lua) {
         // draw_fog: 跳过 (has unregistered pointer param (Graphics*)) — void							DrawFog(Graphics* g);
         "update_fog", &Board::UpdateFog,
         "left_fog_column", &Board::LeftFogColumn,
+        // is_zombie_type_pool_only: 跳过 (static method) — static  bool			IsZombieTypePoolOnly(ZombieType theZombieType);
         "drop_loot_piece", &Board::DropLootPiece,
         "update_level_end_sequence", &Board::UpdateLevelEndSequence,
         "get_bottom_lawn_mower", &Board::GetBottomLawnMower,
@@ -956,6 +977,7 @@ static void BindSol2Board(sol::state_view& lua) {
         "is_last_stand_stage_with_repick", &Board::IsLastStandStageWithRepick,
         "do_typing_check", &Board::DoTypingCheck,
         "count_zombie_by_type", &Board::CountZombieByType
+        // is_zombie_type_spawned_only: 跳过 (static method) — static  bool			IsZombieTypeSpawnedOnly(ZombieType theZombieType);
     );
 }
 
@@ -1055,12 +1077,13 @@ static void BindSol2Coin(sol::state_view& lua) {
         // draw: 跳过 (has unregistered pointer param (Graphics*)) — void                    Draw(Graphics* g);
         "collect", &Coin::Collect,
         "get_sun_value", &Coin::GetSunValue,
+        // get_coin_value: 跳过 (static method) — static  int   GetCoinValue(CoinType theCoinType);
         "update_fade", &Coin::UpdateFade,
         "update_fall", &Coin::UpdateFall,
         "score_coin", &Coin::ScoreCoin,
         "update_collected", &Coin::UpdateCollected,
         // get_color: 跳过 (returns unbindable type (Color)) — Color                   GetColor();
-        "is_money", &Coin::IsMoney,
+        // is_money: 跳过 (overloaded method (needs manual binding)) — bool         IsMoney();
         "is_sun", &Coin::IsSun,
         "get_sun_scale", &Coin::GetSunScale,
         "get_final_seed_packet_type", &Coin::GetFinalSeedPacketType,
@@ -1074,6 +1097,7 @@ static void BindSol2Coin(sol::state_view& lua) {
         "is_present_with_advice", &Coin::IsPresentWithAdvice,
         "play_launch_sound", &Coin::PlayLaunchSound,
         "play_ground_sound", &Coin::PlayGroundSound
+        // is_money: 跳过 (overloaded method (needs manual binding)) — static  bool  IsMoney(CoinType theType);
     );
 }
 
