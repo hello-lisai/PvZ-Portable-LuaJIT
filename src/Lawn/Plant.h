@@ -161,6 +161,8 @@ class Coin;
 class Zombie;
 class Reanimation;
 class TodParticleSystem;
+class PlantDefinition;
+class Projectile;
 
 class Plant : public GameObject
 {
@@ -237,6 +239,16 @@ public:
     void                    Draw(Graphics* g);
     void                    MouseDown(int x, int y, int theClickCount);
     void                    DoSpecial();
+    // ===== 特殊技能小函数（提取自 DoSpecial）=====
+    void                    DoSpecialBlover();          // 三叶草：吹走飞行僵尸
+    void                    DoSpecialCherryBomb();      // 樱桃炸弹：范围杀伤
+    void                    DoSpecialDoomShroom();      // 毁灭菇：大范围杀伤+留坑
+    void                    DoSpecialJalapeno();        // 火爆辣椒：烧一行
+    void                    DoSpecialUmbrella();        // 伞叶：反弹弹射物
+    void                    DoSpecialIceShroom();       // 寒冰菇：冰冻所有僵尸
+    void                    DoSpecialPotatoMine();      // 土豆雷：爆炸
+    void                    DoSpecialInstantCoffee();   // 咖啡豆：唤醒植物
+    // ===== 特殊技能小函数结束 =====
     void                    Fire(Zombie* theTargetZombie, int theRow, PlantWeapon thePlantWeapon = PlantWeapon::WEAPON_PRIMARY);
     // ===== 发射投射物相关小函数（提取自 Fire）=====
     ProjectileType          GetFireProjectileType(PlantWeapon thePlantWeapon);              // 按植物类型返回投射物类型
@@ -298,6 +310,19 @@ public:
     void                    AnimateNuts();
     void                    SetSleeping(bool theIsAsleep);
     void                    UpdateShooting();
+    // ===== 射击更新小函数（提取自 UpdateShooting）=====
+    void                    UpdateFumeShroomShooting();                    // 大喷菇粒子触发
+    void                    UpdateGloomShroomShooting();                   // 多发喷菇多次发射+粒子
+    void                    UpdateGatlingPeaShooting();                    // 机枪射手多次发射
+    void                    UpdateCattailShooting();                       // 猫尾草目标查找发射
+    void                    FireThreepeaterAtCounterOne();                 // 三线射手 counter==1 发射
+    void                    FireSplitPeaAtCounterOne();                    // 双发射手 counter==1 发射
+    void                    FireCatapultAtCounterOne();                    // 投掷类 counter==1 发射
+    void                    FireAtCounterOne();                            // counter==1 发射分发
+    void                    ResetThreepeaterShootingAnim();                // 三线射手动画复位
+    void                    ResetSplitPeaShootingAnim();                   // 双发射手动画复位
+    void                    ResetShootingAnim();                           // counter==0 动画重置分发
+    // ===== 射击更新小函数结束 =====
     void                    DrawShadow(Graphics* g, float theOffsetX, float theOffsetY);
     void                    UpdateScaredyShroom();
     int                     DistanceToClosestZombie();

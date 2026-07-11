@@ -436,6 +436,14 @@ static void BindSol2Plant(sol::state_view& lua) {
         // draw: 跳过 (has unregistered pointer param (Graphics*)) — void                    Draw(Graphics* g);
         "mouse_down", &Plant::MouseDown,
         "do_special", &Plant::DoSpecial,
+        "do_special_blover", &Plant::DoSpecialBlover,
+        "do_special_cherry_bomb", &Plant::DoSpecialCherryBomb,
+        "do_special_doom_shroom", &Plant::DoSpecialDoomShroom,
+        "do_special_jalapeno", &Plant::DoSpecialJalapeno,
+        "do_special_umbrella", &Plant::DoSpecialUmbrella,
+        "do_special_ice_shroom", &Plant::DoSpecialIceShroom,
+        "do_special_potato_mine", &Plant::DoSpecialPotatoMine,
+        "do_special_instant_coffee", &Plant::DoSpecialInstantCoffee,
         // fire: 跳过 (has default param) — void                    Fire(Zombie* theTargetZombie, int theRow, PlantWeapon thePlantWeapon = PlantWeapon::WEAPON_PRIMARY);
         "get_fire_projectile_type", &Plant::GetFireProjectileType,
         // get_fire_origin: 跳过 (has reference param) — void                    GetFireOrigin(PlantWeapon thePlantWeapon, int& aOriginX, int& aOriginY);  // 计算发射点坐标
@@ -482,6 +490,17 @@ static void BindSol2Plant(sol::state_view& lua) {
         "animate_nuts", &Plant::AnimateNuts,
         "set_sleeping", &Plant::SetSleeping,
         "update_shooting", &Plant::UpdateShooting,
+        "update_fume_shroom_shooting", &Plant::UpdateFumeShroomShooting,
+        "update_gloom_shroom_shooting", &Plant::UpdateGloomShroomShooting,
+        "update_gatling_pea_shooting", &Plant::UpdateGatlingPeaShooting,
+        "update_cattail_shooting", &Plant::UpdateCattailShooting,
+        "fire_threepeater_at_counter_one", &Plant::FireThreepeaterAtCounterOne,
+        "fire_split_pea_at_counter_one", &Plant::FireSplitPeaAtCounterOne,
+        "fire_catapult_at_counter_one", &Plant::FireCatapultAtCounterOne,
+        "fire_at_counter_one", &Plant::FireAtCounterOne,
+        "reset_threepeater_shooting_anim", &Plant::ResetThreepeaterShootingAnim,
+        "reset_split_pea_shooting_anim", &Plant::ResetSplitPeaShootingAnim,
+        "reset_shooting_anim", &Plant::ResetShootingAnim,
         // draw_shadow: 跳过 (has unregistered pointer param (Graphics*)) — void                    DrawShadow(Graphics* g, float theOffsetX, float theOffsetY);
         "update_scaredy_shroom", &Plant::UpdateScaredyShroom,
         "distance_to_closest_zombie", &Plant::DistanceToClosestZombie,
