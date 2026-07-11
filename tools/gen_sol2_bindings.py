@@ -96,7 +96,7 @@ def read_file(path: str) -> str:
 
 
 def remove_preprocessor(content: str) -> str:
-    """移除 #ifdef/#ifndef/#endif 等预处理指令块，保留 #else 分支内容"""
+    """移除 #ifdef/#ifndef/#endif 等预处理指令块和行内注释，保留 #else 分支内容"""
     lines = content.split('\n')
     result = []
     # 简单策略: 跳过所有预处理行
@@ -104,6 +104,8 @@ def remove_preprocessor(content: str) -> str:
         stripped = line.strip()
         if stripped.startswith('#'):
             continue
+        # 移除行内 /* */ 注释（如 /*inline*/ Zombie* AddZombie(...)）
+        line = re.sub(r'/\*[^*]*\*/', '', line)
         result.append(line)
     return '\n'.join(result)
 
@@ -333,9 +335,8 @@ def should_bind_method(method: MethodInfo) -> Tuple[bool, str]:
     if '&' in method.params and '&&' not in method.params:
         return False, "has reference param"
 
-    # 跳过有默认参数的方法（包含 =）
-    if '=' in method.params and '!=' not in method.params and '<=' not in method.params and '>=' not in method.params:
-        return False, "has default param"
+    # 有默认参数的方法不再跳过，改为生成 lambda wrapper（见 generate_lambda_wrapper）
+    # 但仍需检查参数类型的可绑定性（在下方统一检查）
 
     # 检查返回值是否是不可绑定的自定义结构体类型
     return_type_clean = method.return_type.replace('const ', '').strip()
@@ -391,6 +392,72 @@ def should_bind_member(member: MemberInfo) -> Tuple[bool, str]:
     return True, ""
 
 
+def has_default_params(params: str) -> bool:
+    """检查参数列表中是否有默认参数"""
+    if not params or params.strip() == 'void':
+        return False
+    for param in params.split(','):
+        param = param.strip()
+        # 排除 != <= >= == 等运算符（虽然这些在参数声明中极罕见）
+        if '=' in param and '!=' not in param and '<=' not in param and '>=' not in param and '==' not in param:
+            return True
+    return False
+
+
+def parse_params_for_wrapper(params: str) -> List[Tuple[str, str, Optional[str]]]:
+    """解析参数列表，返回 [(类型, 名称, 默认值或None), ...]"""
+    if not params or params.strip() == 'void' or params.strip() == '':
+        return []
+    result = []
+    for param in params.split(','):
+        param = param.strip()
+        if not param:
+            continue
+
+        # 分离默认值
+        default_val = None
+        for i in range(len(param)):
+            if param[i] == '=' and i > 0 and param[i-1] not in ('!', '<', '>', '='):
+                default_val = param[i+1:].strip()
+                param = param[:i].strip()
+                break
+
+        # 分离类型和名称
+        parts = param.split()
+        if len(parts) >= 2:
+            param_type = ' '.join(parts[:-1])
+            param_name = parts[-1]
+        else:
+            param_type = parts[0]
+            param_name = '_arg'
+
+        result.append((param_type, param_name, default_val))
+    return result
+
+
+def generate_lambda_wrapper(class_name: str, method: MethodInfo) -> str:
+    """为有默认参数的方法生成 lambda wrapper（去掉默认参数，自动填充默认值）"""
+    params = parse_params_for_wrapper(method.params)
+
+    # 必填参数（没有默认值的）
+    required = [(t, n) for t, n, d in params if d is None]
+    # 有默认值的参数（用于调用时填充）
+    default_args = [d for t, n, d in params if d is not None]
+
+    # lambda 参数列表：self + 必填参数
+    lambda_params = ', '.join([f'{class_name}* self'] + [f'{t} {n}' for t, n in required])
+
+    # 调用参数列表：必填参数名 + 默认值
+    call_args = ', '.join([n for t, n in required] + default_args)
+
+    # 返回类型处理
+    ret = method.return_type.strip()
+    if ret == 'void':
+        return f'[]({lambda_params}) {{ self->{method.name}({call_args}); }}'
+    else:
+        return f'[]({lambda_params}) -> {ret} {{ return self->{method.name}({call_args}); }}'
+
+
 def to_snake_case(name: str) -> str:
     """将 CamelCase 转为 snake_case"""
     result = []
@@ -429,7 +496,13 @@ def generate_binding_code(class_info: ClassInfo, mt_name: str, bind_func_name: s
             entries.append(("comment", f"        // {lua_name}: 跳过 ({reason}) — {method.raw_line}"))
             continue
         lua_name = to_snake_case(method.name)
-        entries.append(("bind", f'        "{lua_name}", &{class_info.name}::{method.name}'))
+
+        # 有默认参数的方法生成 lambda wrapper
+        if has_default_params(method.params):
+            wrapper = generate_lambda_wrapper(class_info.name, method)
+            entries.append(("bind", f'        "{lua_name}", {wrapper}'))
+        else:
+            entries.append(("bind", f'        "{lua_name}", &{class_info.name}::{method.name}'))
 
     # 找到最后一个 bind 条目的索引
     last_bind_idx = -1
@@ -463,7 +536,8 @@ def generate_header(targets: list) -> str:
         "// 绑定策略:",
         "//   - 成员变量: &Class::member (sol2 自动生成 getter/setter)",
         "//   - 简单方法: &Class::method (sol2 自动处理类型转换)",
-        "//   - 复杂方法(引用参数/默认值): 跳过，需手动绑定",
+        "//   - 默认参数方法: 生成 lambda wrapper 自动填充默认值",
+        "//   - 复杂方法(引用参数/未注册指针): 跳过，需手动绑定",
         "//",
         f"// 绑定类数: {len(targets)}",
         "",

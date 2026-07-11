@@ -5,7 +5,8 @@
 // 绑定策略:
 //   - 成员变量: &Class::member (sol2 自动生成 getter/setter)
 //   - 简单方法: &Class::method (sol2 自动处理类型转换)
-//   - 复杂方法(引用参数/默认值): 跳过，需手动绑定
+//   - 默认参数方法: 生成 lambda wrapper 自动填充默认值
+//   - 复杂方法(引用参数/未注册指针): 跳过，需手动绑定
 //
 // 绑定类数: 7
 
@@ -113,10 +114,12 @@ static void BindSol2Zombie(sol::state_view& lua) {
         "handle_plant_eaten_death", &Zombie::HandlePlantEatenDeath,
         "update", &Zombie::Update,
         "die_no_loot", &Zombie::DieNoLoot,
+        "die_with_loot", &Zombie::DieWithLoot,
         // draw: 跳过 (has unregistered pointer param (Graphics*)) — void                            Draw(Graphics* g);
         // draw_zombie_part: 跳过 (has reference param) — void                            DrawZombiePart(Graphics* g, Image* theImage, int theFrame, int theRow, const ZombieDrawPosition& theDrawPos);
         // draw_bungee_cord: 跳过 (has unregistered pointer param (Graphics*)) — void                            DrawBungeeCord(Graphics* g, int theOffsetX);
         "take_damage", &Zombie::TakeDamage,
+        "set_row", &Zombie::SetRow,
         "get_pos_y_based_on_row", &Zombie::GetPosYBasedOnRow,
         "apply_chill", &Zombie::ApplyChill,
         "update_zombie_bungee", &Zombie::UpdateZombieBungee,
@@ -124,7 +127,14 @@ static void BindSol2Zombie(sol::state_view& lua) {
         "effected_by_damage", &Zombie::EffectedByDamage,
         "pick_random_speed", &Zombie::PickRandomSpeed,
         "update_zombie_polevaulter", &Zombie::UpdateZombiePolevaulter,
+        "update_polevaulter_pre_vault", &Zombie::UpdatePolevaulterPreVault,
+        "update_polevaulter_in_vault", &Zombie::UpdatePolevaulterInVault,
         "update_zombie_dolphin_rider", &Zombie::UpdateZombieDolphinRider,
+        "update_dolphin_walking", &Zombie::UpdateDolphinWalking,
+        "update_dolphin_into_pool", &Zombie::UpdateDolphinIntoPool,
+        "update_dolphin_riding", &Zombie::UpdateDolphinRiding,
+        "update_dolphin_in_jump", &Zombie::UpdateDolphinInJump,
+        "update_dolphin_walking_in_pool", &Zombie::UpdateDolphinWalkingInPool,
         "pick_bungee_zombie_target", &Zombie::PickBungeeZombieTarget,
         "count_bungees_targeting_sun_flowers", &Zombie::CountBungeesTargetingSunFlowers,
         "find_plant_target", &Zombie::FindPlantTarget,
@@ -142,6 +152,7 @@ static void BindSol2Zombie(sol::state_view& lua) {
         "try_spawn_level_award", &Zombie::TrySpawnLevelAward,
         "can_spawn_level_award", &Zombie::CanSpawnLevelAward,
         "pick_level_award_coin_type", &Zombie::PickLevelAwardCoinType,
+        "start_zombie_sound", &Zombie::StartZombieSound,
         "stop_zombie_sound", &Zombie::StopZombieSound,
         "update_zombie_jack_in_the_box", &Zombie::UpdateZombieJackInTheBox,
         // draw_zombie_head: 跳过 (has reference param) — void                            DrawZombieHead(Graphics* g, const ZombieDrawPosition& theDrawPos, int theFrame);
@@ -153,12 +164,19 @@ static void BindSol2Zombie(sol::state_view& lua) {
         "bobsled_crash", &Zombie::BobsledCrash,
         "is_standing_on_spikeweed", &Zombie::IsStandingOnSpikeweed,
         "check_for_zombie_step", &Zombie::CheckForZombieStep,
+        // override_particle_color: 跳过 (has unregistered pointer param (TodParticleSystem*)) — void                 OverrideParticleColor(TodParticleSystem* aParticle);
+        // override_particle_scale: 跳过 (has unregistered pointer param (TodParticleSystem*)) — void                 OverrideParticleScale(TodParticleSystem* aParticle);
         "pool_splash", &Zombie::PoolSplash,
         "update_zombie_flyer", &Zombie::UpdateZombieFlyer,
         "update_zombie_pogo", &Zombie::UpdateZombiePogo,
         "update_zombie_newspaper", &Zombie::UpdateZombieNewspaper,
         "land_flyer", &Zombie::LandFlyer,
         "update_zombie_digger", &Zombie::UpdateZombieDigger,
+        "update_digger_tunneling", &Zombie::UpdateDiggerTunneling,
+        "update_digger_rising", &Zombie::UpdateDiggerRising,
+        "update_digger_tunneling_pause_without_axe", &Zombie::UpdateDiggerTunnelingPauseWithoutAxe,
+        "update_digger_rise_without_axe", &Zombie::UpdateDiggerRiseWithoutAxe,
+        "update_digger_stunned", &Zombie::UpdateDiggerStunned,
         "is_walking_backwards", &Zombie::IsWalkingBackwards,
         // add_attached_particle: 跳过 (returns unbindable type (TodParticle)) — TodParticleSystem*              AddAttachedParticle(int thePosX, int thePosY, ParticleEffect theEffect);
         "pogo_break", &Zombie::PogoBreak,
@@ -181,6 +199,7 @@ static void BindSol2Zombie(sol::state_view& lua) {
         "start_eating", &Zombie::StartEating,
         "stop_eating", &Zombie::StopEating,
         "update_anim_speed", &Zombie::UpdateAnimSpeed,
+        "reanim_show_prefix", &Zombie::ReanimShowPrefix,
         "play_death_anim", &Zombie::PlayDeathAnim,
         "can_play_death_anim", &Zombie::CanPlayDeathAnim,
         "clear_death_status_effects", &Zombie::ClearDeathStatusEffects,
@@ -190,6 +209,7 @@ static void BindSol2Zombie(sol::state_view& lua) {
         // draw_shadow: 跳过 (has unregistered pointer param (Graphics*)) — void                            DrawShadow(Graphics* g);
         "has_shadow", &Zombie::HasShadow,
         // load_reanim: 跳过 (returns unregistered pointer type (Reanimation*)) — Reanimation*                    LoadReanim(ReanimationType theReanimationType);
+        "take_flying_damage", &Zombie::TakeFlyingDamage,
         "take_shield_damage", &Zombie::TakeShieldDamage,
         "take_helm_damage", &Zombie::TakeHelmDamage,
         "take_body_damage", &Zombie::TakeBodyDamage,
@@ -199,8 +219,10 @@ static void BindSol2Zombie(sol::state_view& lua) {
         // get_track_position: 跳过 (has reference param) — void                            GetTrackPosition(const char* theTrackName, float& thePosX, float& thePosY);
         "load_plain_zombie_reanim", &Zombie::LoadPlainZombieReanim,
         "show_door_arms", &Zombie::ShowDoorArms,
+        "reanim_show_track", &Zombie::ReanimShowTrack,
+        "play_zombie_appear_sound", &Zombie::PlayZombieAppearSound,
         "start_mind_controlled", &Zombie::StartMindControlled,
-        // get_mind_control_color: 跳过 (has default param) — Color                           GetMindControlColor(int alpha = 255);
+        // get_mind_control_color: 跳过 (returns unbindable type (Color)) — Color                           GetMindControlColor(int alpha = 255);
         // apply_mind_control_image_tint: 跳过 (has reference param) — void                            ApplyMindControlImageTint(Graphics* g, Image* theImage, const Rect& aDestRect, const Rect& aSrcRect, bool aMirror, int anAlpha);
         // get_mind_control_reanim_color: 跳过 (has reference param) — void                            GetMindControlReanimColor(Color& aColorOverride, Color& aExtraAdditiveColor, bool& aEnableExtraAdditiveDraw, int aFadeAlpha);
         // apply_mind_control_reanim_mirror: 跳过 (has reference param) — void                            ApplyMindControlReanimMirror(bool& anOpposite);
@@ -275,12 +297,14 @@ static void BindSol2Zombie(sol::state_view& lua) {
         "update_burn", &Zombie::UpdateBurn,
         "zombie_not_walking", &Zombie::ZombieNotWalking,
         "find_zombie_target", &Zombie::FindZombieTarget,
+        "play_zombie_reanim", &Zombie::PlayZombieReanim,
         "update_zombie_backup_dancer", &Zombie::UpdateZombieBackupDancer,
         "get_dancer_phase", &Zombie::GetDancerPhase,
         "is_moving_at_chilled_speed", &Zombie::IsMovingAtChilledSpeed,
         "start_walk_anim", &Zombie::StartWalkAnim,
         // add_attached_reanim: 跳过 (returns unregistered pointer type (Reanimation*)) — Reanimation*                    AddAttachedReanim(int thePosX, int thePosY, ReanimationType theReanimType);
         "drag_under", &Zombie::DragUnder,
+        "is_on_board", &Zombie::IsOnBoard,
         // draw_butter: 跳过 (has reference param) — void                            DrawButter(Graphics* g, const ZombieDrawPosition& theDrawPos);
         "is_immobilizied", &Zombie::IsImmobilizied,
         "apply_butter", &Zombie::ApplyButter,
@@ -297,9 +321,16 @@ static void BindSol2Zombie(sol::state_view& lua) {
         "can_be_frozen", &Zombie::CanBeFrozen,
         "can_be_chilled", &Zombie::CanBeChilled,
         "update_zombie_snorkel", &Zombie::UpdateZombieSnorkel,
+        "update_snorkel_walking", &Zombie::UpdateSnorkelWalking,
+        "update_snorkel_into_pool", &Zombie::UpdateSnorkelIntoPool,
+        "update_snorkel_walking_in_pool", &Zombie::UpdateSnorkelWalkingInPool,
+        "update_snorkel_up_to_eat", &Zombie::UpdateSnorkelUpToEat,
+        "update_snorkel_eating_in_pool", &Zombie::UpdateSnorkelEatingInPool,
+        "update_snorkel_down_from_eat", &Zombie::UpdateSnorkelDownFromEat,
         "reanim_ignore_clip_rect", &Zombie::ReanimIgnoreClipRect,
         "set_anim_rate", &Zombie::SetAnimRate,
         "apply_anim_rate", &Zombie::ApplyAnimRate,
+        "is_dead_or_dying", &Zombie::IsDeadOrDying,
         // draw_dancer_reanim: 跳过 (has unregistered pointer param (Graphics*)) — void                            DrawDancerReanim(Graphics* g);
         // draw_bungee_reanim: 跳过 (has unregistered pointer param (Graphics*)) — void                            DrawBungeeReanim(Graphics* g);
         // draw_bungee_target: 跳过 (has unregistered pointer param (Graphics*)) — void                            DrawBungeeTarget(Graphics* g);
@@ -370,6 +401,9 @@ static void BindSol2Zombie(sol::state_view& lua) {
         "has_yucky_face_image", &Zombie::HasYuckyFaceImage,
         "is_tangle_kelp_target", &Zombie::IsTangleKelpTarget,
         "is_fire_resistant", &Zombie::IsFireResistant,
+        "enable_mustache", &Zombie::EnableMustache,
+        "enable_future", &Zombie::EnableFuture,
+        "enable_dance", &Zombie::EnableDance,
         "bungee_drop_plant", &Zombie::BungeeDropPlant,
         "remove_butter", &Zombie::RemoveButter,
         "balloon_propeller_hat_spin", &Zombie::BalloonPropellerHatSpin,
@@ -461,26 +495,27 @@ static void BindSol2Plant(sol::state_view& lua) {
         "do_special_ice_shroom", &Plant::DoSpecialIceShroom,
         "do_special_potato_mine", &Plant::DoSpecialPotatoMine,
         "do_special_instant_coffee", &Plant::DoSpecialInstantCoffee,
-        // fire: 跳过 (has default param) — void                    Fire(Zombie* theTargetZombie, int theRow, PlantWeapon thePlantWeapon = PlantWeapon::WEAPON_PRIMARY);
+        "fire", [](Plant* self, Zombie* theTargetZombie, int theRow) { self->Fire(theTargetZombie, theRow, PlantWeapon::WEAPON_PRIMARY); },
         "get_fire_projectile_type", &Plant::GetFireProjectileType,
         // get_fire_origin: 跳过 (has reference param) — void                    GetFireOrigin(PlantWeapon thePlantWeapon, int& aOriginX, int& aOriginY);  // 计算发射点坐标
         "play_fire_sound", &Plant::PlayFireSound,
         "play_fire_muzzle_particle", &Plant::PlayFireMuzzleParticle,
         "setup_projectile_motion", &Plant::SetupProjectileMotion,
-        // find_target_zombie: 跳过 (has default param) — Zombie*                 FindTargetZombie(int theRow, PlantWeapon thePlantWeapon = PlantWeapon::WEAPON_PRIMARY);
+        "find_target_zombie", [](Plant* self, int theRow) -> Zombie* { return self->FindTargetZombie(theRow, PlantWeapon::WEAPON_PRIMARY); },
         "die", &Plant::Die,
         "update_production_plant", &Plant::UpdateProductionPlant,
         "update_shooter", &Plant::UpdateShooter,
-        // find_target_and_fire: 跳过 (has default param) — bool                    FindTargetAndFire(int theRow, PlantWeapon thePlantWeapon = PlantWeapon::WEAPON_PRIMARY);
+        "find_target_and_fire", [](Plant* self, int theRow) -> bool { return self->FindTargetAndFire(theRow, PlantWeapon::WEAPON_PRIMARY); },
         "launch_threepeater", &Plant::LaunchThreepeater,
         "update_abilities", &Plant::UpdateAbilities,
         "squish", &Plant::Squish,
         "do_row_area_damage", &Plant::DoRowAreaDamage,
-        // get_damage_range_flags: 跳过 (has default param) — int                     GetDamageRangeFlags(PlantWeapon thePlantWeapon = PlantWeapon::WEAPON_PRIMARY);
+        "get_damage_range_flags", [](Plant* self) -> int { return self->GetDamageRangeFlags(PlantWeapon::WEAPON_PRIMARY); },
         // get_plant_rect: 跳过 (returns unbindable type (Rect)) — Rect                    GetPlantRect();
-        // get_plant_attack_rect: 跳过 (has default param) — Rect                    GetPlantAttackRect(PlantWeapon thePlantWeapon = PlantWeapon::WEAPON_PRIMARY);
+        // get_plant_attack_rect: 跳过 (returns unbindable type (Rect)) — Rect                    GetPlantAttackRect(PlantWeapon thePlantWeapon = PlantWeapon::WEAPON_PRIMARY);
         "find_squash_target", &Plant::FindSquashTarget,
         "update_squash", &Plant::UpdateSquash,
+        "not_on_ground", &Plant::NotOnGround,
         "do_squash_damage", &Plant::DoSquashDamage,
         "burn_row", &Plant::BurnRow,
         "ice_zombies", &Plant::IceZombies,
@@ -488,6 +523,7 @@ static void BindSol2Plant(sol::state_view& lua) {
         "update_grave_buster", &Plant::UpdateGraveBuster,
         // add_attached_particle: 跳过 (returns unbindable type (TodParticle)) — TodParticleSystem*      AddAttachedParticle(int thePosX, int thePosY, int theRenderPosition, ParticleEffect theEffect);
         // get_pea_head_offset: 跳过 (has reference param) — void                    GetPeaHeadOffset(int& theOffsetX, int& theOffsetY);
+        "makes_sun", &Plant::MakesSun,
         "kill_all_plants_near_doom", &Plant::KillAllPlantsNearDoom,
         "is_on_high_ground", &Plant::IsOnHighGround,
         "update_torchwood", &Plant::UpdateTorchwood,
@@ -537,6 +573,7 @@ static void BindSol2Plant(sol::state_view& lua) {
         "update_cob_cannon", &Plant::UpdateCobCannon,
         "cob_cannon_fire", &Plant::CobCannonFire,
         "update_gold_magnet_shroom", &Plant::UpdateGoldMagnetShroom,
+        "is_on_board", &Plant::IsOnBoard,
         "remove_effects", &Plant::RemoveEffects,
         "update_coffee_bean", &Plant::UpdateCoffeeBean,
         "update_umbrella", &Plant::UpdateUmbrella,
@@ -549,6 +586,7 @@ static void BindSol2Plant(sol::state_view& lua) {
         "update_reanim", &Plant::UpdateReanim,
         "spike_rock_take_damage", &Plant::SpikeRockTakeDamage,
         "is_spiky", &Plant::IsSpiky,
+        "is_in_play", &Plant::IsInPlay,
         "play_idle_anim", &Plant::PlayIdleAnim,
         "update_flower_pot", &Plant::UpdateFlowerPot,
         "update_lilypad", &Plant::UpdateLilypad,
@@ -687,18 +725,21 @@ static void BindSol2Board(sol::state_view& lua) {
         "count_sun_being_collected", &Board::CountSunBeingCollected,
         // draw_game_objects: 跳过 (has unregistered pointer param (Graphics*)) — void							DrawGameObjects(Graphics* g);
         "clear_cursor", &Board::ClearCursor,
+        "are_enemy_zombies_on_screen", &Board::AreEnemyZombiesOnScreen,
         "find_lawn_mower_in_row", &Board::FindLawnMowerInRow,
+        // save_game: 跳过 (has reference param) — void					SaveGame(const std::string& theFileName);
         // load_game: 跳过 (has reference param) — bool							LoadGame(const std::string& theFileName);
         "init_level", &Board::InitLevel,
         "display_advice", &Board::DisplayAdvice,
         "start_level", &Board::StartLevel,
-        // add_plant: 跳过 (has default param) — Plant*							AddPlant(int theGridX, int theGridY, SeedType theSeedType, SeedType theImitaterType = SeedType::SEED_NONE);
+        "add_plant", [](Board* self, int theGridX, int theGridY, SeedType theSeedType) -> Plant* { return self->AddPlant(theGridX, theGridY, theSeedType, SeedType::SEED_NONE); },
         "add_projectile", &Board::AddProjectile,
         "add_coin", &Board::AddCoin,
         "refresh_seed_packet_from_cursor", &Board::RefreshSeedPacketFromCursor,
         "pick_grave_rising_zombie_type", &Board::PickGraveRisingZombieType,
         // pick_zombie_type: 跳过 (has unregistered pointer param (ZombiePicker*)) — ZombieType						PickZombieType(int theZombiePoints, int theWaveIndex, ZombiePicker* theZombiePicker);
         "pick_row_for_new_zombie", &Board::PickRowForNewZombie,
+        "add_zombie", &Board::AddZombie,
         "spawn_zombie_wave", &Board::SpawnZombieWave,
         "remove_all_zombies", &Board::RemoveAllZombies,
         "remove_cutscene_zombies", &Board::RemoveCutsceneZombies,
@@ -706,15 +747,29 @@ static void BindSol2Board(sol::state_view& lua) {
         "can_plant_at", &Board::CanPlantAt,
         "update_layers", &Board::UpdateLayers,
         // draw_backdrop: 跳过 (has unregistered pointer param (Graphics*)) — void							DrawBackdrop(Graphics* g);
+        "add_sun_money", &Board::AddSunMoney,
         "take_sun_money", &Board::TakeSunMoney,
+        "can_take_sun_money", &Board::CanTakeSunMoney,
+        "pause", &Board::Pause,
         "try_to_save_game", &Board::TryToSaveGame,
+        "need_save_game", &Board::NeedSaveGame,
+        "row_can_have_zombies", &Board::RowCanHaveZombies,
         "process_delete_queue", &Board::ProcessDeleteQueue,
         "choose_seeds_on_current_level", &Board::ChooseSeedsOnCurrentLevel,
         "get_num_seeds_in_bank", &Board::GetNumSeedsInBank,
+        "stage_is_night", &Board::StageIsNight,
+        "stage_has_pool", &Board::StageHasPool,
+        "stage_has6_rows", &Board::StageHas6Rows,
+        "stage_has_fog", &Board::StageHasFog,
+        "stage_is_day_without_pool", &Board::StageIsDayWithoutPool,
+        "stage_is_day_with_pool", &Board::StageIsDayWithPool,
         "stage_has_grave_stones", &Board::StageHasGraveStones,
         "pixel_to_grid_x", &Board::PixelToGridX,
         "pixel_to_grid_y", &Board::PixelToGridY,
+        "grid_to_pixel_x", &Board::GridToPixelX,
         "grid_to_pixel_y", &Board::GridToPixelY,
+        "pixel_to_grid_x_keep_on_board", &Board::PixelToGridXKeepOnBoard,
+        "pixel_to_grid_y_keep_on_board", &Board::PixelToGridYKeepOnBoard,
         "update_game_objects", &Board::UpdateGameObjects,
         // mouse_hit_test: 跳过 (has unregistered pointer param (HitResult*)) — bool							MouseHitTest(int x, int y, HitResult* theHitResult);
         "mouse_down_with_plant", &Board::MouseDownWithPlant,
@@ -724,24 +779,34 @@ static void BindSol2Board(sol::state_view& lua) {
         "update_tool_tip", &Board::UpdateToolTip,
         "get_top_plant_at", &Board::GetTopPlantAt,
         // get_plants_on_lawn: 跳过 (has unregistered pointer param (PlantsOnLawn*)) — void							GetPlantsOnLawn(int theGridX, int theGridY, PlantsOnLawn* thePlantOnLawn);
+        "count_sun_flowers", &Board::CountSunFlowers,
         "get_seed_packet_position_x", &Board::GetSeedPacketPositionX,
         // add_grave_stones: 跳过 (has reference param) — void							AddGraveStones(int theGridX, int theCount, MTRand& theLevelRNG);
         "get_grave_stone_count", &Board::GetGraveStoneCount,
-        // zombies_won: 跳过 (has default param) — void							ZombiesWon(Zombie* theZombie = nullptr);
+        // zombies_won: 跳过 (has unregistered pointer param (Zombie* theZombie =*)) — void							ZombiesWon(Zombie* theZombie = nullptr);
         // draw_level: 跳过 (has unregistered pointer param (Graphics*)) — void							DrawLevel(Graphics* g);
         // draw_shovel: 跳过 (has unregistered pointer param (Graphics*)) — void							DrawShovel(Graphics* g);
         "update_zombie_spawning", &Board::UpdateZombieSpawning,
         "update_sun_spawning", &Board::UpdateSunSpawning,
+        "clear_advice", &Board::ClearAdvice,
         "row_can_have_zombie_type", &Board::RowCanHaveZombieType,
+        "number_zombies_in_wave", &Board::NumberZombiesInWave,
         "total_zombies_health_in_wave", &Board::TotalZombiesHealthInWave,
         // draw_debug_text: 跳过 (has unregistered pointer param (Graphics*)) — void							DrawDebugText(Graphics* g);
         // draw_ui_coin_bank: 跳过 (has unregistered pointer param (Graphics*)) — void							DrawUICoinBank(Graphics* g);
+        "show_coin_bank", [](Board* self) { self->ShowCoinBank(1000); },
         "fade_out_level", &Board::FadeOutLevel,
         // draw_fade_out: 跳过 (has unregistered pointer param (Graphics*)) — void							DrawFadeOut(Graphics* g);
         // draw_ice: 跳过 (has unregistered pointer param (Graphics*)) — void							DrawIce(Graphics* g, int theGridY);
         "is_ice_at", &Board::IsIceAt,
+        "zombie_get_id", &Board::ZombieGetID,
+        "zombie_get", &Board::ZombieGet,
+        "zombie_try_to_get", &Board::ZombieTryToGet,
         // draw_debug_object_rects: 跳过 (has unregistered pointer param (Graphics*)) — void							DrawDebugObjectRects(Graphics* g);
         "update_ice", &Board::UpdateIce,
+        "get_ice_z_pos", &Board::GetIceZPos,
+        "can_add_bob_sled", &Board::CanAddBobSled,
+        "shake_board", &Board::ShakeBoard,
         "count_untrigger_lawn_mowers", &Board::CountUntriggerLawnMowers,
         // iterate_zombies: 跳过 (has reference param) — bool							IterateZombies(Zombie*& theZombie);
         // iterate_plants: 跳过 (has reference param) — bool							IteratePlants(Plant*& thePlant);
@@ -751,8 +816,11 @@ static void BindSol2Board(sol::state_view& lua) {
         // iterate_particles: 跳过 (has reference param) — bool							IterateParticles(TodParticleSystem*& theParticle);
         // iterate_reanimations: 跳过 (has reference param) — bool							IterateReanimations(Reanimation*& theReanimation);
         // iterate_grid_items: 跳过 (has reference param) — bool							IterateGridItems(GridItem*& theGridItem);
+        "add_zombie_in_row", &Board::AddZombieInRow,
+        "is_pool_square", &Board::IsPoolSquare,
         "pick_zombie_waves", &Board::PickZombieWaves,
         "stop_all_zombie_sounds", &Board::StopAllZombieSounds,
+        "has_level_award_dropped", &Board::HasLevelAwardDropped,
         "update_progress_meter", &Board::UpdateProgressMeter,
         // draw_ui_bottom: 跳过 (has unregistered pointer param (Graphics*)) — void							DrawUIBottom(Graphics* g);
         // draw_ui_top: 跳过 (has unregistered pointer param (Graphics*)) — void							DrawUITop(Graphics* g);
@@ -770,6 +838,7 @@ static void BindSol2Board(sol::state_view& lua) {
         // draw_top_right_ui: 跳过 (has unregistered pointer param (Graphics*)) — void							DrawTopRightUI(Graphics* g);
         // draw_fog: 跳过 (has unregistered pointer param (Graphics*)) — void							DrawFog(Graphics* g);
         "update_fog", &Board::UpdateFog,
+        "left_fog_column", &Board::LeftFogColumn,
         "drop_loot_piece", &Board::DropLootPiece,
         "update_level_end_sequence", &Board::UpdateLevelEndSequence,
         "get_bottom_lawn_mower", &Board::GetBottomLawnMower,
@@ -779,14 +848,19 @@ static void BindSol2Board(sol::state_view& lua) {
         "get_pos_y_based_on_row", &Board::GetPosYBasedOnRow,
         "next_wave_coming", &Board::NextWaveComing,
         "bungee_is_targeting_cell", &Board::BungeeIsTargetingCell,
+        "planting_pixel_to_grid_x", &Board::PlantingPixelToGridX,
+        "planting_pixel_to_grid_y", &Board::PlantingPixelToGridY,
         "find_umbrella_plant", &Board::FindUmbrellaPlant,
         "set_tutorial_state", &Board::SetTutorialState,
         "do_fwoosh", &Board::DoFwoosh,
         "update_fwoosh", &Board::UpdateFwoosh,
         "special_plant_hit_test", &Board::SpecialPlantHitTest,
         "update_mouse_position", &Board::UpdateMousePosition,
+        // tool_hit_test_helper: 跳过 (has unregistered pointer param (HitResult*)) — Plant*				ToolHitTestHelper(HitResult* theHitResult);
+        "tool_hit_test", &Board::ToolHitTest,
         "can_add_grave_stone_at", &Board::CanAddGraveStoneAt,
         "update_grid_items", &Board::UpdateGridItems,
+        "add_a_grave_stone", &Board::AddAGraveStone,
         "add_grid_item", &Board::AddGridItem,
         "add_lawn_mower", &Board::AddLawnMower,
         "get_survival_flags_completed", &Board::GetSurvivalFlagsCompleted,
@@ -794,17 +868,20 @@ static void BindSol2Board(sol::state_view& lua) {
         "update_cursor", &Board::UpdateCursor,
         "update_tutorial", &Board::UpdateTutorial,
         "get_seed_type_in_cursor", &Board::GetSeedTypeInCursor,
+        "count_plant_by_type", &Board::CountPlantByType,
         "planting_requirements_met", &Board::PlantingRequirementsMet,
         "has_valid_cob_cannon_spot", &Board::HasValidCobCannonSpot,
         "is_valid_cob_cannon_spot", &Board::IsValidCobCannonSpot,
         "is_valid_cob_cannon_spot_helper", &Board::IsValidCobCannonSpotHelper,
         "mouse_down_cobcannon_fire", &Board::MouseDownCobcannonFire,
         "kill_all_zombies_in_radius", &Board::KillAllZombiesInRadius,
+        "get_seed_bank_extra_width", &Board::GetSeedBankExtraWidth,
         "is_flag_wave", &Board::IsFlagWave,
         // draw_house_door_top: 跳过 (has unregistered pointer param (Graphics*)) — void							DrawHouseDoorTop(Graphics* g);
         // draw_house_door_bottom: 跳过 (has unregistered pointer param (Graphics*)) — void							DrawHouseDoorBottom(Graphics* g);
         "get_boss_zombie", &Board::GetBossZombie,
         "has_conveyor_belt_seed_bank", &Board::HasConveyorBeltSeedBank,
+        "stage_has_roof", &Board::StageHasRoof,
         "spawn_zombies_from_pool", &Board::SpawnZombiesFromPool,
         "spawn_zombies_from_sky", &Board::SpawnZombiesFromSky,
         "pick_up_tool", &Board::PickUpTool,
@@ -813,29 +890,49 @@ static void BindSol2Board(sol::state_view& lua) {
         "count_coins_being_collected", &Board::CountCoinsBeingCollected,
         // bungee_drop_zombie: 跳过 (has unregistered pointer param (BungeeDropGrid*)) — void							BungeeDropZombie(BungeeDropGrid* theBungeeDropGrid, ZombieType theZombieType);
         // setup_bungee_drop: 跳过 (has unregistered pointer param (BungeeDropGrid*)) — void							SetupBungeeDrop(BungeeDropGrid* theBungeeDropGrid);
+        // put_zombie_in_wave: 跳过 (has unregistered pointer param (ZombiePicker*)) — void					PutZombieInWave(ZombieType theZombieType, int theWaveNumber, ZombiePicker* theZombiePicker);
+        // put_in_missing_zombies: 跳过 (has unregistered pointer param (ZombiePicker*)) — void					PutInMissingZombies(int theWaveNumber, ZombiePicker* theZombiePicker);
         // get_shovel_button_rect: 跳过 (returns unbindable type (Rect)) — Rect							GetShovelButtonRect();
         // get_zen_button_rect: 跳过 (has reference param) — void							GetZenButtonRect(GameObjectType theObjectType, Rect& theRect);
-        // new_plant: 跳过 (has default param) — Plant*							NewPlant(int theGridX, int theGridY, SeedType theSeedType, SeedType theImitaterType = SeedType::SEED_NONE);
+        "new_plant", [](Board* self, int theGridX, int theGridY, SeedType theSeedType) -> Plant* { return self->NewPlant(theGridX, theGridY, theSeedType, SeedType::SEED_NONE); },
         "do_planting_effects", &Board::DoPlantingEffects,
         "is_final_survival_stage", &Board::IsFinalSurvivalStage,
         "survival_save_score", &Board::SurvivalSaveScore,
         "count_zombies_on_screen", &Board::CountZombiesOnScreen,
         "get_live_gargantuar_count", &Board::GetLiveGargantuarCount,
+        "get_num_waves_per_survival_stage", &Board::GetNumWavesPerSurvivalStage,
         "get_level_rand_seed", &Board::GetLevelRandSeed,
         // add_boss_render_item: 跳过 (has reference param) — void							AddBossRenderItem(RenderItem* theRenderList, int& theCurRenderItem, Zombie* theBossZombie);
+        "get_crater_at", &Board::GetCraterAt,
+        "get_grave_stone_at", &Board::GetGraveStoneAt,
+        "get_ladder_at", &Board::GetLadderAt,
+        "add_a_ladder", &Board::AddALadder,
+        "add_a_crater", &Board::AddACrater,
         "init_lawn_mowers", &Board::InitLawnMowers,
+        "is_plant_in_cursor", &Board::IsPlantInCursor,
         "highlight_plants_for_mouse", &Board::HighlightPlantsForMouse,
         "clear_fog_around_plant", &Board::ClearFogAroundPlant,
+        "remove_particle_by_type", &Board::RemoveParticleByType,
+        "get_scary_pot_at", &Board::GetScaryPotAt,
         "puzzle_save_streak", &Board::PuzzleSaveStreak,
+        "clear_advice_immediately", &Board::ClearAdviceImmediately,
+        "is_final_scary_potter_stage", &Board::IsFinalScaryPotterStage,
+        "display_advice_again", &Board::DisplayAdviceAgain,
         "get_zen_tool_at", &Board::GetZenToolAt,
         "is_plant_in_gold_watering_can_range", &Board::IsPlantInGoldWateringCanRange,
         "stage_has_zombie_walk_in_from_right", &Board::StageHasZombieWalkInFromRight,
         "place_rake", &Board::PlaceRake,
         "get_rake", &Board::GetRake,
+        "is_scary_potter_dave_talking", &Board::IsScaryPotterDaveTalking,
+        "get_winning_zombie", &Board::GetWinningZombie,
+        "reset_fps_stats", &Board::ResetFPSStats,
         "count_empty_pots_or_lilies", &Board::CountEmptyPotsOrLilies,
         "get_grid_item_at", &Board::GetGridItemAt,
         "progress_meter_has_flags", &Board::ProgressMeterHasFlags,
+        "is_last_stand_final_stage", &Board::IsLastStandFinalStage,
+        "get_num_waves_per_flag", &Board::GetNumWavesPerFlag,
         "get_current_plant_cost", &Board::GetCurrentPlantCost,
+        "plant_uses_accelerated_pricing", &Board::PlantUsesAcceleratedPricing,
         "freeze_effects_for_cutscene", &Board::FreezeEffectsForCutscene,
         "load_background_images", &Board::LoadBackgroundImages,
         "can_use_game_object", &Board::CanUseGameObject,
@@ -844,15 +941,19 @@ static void BindSol2Board(sol::state_view& lua) {
         "set_super_mower_mode", &Board::SetSuperMowerMode,
         // draw_zen_wheel_barrow_button: 跳过 (has unregistered pointer param (Graphics*)) — void							DrawZenWheelBarrowButton(Graphics* g, int theOffsetY);
         // draw_zen_buttons: 跳过 (has unregistered pointer param (Graphics*)) — void							DrawZenButtons(Graphics* g);
+        // offset_y_for_planting: 跳过 (has reference param) — void					OffsetYForPlanting(int& theY, SeedType theSeedType);
         "set_dance_mode", &Board::SetDanceMode,
         "set_future_mode", &Board::SetFutureMode,
         "set_pinata_mode", &Board::SetPinataMode,
         "set_daisy_mode", &Board::SetDaisyMode,
         "set_sukhbir_mode", &Board::SetSukhbirMode,
         // mouse_hit_test_plant: 跳过 (has unregistered pointer param (HitResult*)) — bool							MouseHitTestPlant(int x, int y, HitResult* theHitResult);
+        // create_rake_reanim: 跳过 (returns unregistered pointer type (Reanimation*)) — Reanimation*			CreateRakeReanim(float theRakeX, float theRakeY, int theRenderOrder);
         "complete_end_level_sequence_for_saving", &Board::CompleteEndLevelSequenceForSaving,
         "remove_zombies_for_repick", &Board::RemoveZombiesForRepick,
         "get_grave_stones_count", &Board::GetGraveStonesCount,
+        "is_survival_stage_with_repick", &Board::IsSurvivalStageWithRepick,
+        "is_last_stand_stage_with_repick", &Board::IsLastStandStageWithRepick,
         "do_typing_check", &Board::DoTypingCheck,
         "count_zombie_by_type", &Board::CountZombieByType
     );
@@ -904,13 +1005,13 @@ static void BindSol2Projectile(sol::state_view& lua) {
         "cant_hit_high_ground", &Projectile::CantHitHighGround,
         "do_splash_damage", &Projectile::DoSplashDamage,
         // get_projectile_def: 跳过 (returns reference) — const ProjectileDefinition&   GetProjectileDef();
-        // get_damage_flags: 跳过 (has default param) — unsigned int            GetDamageFlags(Zombie* theZombie/* = nullptr*/);
+        "get_damage_flags", &Projectile::GetDamageFlags,
         // get_projectile_rect: 跳过 (returns unbindable type (Rect)) — Rect                    GetProjectileRect();
         "update_normal_motion", &Projectile::UpdateNormalMotion,
         "find_collision_target_plant", &Projectile::FindCollisionTargetPlant,
         "convert_to_fireball", &Projectile::ConvertToFireball,
         "convert_to_pea", &Projectile::ConvertToPea,
-        // is_splash_damage: 跳过 (has default param) — bool                    IsSplashDamage(Zombie* theZombie/* = nullptr*/);
+        "is_splash_damage", &Projectile::IsSplashDamage,
         "play_impact_sound", &Projectile::PlayImpactSound,
         "is_zombie_hit_by_splash", &Projectile::IsZombieHitBySplash,
         "pea_about_to_hit_torchwood", &Projectile::PeaAboutToHitTorchwood
@@ -953,11 +1054,14 @@ static void BindSol2Coin(sol::state_view& lua) {
         "update", &Coin::Update,
         // draw: 跳过 (has unregistered pointer param (Graphics*)) — void                    Draw(Graphics* g);
         "collect", &Coin::Collect,
+        "get_sun_value", &Coin::GetSunValue,
         "update_fade", &Coin::UpdateFade,
         "update_fall", &Coin::UpdateFall,
         "score_coin", &Coin::ScoreCoin,
         "update_collected", &Coin::UpdateCollected,
         // get_color: 跳过 (returns unbindable type (Color)) — Color                   GetColor();
+        "is_money", &Coin::IsMoney,
+        "is_sun", &Coin::IsSun,
         "get_sun_scale", &Coin::GetSunScale,
         "get_final_seed_packet_type", &Coin::GetFinalSeedPacketType,
         "is_level_award", &Coin::IsLevelAward,
@@ -1018,8 +1122,9 @@ static void BindSol2GridItem(sol::state_view& lua) {
         "update_rake", &GridItem::UpdateRake,
         "rake_find_zombie", &GridItem::RakeFindZombie,
         // draw_i_zombie_brain: 跳过 (has unregistered pointer param (Sexy::Graphics*)) — void					DrawIZombieBrain(Sexy::Graphics* g);
-        "update_brain", &GridItem::UpdateBrain
+        "update_brain", &GridItem::UpdateBrain,
         // draw_stinky: 跳过 (has unregistered pointer param (Sexy::Graphics*)) — void					DrawStinky(Sexy::Graphics* g);
+        "is_open_portal", &GridItem::IsOpenPortal
     );
 }
 
@@ -1054,7 +1159,8 @@ static void BindSol2LawnMower(sol::state_view& lua) {
         // get_lawn_mower_attack_rect: 跳过 (returns unbindable type (Rect)) — Rect                GetLawnMowerAttackRect();
         "update_pool", &LawnMower::UpdatePool,
         "mow_zombie", &LawnMower::MowZombie,
-        "squish_mower", &LawnMower::SquishMower
+        "squish_mower", &LawnMower::SquishMower,
+        "enable_super_mower", &LawnMower::EnableSuperMower
     );
 }
 

@@ -219,7 +219,16 @@ public:
     bool                            EffectedByDamage(unsigned int theDamageRangeFlags);
     void                            PickRandomSpeed();
     void                            UpdateZombiePolevaulter();
+    // ===== 撑杆跳僵尸更新小函数 =====
+    void                            UpdatePolevaulterPreVault();
+    void                            UpdatePolevaulterInVault();
     void                            UpdateZombieDolphinRider();
+    // ===== 海豚骑士僵尸更新小函数 =====
+    void                            UpdateDolphinWalking();
+    void                            UpdateDolphinIntoPool();
+    void                            UpdateDolphinRiding();
+    void                            UpdateDolphinInJump();
+    void                            UpdateDolphinWalkingInPool(bool aBackwards);
     void                            PickBungeeZombieTarget(int theColumn);
     int                             CountBungeesTargetingSunFlowers();
     Plant*                          FindPlantTarget(ZombieAttackType theAttackType);
@@ -260,6 +269,14 @@ public:
     void                            UpdateZombieNewspaper();
     void                            LandFlyer(unsigned int theDamageFlags);
     void                            UpdateZombieDigger();
+
+    // ===== 矿工僵尸更新小函数 =====
+    void                            UpdateDiggerTunneling();
+    void                            UpdateDiggerRising();
+    void                            UpdateDiggerTunnelingPauseWithoutAxe();
+    void                            UpdateDiggerRiseWithoutAxe();
+    void                            UpdateDiggerStunned();
+
     bool                            IsWalkingBackwards();
     TodParticleSystem*              AddAttachedParticle(int thePosX, int thePosY, ParticleEffect theEffect);
     void                            PogoBreak(unsigned int theDamageFlags);
@@ -433,6 +450,14 @@ public:
     bool                            CanBeFrozen();
     bool                            CanBeChilled();
     void                            UpdateZombieSnorkel();
+
+    // ===== 潜水僵尸更新小函数 =====
+    void                            UpdateSnorkelWalking();
+    void                            UpdateSnorkelIntoPool();
+    void                            UpdateSnorkelWalkingInPool(bool aBackwards);
+    void                            UpdateSnorkelUpToEat();
+    void                            UpdateSnorkelEatingInPool();
+    void                            UpdateSnorkelDownFromEat();
     void                            ReanimIgnoreClipRect(const char* theTrackName, bool theIgnoreClipRect);
     void                            SetAnimRate(float theAnimRate);
     void                            ApplyAnimRate(float theAnimRate);
