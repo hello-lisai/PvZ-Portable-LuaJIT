@@ -32,6 +32,10 @@ enum class ModEvent : int32_t {
     ON_BOARD_UPDATE_POST,       // Board::Update 末尾（每帧）
     ON_UPDATE_GAME_OBJECTS_PRE, // Board::UpdateGameObjects 入口
 
+    // ====== 对象更新预钩子（可拦截，Mod 可完全接管 Update）======
+    ON_ZOMBIE_UPDATE_PRE,       // Zombie::Update 入口，可取消（Mod 自行控制行为）
+    ON_PLANT_UPDATE_PRE,        // Plant::Update 入口，可取消
+
     // ====== 对象创建（只读观察）======
     ON_PLANT_CREATED,           // Plant 创建后
     ON_ZOMBIE_CREATED,          // Zombie 创建后
@@ -87,8 +91,10 @@ inline const char* ModEventName(ModEvent e) {
     case ModEvent::ON_APP_INIT_POST:           return "ON_APP_INIT_POST";
     case ModEvent::ON_LOADING_COMPLETED:       return "ON_LOADING_COMPLETED";
     case ModEvent::ON_BOARD_UPDATE_PRE:        return "ON_BOARD_UPDATE_PRE";
-    case ModEvent::ON_BOARD_UPDATE_POST:       return "ON_BOARD_UPDATE_POST";
+    case ModEvent::ON_BOARD_UPDATE_POST:           return "ON_BOARD_UPDATE_POST";
     case ModEvent::ON_UPDATE_GAME_OBJECTS_PRE: return "ON_UPDATE_GAME_OBJECTS_PRE";
+    case ModEvent::ON_ZOMBIE_UPDATE_PRE:           return "ON_ZOMBIE_UPDATE_PRE";
+    case ModEvent::ON_PLANT_UPDATE_PRE:            return "ON_PLANT_UPDATE_PRE";
     case ModEvent::ON_PLANT_CREATED:           return "ON_PLANT_CREATED";
     case ModEvent::ON_ZOMBIE_CREATED:          return "ON_ZOMBIE_CREATED";
     case ModEvent::ON_PROJECTILE_CREATED:      return "ON_PROJECTILE_CREATED";

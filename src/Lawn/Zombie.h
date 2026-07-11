@@ -67,6 +67,31 @@ enum ZombieAttackType : int32_t
     ATTACKTYPE_LADDER
 };
 
+// 僵尸能力标志位（用于行为组合系统）
+// Mod 可以通过修改 mAbilities 自由组合能力
+enum ZombieAbility : uint32_t
+{
+    ABILITY_NONE             = 0,
+    ABILITY_WALK             = 1 << 0,   // 基本行走
+    ABILITY_FLY              = 1 << 1,   // 漂浮（气球）
+    ABILITY_DIG              = 1 << 2,   // 钻地（矿工）
+    ABILITY_POLEVAULT        = 1 << 3,   // 撑杆跳
+    ABILITY_DOLPHIN          = 1 << 4,   // 海豚跳
+    ABILITY_SNORKEL          = 1 << 5,   // 潜水
+    ABILITY_POGO             = 1 << 6,   // 跳跳
+    ABILITY_BUNGEE           = 1 << 7,   // 蹦极
+    ABILITY_GARGANTUAR       = 1 << 8,   // 巨人（砸 + 扔小鬼）
+    ABILITY_NEWSPAPER        = 1 << 9,   // 报纸狂暴
+    ABILITY_JACKBOX          = 1 << 10,  // 自爆
+    ABILITY_DANCER           = 1 << 11,  // 跳舞（召伴舞）
+    ABILITY_ZAMBONI          = 1 << 12,  // 冰车
+    ABILITY_BOBSLED          = 1 << 13,  // 雪橇
+    ABILITY_LADDER           = 1 << 14,  // 梯子
+    ABILITY_CATAPULT         = 1 << 15,  // 投篮
+    ABILITY_YETI             = 1 << 16,  // 雪人逃跑
+    ABILITY_BOSS             = 1 << 17,  // 博士
+};
+
 enum ZombieParts : int32_t
 {
     PART_BODY,
@@ -111,7 +136,8 @@ public:
     };
 
 public:
-	ZombieType			            mZombieType;
+    ZombieType			            mZombieType;
+    ZombieAbility                   mAbilities = ABILITY_NONE;
 	ZombiePhase			            mZombiePhase;
 	float				            mPosX;
 	float				            mPosY;

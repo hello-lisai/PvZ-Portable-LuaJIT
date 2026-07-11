@@ -37,6 +37,9 @@ struct ModCtx {
     int32_t     sunDelta   = 0;     // 变化量（正=获得，负=消耗）
     int32_t     sunResult  = 0;     // 变化后的阳光数（可被 Mod 改）
 
+    // ====== 对象更新事件 ======
+    class Plant*    plant       = nullptr;
+
     // ====== 伤害事件 (ON_ZOMBIE_TAKE_DAMAGE_PRE) ======
     Zombie*     zombie      = nullptr;
     int32_t     damage      = 0;

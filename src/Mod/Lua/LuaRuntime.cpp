@@ -32,6 +32,8 @@
 #include "../../Sexy.TodLib/Reanimator.h"  // ReanimatorRegisterAnimation
 #include "../../SexyAppFramework/graphics/Graphics.h"  // Graphics（ON_BOARD_DRAW_HUD 事件）
 #include "../../Resources.h"            // FONT_* / IMAGE_* 全局指针（pvz.fonts / pvz.images）
+#include "../../SexyAppFramework/widget/Widget.h"  // Widget 系统暴露
+#include "../../SexyAppFramework/WidgetManager.h"   // WidgetManager
 
 // 对象绑定（在各自 Bind*.cpp 中实现）
 namespace ModLua {
@@ -45,6 +47,7 @@ namespace ModLua {
     void BindGraphics(lua_State* L);   // Graphics/Image/Font 元表
     void BindEnums(lua_State* L);  // ZombieType / SeedType / KeyCode 等
     void BindSol2(lua_State* L);   // sol2 批量绑定（在所有 Bind* 之后调用，覆盖旧 metatable）
+    void BindWidget(lua_State* L); // Widget 系统绑定
 
     // 把 C++ 对象 push 成 Lua userdata（各 Bind*.cpp 提供）
     void PushBoard(lua_State* L, Board* board);
@@ -79,6 +82,12 @@ struct ModCallbacks {
 };
 ModCallbacks g_callbacks;
 
+// 自定义僵尸/植物类型的 Lua Update 回调引用
+// key = 类型索引 (ZombieType / SeedType 的数值)
+// value = Lua registry reference（on_update 函数）
+std::unordered_map<int, int> g_zombieUpdateCallbacks;
+std::unordered_map<int, int> g_plantUpdateCallbacks;
+
 // 用户配置持久化：mods/config.json
 // 结构: { "version": 1, "mods": { "<dir>": { "enabled": bool, "config": {...} } } }
 ModJson::JsonValue g_userConfig;
@@ -92,6 +101,8 @@ const char* EventToLuaName(ModEvent e) {
     case ModEvent::ON_BOARD_UPDATE_PRE:        return "on_board_update_pre";
     case ModEvent::ON_BOARD_UPDATE_POST:       return "on_board_update_post";
     case ModEvent::ON_UPDATE_GAME_OBJECTS_PRE: return "on_update_game_objects_pre";
+    case ModEvent::ON_ZOMBIE_UPDATE_PRE:       return "on_zombie_update_pre";
+    case ModEvent::ON_PLANT_UPDATE_PRE:        return "on_plant_update_pre";
     case ModEvent::ON_PLANT_CREATED:           return "on_plant_created";
     case ModEvent::ON_ZOMBIE_CREATED:          return "on_zombie_created";
     case ModEvent::ON_PROJECTILE_CREATED:      return "on_projectile_created";
@@ -502,8 +513,19 @@ int l_plants_register(lua_State* L) {
     if (lua_isstring(L, -1)) def.mAlmanacDescription = lua_tostring(L, -1);
     lua_pop(L, 1);
 
-    SeedType st = RegisterPlantDefinition(def);
-    lua_pushinteger(L, static_cast<lua_Integer>(st));
+    lua_getfield(L, tblIdx, "on_update");
+    if (lua_isfunction(L, -1)) {
+        int ref = luaL_ref(L, LUA_REGISTRYINDEX);
+        // 暂存：注册返回的 SeedType 在 RegisterPlantDefinition 之后才确定
+        // 我们先把 ref 和 def 关联，等拿到 SeedType 再存 map
+        SeedType st = RegisterPlantDefinition(def);
+        g_plantUpdateCallbacks[static_cast<int>(st)] = ref;
+        lua_pushinteger(L, static_cast<lua_Integer>(st));
+    } else {
+        lua_pop(L, 1); // pop nil/non-function
+        SeedType st = RegisterPlantDefinition(def);
+        lua_pushinteger(L, static_cast<lua_Integer>(st));
+    }
     return 1;
 }
 
@@ -553,9 +575,274 @@ int l_zombies_register(lua_State* L) {
     if (lua_isstring(L, -1)) def.mAlmanacDescription = lua_tostring(L, -1);
     lua_pop(L, 1);
 
-    ZombieType zt = RegisterZombieDefinition(def);
-    lua_pushinteger(L, static_cast<lua_Integer>(zt));
+    lua_getfield(L, tblIdx, "on_update");
+    if (lua_isfunction(L, -1)) {
+        int ref = luaL_ref(L, LUA_REGISTRYINDEX);
+        ZombieType zt = RegisterZombieDefinition(def);
+        g_zombieUpdateCallbacks[static_cast<int>(zt)] = ref;
+        lua_pushinteger(L, static_cast<lua_Integer>(zt));
+    } else {
+        lua_pop(L, 1);
+        ZombieType zt = RegisterZombieDefinition(def);
+        lua_pushinteger(L, static_cast<lua_Integer>(zt));
+    }
     return 1;
+}
+
+// ===== 自定义类型 Lua Update 回调派发 =====
+// 在 UpdateActionsByType 中被调用（自定义僵尸类型不会走 C++ switch）
+
+void ModLua::CallLuaZombieUpdate(Zombie* z) {
+    if (!g_L || !z) return;
+    int typeIdx = static_cast<int>(z->mZombieType);
+    auto it = g_zombieUpdateCallbacks.find(typeIdx);
+    if (it == g_zombieUpdateCallbacks.end()) return;
+
+    lua_rawgeti(g_L, LUA_REGISTRYINDEX, it->second); // push callback
+    PushZombie(g_L, z);
+    SafePCall(g_L, 1, 0);
+}
+
+void ModLua::CallLuaPlantUpdate(Plant* p) {
+    if (!g_L || !p) return;
+    int typeIdx = static_cast<int>(p->mSeedType);
+    auto it = g_plantUpdateCallbacks.find(typeIdx);
+    if (it == g_plantUpdateCallbacks.end()) return;
+
+    lua_rawgeti(g_L, LUA_REGISTRYINDEX, it->second);
+    PushPlant(g_L, p);
+    SafePCall(g_L, 1, 0);
+}
+
+// ===== Widget 绑定 =====
+
+namespace {
+
+// LuaWidget：把 Sexy::Widget 的子类暴露给 Lua，允许 Mod 创建自定义 UI
+// Widget 的 Draw/Update/MouseDown/KeyDown 等方法由 Lua 回调实现
+class LuaWidget : public Sexy::Widget {
+public:
+    int     mOnDrawRef      = LUA_NOREF;
+    int     mOnUpdateRef    = LUA_NOREF;
+    int     mOnKeyDownRef   = LUA_NOREF;
+    int     mOnMouseDownRef = LUA_NOREF;
+    int     mOnMouseUpRef   = LUA_NOREF;
+
+    void Draw(Sexy::Graphics* g) override {
+        Sexy::Widget::Draw(g);
+        if (!g_L || mOnDrawRef == LUA_NOREF) return;
+        lua_rawgeti(g_L, LUA_REGISTRYINDEX, mOnDrawRef);
+        PushGraphics(g_L, g);
+        SafePCall(g_L, 1, 0);
+    }
+
+    void Update() override {
+        Sexy::Widget::Update();
+        if (!g_L || mOnUpdateRef == LUA_NOREF) return;
+        lua_rawgeti(g_L, LUA_REGISTRYINDEX, mOnUpdateRef);
+        SafePCall(g_L, 0, 0);
+    }
+
+    void KeyDown(Sexy::KeyCode key) override {
+        if (!g_L || mOnKeyDownRef == LUA_NOREF) { Sexy::Widget::KeyDown(key); return; }
+        lua_rawgeti(g_L, LUA_REGISTRYINDEX, mOnKeyDownRef);
+        lua_pushinteger(g_L, static_cast<lua_Integer>(key));
+        if (SafePCall(g_L, 1, 1)) {
+            if (lua_toboolean(g_L, -1)) return; // return true = 已处理
+            lua_pop(g_L, 1);
+        }
+        Sexy::Widget::KeyDown(key);
+    }
+
+    void MouseDown(int x, int y, int btn, int clickCount) override {
+        if (!g_L || mOnMouseDownRef == LUA_NOREF) { Sexy::Widget::MouseDown(x, y, btn, clickCount); return; }
+        lua_rawgeti(g_L, LUA_REGISTRYINDEX, mOnMouseDownRef);
+        lua_pushinteger(g_L, x); lua_pushinteger(g_L, y); lua_pushinteger(g_L, btn);
+        if (SafePCall(g_L, 3, 1)) {
+            if (lua_toboolean(g_L, -1)) return;
+            lua_pop(g_L, 1);
+        }
+        Sexy::Widget::MouseDown(x, y, btn, clickCount);
+    }
+
+    void MouseUp(int x, int y, int btn, int clickCount) override {
+        if (!g_L || mOnMouseUpRef == LUA_NOREF) { Sexy::Widget::MouseUp(x, y, btn, clickCount); return; }
+        lua_rawgeti(g_L, LUA_REGISTRYINDEX, mOnMouseUpRef);
+        lua_pushinteger(g_L, x); lua_pushinteger(g_L, y); lua_pushinteger(g_L, btn);
+        if (SafePCall(g_L, 3, 1)) {
+            if (lua_toboolean(g_L, -1)) return;
+            lua_pop(g_L, 1);
+        }
+        Sexy::Widget::MouseUp(x, y, btn, clickCount);
+    }
+};
+
+// 从 Lua userdata 获取 LuaWidget*
+LuaWidget* CheckLuaWidget(lua_State* L, int idx) {
+    void** pp = static_cast<void**>(luaL_checkudata(L, idx, "PvZ.Widget"));
+    return pp ? static_cast<LuaWidget*>(*pp) : nullptr;
+}
+
+int l_widget_new(lua_State* L) {
+    int x = static_cast<int>(luaL_optinteger(L, 1, 0));
+    int y = static_cast<int>(luaL_optinteger(L, 2, 0));
+    int w = static_cast<int>(luaL_optinteger(L, 3, 400));
+    int h = static_cast<int>(luaL_optinteger(L, 4, 300));
+
+    LuaWidget* wgt = new LuaWidget();
+    wgt->Resize(x, y, w, h);
+
+    void** pp = static_cast<void**>(lua_newuserdata(L, sizeof(void*)));
+    *pp = wgt;
+    luaL_setmetatable(L, "PvZ.Widget");
+    return 1;
+}
+
+int l_widget_gc(lua_State* L) {
+    LuaWidget* w = CheckLuaWidget(L, 1);
+    if (w) {
+        if (w->mOnDrawRef != LUA_NOREF) luaL_unref(L, LUA_REGISTRYINDEX, w->mOnDrawRef);
+        if (w->mOnUpdateRef != LUA_NOREF) luaL_unref(L, LUA_REGISTRYINDEX, w->mOnUpdateRef);
+        if (w->mOnKeyDownRef != LUA_NOREF) luaL_unref(L, LUA_REGISTRYINDEX, w->mOnKeyDownRef);
+        if (w->mOnMouseDownRef != LUA_NOREF) luaL_unref(L, LUA_REGISTRYINDEX, w->mOnMouseDownRef);
+        if (w->mOnMouseUpRef != LUA_NOREF) luaL_unref(L, LUA_REGISTRYINDEX, w->mOnMouseUpRef);
+        if (w->mWidgetManager) w->mWidgetManager->RemoveWidget(w);
+        delete w;
+    }
+    return 0;
+}
+
+int l_widget_set_on_draw(lua_State* L) {
+    LuaWidget* w = CheckLuaWidget(L, 1);
+    if (!w) return 0;
+    if (w->mOnDrawRef != LUA_NOREF) luaL_unref(L, LUA_REGISTRYINDEX, w->mOnDrawRef);
+    w->mOnDrawRef = luaL_ref(L, LUA_REGISTRYINDEX);
+    return 0;
+}
+
+int l_widget_set_on_update(lua_State* L) {
+    LuaWidget* w = CheckLuaWidget(L, 1);
+    if (!w) return 0;
+    if (w->mOnUpdateRef != LUA_NOREF) luaL_unref(L, LUA_REGISTRYINDEX, w->mOnUpdateRef);
+    w->mOnUpdateRef = luaL_ref(L, LUA_REGISTRYINDEX);
+    return 0;
+}
+
+int l_widget_set_on_key_down(lua_State* L) {
+    LuaWidget* w = CheckLuaWidget(L, 1);
+    if (!w) return 0;
+    if (w->mOnKeyDownRef != LUA_NOREF) luaL_unref(L, LUA_REGISTRYINDEX, w->mOnKeyDownRef);
+    w->mOnKeyDownRef = luaL_ref(L, LUA_REGISTRYINDEX);
+    return 0;
+}
+
+int l_widget_set_on_mouse_down(lua_State* L) {
+    LuaWidget* w = CheckLuaWidget(L, 1);
+    if (!w) return 0;
+    if (w->mOnMouseDownRef != LUA_NOREF) luaL_unref(L, LUA_REGISTRYINDEX, w->mOnMouseDownRef);
+    w->mOnMouseDownRef = luaL_ref(L, LUA_REGISTRYINDEX);
+    return 0;
+}
+
+int l_widget_set_on_mouse_up(lua_State* L) {
+    LuaWidget* w = CheckLuaWidget(L, 1);
+    if (!w) return 0;
+    if (w->mOnMouseUpRef != LUA_NOREF) luaL_unref(L, LUA_REGISTRYINDEX, w->mOnMouseUpRef);
+    w->mOnMouseUpRef = luaL_ref(L, LUA_REGISTRYINDEX);
+    return 0;
+}
+
+int l_widget_add_to_manager(lua_State* L) {
+    LuaWidget* w = CheckLuaWidget(L, 1);
+    if (!w) return 0;
+    if (gLawnApp && gLawnApp->mWidgetManager) {
+        gLawnApp->mWidgetManager->AddWidget(w);
+        lua_pushboolean(L, 1);
+    } else {
+        lua_pushboolean(L, 0);
+    }
+    return 1;
+}
+
+int l_widget_remove_from_manager(lua_State* L) {
+    LuaWidget* w = CheckLuaWidget(L, 1);
+    if (!w) return 0;
+    if (w->mWidgetManager) {
+        w->mWidgetManager->RemoveWidget(w);
+    }
+    return 0;
+}
+
+int l_widget_set_visible(lua_State* L) {
+    LuaWidget* w = CheckLuaWidget(L, 1);
+    if (!w) return 0;
+    w->SetVisible(lua_toboolean(L, 2) != 0);
+    return 0;
+}
+
+int l_widget_set_pos(lua_State* L) {
+    LuaWidget* w = CheckLuaWidget(L, 1);
+    if (!w) return 0;
+    int x = static_cast<int>(luaL_checkinteger(L, 2));
+    int y = static_cast<int>(luaL_checkinteger(L, 3));
+    w->Move(x, y);
+    return 0;
+}
+
+int l_widget_set_size(lua_State* L) {
+    LuaWidget* w = CheckLuaWidget(L, 1);
+    if (!w) return 0;
+    int w2 = static_cast<int>(luaL_checkinteger(L, 2));
+    int h = static_cast<int>(luaL_checkinteger(L, 3));
+    w->Resize(w->mX, w->mY, w2, h);
+    return 0;
+}
+
+// 设置 widget 的标题（可选，纯数据字段，Mod 可自行管理）
+int l_widget_set_title(lua_State* L) {
+    LuaWidget* w = CheckLuaWidget(L, 1);
+    if (!w) return 0;
+    const char* title = luaL_checkstring(L, 2);
+    (void)w; (void)title;
+    // 这是一个纯 Lua 侧属性，Mod 通过 widget.__title 自行维护
+    // 我们用 light userdata 做 key 存到 Lua 侧的 table 里
+    return 0;
+}
+
+} // namespace
+
+void ModLua::BindWidget(lua_State* L) {
+    luaL_newmetatable(L, "PvZ.Widget");
+    lua_pushvalue(L, -1);
+    lua_setfield(L, -2, "__index");
+
+    static const luaL_Reg methods[] = {
+        {"set_on_draw",         l_widget_set_on_draw},
+        {"set_on_update",       l_widget_set_on_update},
+        {"set_on_key_down",     l_widget_set_on_key_down},
+        {"set_on_mouse_down",   l_widget_set_on_mouse_down},
+        {"set_on_mouse_up",     l_widget_set_on_mouse_up},
+        {"add_to_manager",      l_widget_add_to_manager},
+        {"remove_from_manager", l_widget_remove_from_manager},
+        {"set_visible",         l_widget_set_visible},
+        {"set_pos",             l_widget_set_pos},
+        {"set_size",            l_widget_set_size},
+        {nullptr, nullptr}
+    };
+    luaL_setfuncs(L, methods, 0);
+
+    lua_pushcfunction(L, l_widget_gc);
+    lua_setfield(L, -2, "__gc");
+    lua_pop(L, 1);
+
+    // 注册 pvz.widget.new() 全局函数
+    lua_getglobal(L, "pvz");
+    if (!lua_istable(L, -1)) { lua_newtable(L); lua_setglobal(L, "pvz"); lua_getglobal(L, "pvz"); }
+    lua_newtable(L);
+    lua_pushcfunction(L, l_widget_new);
+    lua_setfield(L, -2, "new");
+    lua_setfield(L, -2, "widget");
+    lua_pop(L, 1);
 }
 
 // 解析 mod.lua 清单（返回 table）
@@ -766,6 +1053,7 @@ void Initialize() {
     BindGridItem(g_L);
     BindLawnMower(g_L);
     BindGraphics(g_L);
+    BindWidget(g_L);
 
     // sol2 批量绑定：注册所有 usertype，并覆盖原有 metatable
     // 必须在所有 Bind*() 之后调用，以便覆盖旧 metatable

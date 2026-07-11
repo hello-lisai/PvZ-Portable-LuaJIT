@@ -42,6 +42,12 @@
 // Mod API 间谍层
 #include "../Mod/ModBus.h"
 
+// Mod API: Lua 自定义僵尸类型的 Update 回调派发
+namespace ModLua {
+    void CallLuaZombieUpdate(class Zombie* z);
+    void CallLuaPlantUpdate(class Plant* p);
+}
+
 #include <climits>
 #include <vector>  // Mod API: gCustomZombieDefs
 
@@ -142,6 +148,7 @@ Zombie::Zombie()
 // 提取自 ZombieInitialize switch(ZOMBIE_NORMAL) 分支
 void Zombie::InitZombieTypeNormal()
 {
+    mAbilities = ABILITY_WALK;
     LoadPlainZombieReanim();
 }
 
@@ -149,6 +156,7 @@ void Zombie::InitZombieTypeNormal()
 // 提取自 ZombieInitialize switch(ZOMBIE_DUCKY_TUBE) 分支
 void Zombie::InitZombieTypeDuckyTube()
 {
+    mAbilities = ABILITY_WALK;
     LoadPlainZombieReanim();
 }
 
@@ -156,6 +164,7 @@ void Zombie::InitZombieTypeDuckyTube()
 // 提取自 ZombieInitialize switch(ZOMBIE_TRAFFIC_CONE) 分支
 void Zombie::InitZombieTypeConehead()
 {
+    mAbilities = ABILITY_WALK;
     LoadPlainZombieReanim();
     ReanimShowPrefix("anim_cone", RENDER_GROUP_NORMAL);
     ReanimShowPrefix("anim_hair", RENDER_GROUP_HIDDEN);
@@ -167,6 +176,7 @@ void Zombie::InitZombieTypeConehead()
 // 提取自 ZombieInitialize switch(ZOMBIE_PAIL) 分支
 void Zombie::InitZombieTypeBuckethead()
 {
+    mAbilities = ABILITY_WALK;
     LoadPlainZombieReanim();
     ReanimShowPrefix("anim_bucket", RENDER_GROUP_NORMAL);
     ReanimShowPrefix("anim_hair", RENDER_GROUP_HIDDEN);
@@ -178,6 +188,7 @@ void Zombie::InitZombieTypeBuckethead()
 // 提取自 ZombieInitialize switch(ZOMBIE_DOOR) 分支
 void Zombie::InitZombieTypeDoor()
 {
+    mAbilities = ABILITY_WALK;
     mShieldType = ShieldType::SHIELDTYPE_DOOR;
     mShieldHealth = 1100;
     LoadPlainZombieReanim();
@@ -188,6 +199,7 @@ void Zombie::InitZombieTypeDoor()
 // 提取自 ZombieInitialize switch(ZOMBIE_LADDER) 分支
 void Zombie::InitZombieTypeLadder()
 {
+    mAbilities = ABILITY_WALK | ABILITY_LADDER;
     mBodyHealth = 500;
     mShieldHealth = 500;
     mShieldType = ShieldType::SHIELDTYPE_LADDER;
@@ -204,6 +216,7 @@ void Zombie::InitZombieTypeLadder()
 // 提取自 ZombieInitialize switch(ZOMBIE_BUNGEE) 分支
 void Zombie::InitZombieTypeBungee(RenderLayer& aRenderLayer, int& aRenderOffset)
 {
+    mAbilities = ABILITY_BUNGEE;
     mBodyHealth = 450;
     mAnimFrames = 4;
     mAltitude = BUNGEE_ZOMBIE_HEIGHT + RandRangeInt(0, 150);
@@ -245,6 +258,7 @@ void Zombie::InitZombieTypeBungee(RenderLayer& aRenderLayer, int& aRenderOffset)
 // 提取自 ZombieInitialize switch(ZOMBIE_FOOTBALL) 分支
 void Zombie::InitZombieTypeFootball()
 {
+    mAbilities = ABILITY_WALK;
     mZombieRect = Rect(50, 0, 57, 115);
     ReanimShowPrefix("anim_hair", RENDER_GROUP_HIDDEN);
     mHelmType = HelmType::HELMTYPE_FOOTBALL;
@@ -257,6 +271,7 @@ void Zombie::InitZombieTypeFootball()
 // 提取自 ZombieInitialize switch(ZOMBIE_DIGGER) 分支
 void Zombie::InitZombieTypeDigger(int& aRenderOffset)
 {
+    mAbilities = ABILITY_WALK | ABILITY_DIG;
     mHelmType = HelmType::HELMTYPE_DIGGER;
     mHelmHealth = 100;
     mVariant = false;
@@ -284,6 +299,7 @@ void Zombie::InitZombieTypeDigger(int& aRenderOffset)
 // 提取自 ZombieInitialize switch(ZOMBIE_POLEVAULTER) 分支
 void Zombie::InitZombieTypePolevaulter()
 {
+    mAbilities = ABILITY_WALK | ABILITY_POLEVAULT;
     mBodyHealth = 500;
     mAnimTicksPerFrame = 6;
     mZombiePhase = ZombiePhase::PHASE_POLEVAULTER_PRE_VAULT;
@@ -309,6 +325,7 @@ void Zombie::InitZombieTypePolevaulter()
 // 提取自 ZombieInitialize switch(ZOMBIE_DOLPHIN_RIDER) 分支
 void Zombie::InitZombieTypeDolphinRider()
 {
+    mAbilities = ABILITY_WALK | ABILITY_DOLPHIN;
     mBodyHealth = 500;
     mAnimTicksPerFrame = 6;
     mZombiePhase = ZombiePhase::PHASE_DOLPHIN_WALKING;
@@ -323,9 +340,10 @@ void Zombie::InitZombieTypeDolphinRider()
 }
 
 // 伽刚特尔初始化
-// 提取自 ZombieInitialize switch(ZOMBIE_GARGANTUAR/ZOMBIE_REDEYE_GARGANTUAR) 分支
+// 提取自 ZombieInitialize switch(ZOMBIE_GARGANTUAR) 分支
 void Zombie::InitZombieTypeGargantuar(int& aRenderOffset)
 {
+    mAbilities = ABILITY_WALK | ABILITY_GARGANTUAR;
     mWidth = 180;
     mHeight = 180;
     mBodyHealth = 3000;
@@ -370,6 +388,7 @@ void Zombie::InitZombieTypeGargantuar(int& aRenderOffset)
 // 提取自 ZombieInitialize switch(ZOMBIE_ZAMBONI) 分支
 void Zombie::InitZombieTypeZamboni(int& aRenderOffset)
 {
+    mAbilities = ABILITY_WALK | ABILITY_ZAMBONI;
     mBodyHealth = 1350;
     mAnimFrames = 2;
     mAnimTicksPerFrame = 8;
@@ -385,6 +404,7 @@ void Zombie::InitZombieTypeZamboni(int& aRenderOffset)
 // 提取自 ZombieInitialize switch(ZOMBIE_CATAPULT) 分支
 void Zombie::InitZombieTypeCatapult()
 {
+    mAbilities = ABILITY_WALK | ABILITY_CATAPULT;
     mBodyHealth = 850;
     mPosX = WIDE_BOARD_WIDTH + 25 + Rand(10);
     mSummonCounter = 20;
@@ -405,6 +425,7 @@ void Zombie::InitZombieTypeCatapult()
 // 提取自 ZombieInitialize switch(ZOMBIE_SNORKEL) 分支
 void Zombie::InitZombieTypeSnorkel()
 {
+    mAbilities = ABILITY_WALK | ABILITY_SNORKEL;
     mZombieRect = Rect(12, 0, 62, 115);
     mZombieAttackRect = Rect(-5, 0, 55, 115);
     SetupWaterTrack("Zombie_snorkle_whitewater");
@@ -417,6 +438,7 @@ void Zombie::InitZombieTypeSnorkel()
 // 提取自 ZombieInitialize switch(ZOMBIE_JACK_IN_THE_BOX) 分支
 void Zombie::InitZombieTypeJackInTheBox()
 {
+    mAbilities = ABILITY_WALK | ABILITY_JACKBOX;
     mBodyHealth = 500;
     mAnimTicksPerFrame = 6;
 
@@ -442,6 +464,7 @@ void Zombie::InitZombieTypeJackInTheBox()
 // 提取自 ZombieInitialize switch(ZOMBIE_BOBSLED) 分支
 void Zombie::InitZombieTypeBobsled(Zombie* theParentZombie, int& aRenderOffset)
 {
+    mAbilities = ABILITY_WALK | ABILITY_BOBSLED;
     aRenderOffset = 3;
 
     if (theParentZombie)
@@ -502,6 +525,7 @@ void Zombie::InitZombieTypeBobsled(Zombie* theParentZombie, int& aRenderOffset)
 // 提取自 ZombieInitialize switch(ZOMBIE_POGO) 分支
 void Zombie::InitZombieTypePogo()
 {
+    mAbilities = ABILITY_WALK | ABILITY_POGO;
     mVariant = false;
     mZombiePhase = ZombiePhase::PHASE_POGO_BOUNCING;
     mPhaseCounter = Rand(POGO_BOUNCE_TIME) + 1;
@@ -516,6 +540,7 @@ void Zombie::InitZombieTypePogo()
 // 提取自 ZombieInitialize switch(ZOMBIE_NEWSPAPER) 分支
 void Zombie::InitZombieTypeNewspaper()
 {
+    mAbilities = ABILITY_WALK | ABILITY_NEWSPAPER;
     mZombieAttackRect = Rect(20, 0, 50, 115);
     mZombiePhase = ZombiePhase::PHASE_NEWSPAPER_READING;
     mShieldType = ShieldType::SHIELDTYPE_NEWSPAPER;
@@ -528,6 +553,7 @@ void Zombie::InitZombieTypeNewspaper()
 // 提取自 ZombieInitialize switch(ZOMBIE_BALLOON) 分支
 void Zombie::InitZombieTypeBalloon()
 {
+    mAbilities = ABILITY_WALK | ABILITY_FLY;
     Reanimation* aBodyReanim = mApp->ReanimationGet(mBodyReanimID);
     aBodyReanim->SetTruncateDisappearingFrames(nullptr, false);
 
@@ -559,6 +585,7 @@ void Zombie::InitZombieTypeBalloon()
 // 提取自 ZombieInitialize switch(ZOMBIE_DANCER) 分支
 void Zombie::InitZombieTypeDancing()
 {
+    mAbilities = ABILITY_WALK | ABILITY_DANCER;
     mScaleZombie = 0.8f;
     if (!IsOnBoard())
     {
@@ -579,6 +606,7 @@ void Zombie::InitZombieTypeDancing()
 // 提取自 ZombieInitialize switch(ZOMBIE_BACKUP_DANCER) 分支
 void Zombie::InitZombieTypeBackupDancer()
 {
+    mAbilities = ABILITY_WALK | ABILITY_DANCER;
     mScaleZombie = 0.8f;
     if (!IsOnBoard())
     {
@@ -592,6 +620,7 @@ void Zombie::InitZombieTypeBackupDancer()
 // 提取自 ZombieInitialize switch(ZOMBIE_IMP) 分支
 void Zombie::InitZombieTypeImp()
 {
+    mAbilities = ABILITY_WALK;
     if (!IsOnBoard())
     {
         PlayZombieReanim("anim_walk", ReanimLoopType::REANIM_LOOP, 0, 12.0f);
@@ -606,6 +635,7 @@ void Zombie::InitZombieTypeImp()
 // 提取自 ZombieInitialize switch(ZOMBIE_BOSS) 分支
 void Zombie::InitZombieTypeBoss(RenderLayer& aRenderLayer)
 {
+    mAbilities = ABILITY_BOSS;
     mPosX = 0.0f;
     mPosY = 0.0f;
     mZombieRect = Rect(700, 80, 90, 430);
@@ -744,6 +774,7 @@ void Zombie::ZombieInitialize(int theRow, ZombieType theType, bool theVariant, Z
         break;
 
     case ZombieType::ZOMBIE_YETI:
+        mAbilities = ABILITY_WALK | ABILITY_YETI;
         mBodyHealth = 1350;
         mPhaseCounter = RandRangeInt(1500, 2000);
         mHasObject = true;
@@ -805,6 +836,7 @@ void Zombie::ZombieInitialize(int theRow, ZombieType theType, bool theVariant, Z
 
     case ZombieType::ZOMBIE_FLAG:
     {
+        mAbilities = ABILITY_WALK;
         mHasObject = true;
         LoadPlainZombieReanim();
 
@@ -850,6 +882,7 @@ void Zombie::ZombieInitialize(int theRow, ZombieType theType, bool theVariant, Z
     
     case ZombieType::ZOMBIE_PEA_HEAD:
     {
+        mAbilities = ABILITY_WALK;
         LoadPlainZombieReanim();
         ReanimShowPrefix("anim_hair", RENDER_GROUP_HIDDEN);
         ReanimShowPrefix("anim_head2", RENDER_GROUP_HIDDEN);
@@ -876,6 +909,7 @@ void Zombie::ZombieInitialize(int theRow, ZombieType theType, bool theVariant, Z
     
     case ZombieType::ZOMBIE_WALLNUT_HEAD:
     {
+        mAbilities = ABILITY_WALK;
         LoadPlainZombieReanim();
         ReanimShowPrefix("anim_hair", RENDER_GROUP_HIDDEN);
         ReanimShowPrefix("anim_head", RENDER_GROUP_HIDDEN);
@@ -898,6 +932,7 @@ void Zombie::ZombieInitialize(int theRow, ZombieType theType, bool theVariant, Z
 
     case ZombieType::ZOMBIE_TALLNUT_HEAD:
     {
+        mAbilities = ABILITY_WALK;
         LoadPlainZombieReanim();
         ReanimShowPrefix("anim_hair", RENDER_GROUP_HIDDEN);
         ReanimShowPrefix("anim_head", RENDER_GROUP_HIDDEN);
@@ -921,6 +956,7 @@ void Zombie::ZombieInitialize(int theRow, ZombieType theType, bool theVariant, Z
 
     case ZombieType::ZOMBIE_JALAPENO_HEAD:
     {
+        mAbilities = ABILITY_WALK;
         LoadPlainZombieReanim();
         ReanimShowPrefix("anim_hair", RENDER_GROUP_HIDDEN);
         ReanimShowPrefix("anim_head", RENDER_GROUP_HIDDEN);
@@ -944,6 +980,7 @@ void Zombie::ZombieInitialize(int theRow, ZombieType theType, bool theVariant, Z
 
     case ZombieType::ZOMBIE_GATLING_HEAD:
     {
+        mAbilities = ABILITY_WALK;
         LoadPlainZombieReanim();
         ReanimShowPrefix("anim_hair", RENDER_GROUP_HIDDEN);
         ReanimShowPrefix("anim_head2", RENDER_GROUP_HIDDEN);
@@ -970,6 +1007,7 @@ void Zombie::ZombieInitialize(int theRow, ZombieType theType, bool theVariant, Z
 
     case ZombieType::ZOMBIE_SQUASH_HEAD:
     {
+        mAbilities = ABILITY_WALK;
         LoadPlainZombieReanim();
         ReanimShowPrefix("anim_hair", RENDER_GROUP_HIDDEN);
         ReanimShowPrefix("anim_head2", RENDER_GROUP_HIDDEN);
@@ -4615,7 +4653,15 @@ void Zombie::Update()
 
     if (doUpdate)
     {
-        if (mZombiePhase == ZombiePhase::PHASE_ZOMBIE_BURNED)
+        // Mod API: 僵尸 Update 预钩子（Mod 可取消以完全接管行为）
+        ModCtx preCtx = MakeCtx(ModEvent::ON_ZOMBIE_UPDATE_PRE);
+        preCtx.zombie = this;
+        ModBus::Fire(preCtx.event, preCtx);
+        if (preCtx.cancel)
+        {
+            // Mod 完全接管了 Update，跳过 C++ 派发
+        }
+        else if (mZombiePhase == ZombiePhase::PHASE_ZOMBIE_BURNED)
         {
             UpdateBurn();
         }
@@ -4649,11 +4695,11 @@ void Zombie::Update()
                 UpdatePlaying();
             }
 
-            if (mZombieType == ZombieType::ZOMBIE_BUNGEE)
+            if (mAbilities & ABILITY_BUNGEE)
             {
                 UpdateZombieBungee();
             }
-            if (mZombieType == ZombieType::ZOMBIE_POGO)
+            if (mAbilities & ABILITY_POGO)
             {
                 UpdateZombiePogo();
             }
@@ -4748,89 +4794,39 @@ void Zombie::UpdateActionsByHeight()
     }
 }
 
-// ===== 僵尸动作分派小函数 =====
+// ===== 僵尸动作分派小函数（基于能力位） =====
 void Zombie::UpdateActionsByType()
 {
-    if (mZombieType == ZombieType::ZOMBIE_POLEVAULTER)
+    // Mod API: 如果僵尸类型 >= NUM_ZOMBIE_TYPES，视为自定义类型，调用 Lua 回调
+    if (mZombieType >= ZombieType::NUM_ZOMBIE_TYPES)
     {
-        UpdateZombiePolevaulter();
+        ModLua::CallLuaZombieUpdate(this);
+        return;
     }
-    if (mZombieType == ZombieType::ZOMBIE_CATAPULT)
-    {
-        UpdateZombieCatapult();
-    }
-    if (mZombieType == ZombieType::ZOMBIE_DOLPHIN_RIDER)
-    {
-        UpdateZombieDolphinRider();
-    }
-    if (mZombieType == ZombieType::ZOMBIE_SNORKEL)
-    {
-        UpdateZombieSnorkel();
-    }
-    if (mZombieType == ZombieType::ZOMBIE_BALLOON)
-    {
-        UpdateZombieFlyer();
-    }
-    if (mZombieType == ZombieType::ZOMBIE_NEWSPAPER)
-    {
-        UpdateZombieNewspaper();
-    }
-    if (mZombieType == ZombieType::ZOMBIE_DIGGER)
-    {
-        UpdateZombieDigger();
-    }
-    if (mZombieType == ZombieType::ZOMBIE_JACK_IN_THE_BOX)
-    {
-        UpdateZombieJackInTheBox();
-    }
-    if (mZombieType == ZombieType::ZOMBIE_GARGANTUAR || mZombieType == ZombieType::ZOMBIE_REDEYE_GARGANTUAR)
-    {
-        UpdateZombieGargantuar();
-    }
-    if (mZombieType == ZombieType::ZOMBIE_BOBSLED)
-    {
-        UpdateZombieBobsled();
-    }
-    if (mZombieType == ZombieType::ZOMBIE_ZAMBONI)
-    {
-        UpdateZamboni();
-    }
-    if (mZombieType == ZombieType::ZOMBIE_LADDER)
-    {
-        UpdateLadder();
-    }
-    if (mZombieType == ZombieType::ZOMBIE_YETI)
-    {
-        UpdateYeti();
-    }
-    if (mZombieType == ZombieType::ZOMBIE_DANCER)
-    {
-        UpdateZombieDancer();
-    }
-    if (mZombieType == ZombieType::ZOMBIE_BACKUP_DANCER)
-    {
-        UpdateZombieBackupDancer();
-    }
-    if (mZombieType == ZombieType::ZOMBIE_IMP)
-    {
-        UpdateZombieImp();
-    }
-    if (mZombieType == ZombieType::ZOMBIE_PEA_HEAD)
-    {
-        UpdateZombiePeaHead();
-    }
-    if (mZombieType == ZombieType::ZOMBIE_JALAPENO_HEAD)
-    {
-        UpdateZombieJalapenoHead();
-    }
-    if (mZombieType == ZombieType::ZOMBIE_GATLING_HEAD)
-    {
-        UpdateZombieGatlingHead();
-    }
-    if (mZombieType == ZombieType::ZOMBIE_SQUASH_HEAD)
-    {
-        UpdateZombieSquashHead();
-    }
+
+    // 基于能力位的派发（if 而非 else if，允许多能力叠加）
+    if (mAbilities & ABILITY_POLEVAULT)     UpdateZombiePolevaulter();
+    if (mAbilities & ABILITY_DOLPHIN)       UpdateZombieDolphinRider();
+    if (mAbilities & ABILITY_SNORKEL)       UpdateZombieSnorkel();
+    if (mAbilities & ABILITY_DIG)           UpdateZombieDigger();
+    if (mAbilities & ABILITY_NEWSPAPER)     UpdateZombieNewspaper();
+    if (mAbilities & ABILITY_JACKBOX)       UpdateZombieJackInTheBox();
+    if (mAbilities & ABILITY_BOBSLED)       UpdateZombieBobsled();
+    if (mAbilities & ABILITY_ZAMBONI)       UpdateZamboni();
+    if (mAbilities & ABILITY_LADDER)        UpdateLadder();
+    if (mAbilities & ABILITY_YETI)          UpdateYeti();
+    if (mAbilities & ABILITY_DANCER)        UpdateZombieDancer();
+    if (mAbilities & ABILITY_CATAPULT)      UpdateZombieCatapult();
+    if (mAbilities & ABILITY_GARGANTUAR)    UpdateZombieGargantuar();
+    if (mAbilities & ABILITY_FLY)           UpdateZombieFlyer();
+
+    // 植物头僵尸（Zombotany），仍用类型检查
+    if (mZombieType == ZombieType::ZOMBIE_PEA_HEAD)                 UpdateZombiePeaHead();
+    if (mZombieType == ZombieType::ZOMBIE_JALAPENO_HEAD)            UpdateZombieJalapenoHead();
+    if (mZombieType == ZombieType::ZOMBIE_GATLING_HEAD)             UpdateZombieGatlingHead();
+    if (mZombieType == ZombieType::ZOMBIE_SQUASH_HEAD)              UpdateZombieSquashHead();
+    if (mZombieType == ZombieType::ZOMBIE_BACKUP_DANCER)            UpdateZombieBackupDancer();
+    if (mZombieType == ZombieType::ZOMBIE_IMP)                      UpdateZombieImp();
 }
 
 void Zombie::UpdateActions()
@@ -4845,15 +4841,15 @@ void Zombie::CheckForBoardEdge()
         return;
 
     int aEdgeX = BOARD_EDGE;
-    if (mZombieType == ZombieType::ZOMBIE_GARGANTUAR || mZombieType == ZombieType::ZOMBIE_REDEYE_GARGANTUAR || mZombieType == ZombieType::ZOMBIE_POLEVAULTER)
+    if (mAbilities & (ABILITY_GARGANTUAR | ABILITY_POLEVAULT))
     {
         aEdgeX = -150;
     }
-    else if (mZombieType == ZombieType::ZOMBIE_CATAPULT || mZombieType == ZombieType::ZOMBIE_FOOTBALL || mZombieType == ZombieType::ZOMBIE_ZAMBONI)
+    else if (mAbilities & (ABILITY_CATAPULT | ABILITY_ZAMBONI) || mZombieType == ZombieType::ZOMBIE_FOOTBALL)
     {
         aEdgeX = -175;
     }
-    else if (mZombieType == ZombieType::ZOMBIE_BACKUP_DANCER || mZombieType == ZombieType::ZOMBIE_DANCER || mZombieType == ZombieType::ZOMBIE_SNORKEL)
+    else if (mAbilities & ABILITY_DANCER || mZombieType == ZombieType::ZOMBIE_SNORKEL)
     {
         aEdgeX = -130;
     }

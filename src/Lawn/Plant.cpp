@@ -43,6 +43,11 @@
 #include "../Sexy.TodLib/TodParticle.h"
 #include "../Sexy.TodLib/EffectSystem.h"
 #include "../Sexy.TodLib/TodStringFile.h"
+
+// Mod API 间谍层
+#include "../Mod/ModBus.h"
+namespace ModLua { void CallLuaPlantUpdate(class Plant* p); }
+
 #include "Widget/AchievementsScreen.h"
 
 // Mod API: 移除 constinit const，改为普通数组（运行时可修改）
@@ -2616,6 +2621,13 @@ void Plant::UpdateAbilities()
 
     if (mIsAsleep || mSquished || mOnBungeeState != PlantOnBungeeState::NOT_ON_BUNGEE)
         return;
+
+    // Mod API: 植物 Update 预钩子（Mod 可取消以完全接管行为）
+    ModCtx preCtx = MakeCtx(ModEvent::ON_PLANT_UPDATE_PRE);
+    preCtx.plant = this;
+    ModBus::Fire(preCtx.event, preCtx);
+    if (preCtx.cancel)
+        return;
     
     UpdateShooting();
 
@@ -2650,6 +2662,11 @@ void Plant::UpdateAbilities()
     else if (mSeedType == SeedType::SEED_SPIKEWEED || mSeedType == SeedType::SEED_SPIKEROCK)    UpdateSpikeweed();
     else if (mSeedType == SeedType::SEED_TANGLEKELP)                                            UpdateTanglekelp();
     else if (mSeedType == SeedType::SEED_SCAREDYSHROOM)                                         UpdateScaredyShroom();
+    else if (mSeedType >= SeedType::NUM_SEED_TYPES)
+    {
+        // Mod API: 自定义植物类型 → 调用 Lua 回调
+        ModLua::CallLuaPlantUpdate(this);
+    }
 
     if (mSubclass == PlantSubClass::SUBCLASS_SHOOTER)
     {

@@ -124,6 +124,31 @@ void BindEnums(lua_State* L) {
     RegisterEnum(L, coin_types, sizeof(coin_types)/sizeof(coin_types[0]));
     lua_setfield(L, -2, "CoinType");
 
+    // === ZombieAbility ===
+    lua_newtable(L);
+    static const EnumEntry ability_flags[] = {
+        {"WALK",              static_cast<lua_Integer>(ABILITY_WALK)},
+        {"FLY",               static_cast<lua_Integer>(ABILITY_FLY)},
+        {"DIG",               static_cast<lua_Integer>(ABILITY_DIG)},
+        {"POLEVAULT",         static_cast<lua_Integer>(ABILITY_POLEVAULT)},
+        {"DOLPHIN",           static_cast<lua_Integer>(ABILITY_DOLPHIN)},
+        {"SNORKEL",           static_cast<lua_Integer>(ABILITY_SNORKEL)},
+        {"POGO",              static_cast<lua_Integer>(ABILITY_POGO)},
+        {"BUNGEE",            static_cast<lua_Integer>(ABILITY_BUNGEE)},
+        {"GARGANTUAR",        static_cast<lua_Integer>(ABILITY_GARGANTUAR)},
+        {"NEWSPAPER",         static_cast<lua_Integer>(ABILITY_NEWSPAPER)},
+        {"JACKBOX",           static_cast<lua_Integer>(ABILITY_JACKBOX)},
+        {"DANCER",            static_cast<lua_Integer>(ABILITY_DANCER)},
+        {"ZAMBONI",           static_cast<lua_Integer>(ABILITY_ZAMBONI)},
+        {"BOBSLED",           static_cast<lua_Integer>(ABILITY_BOBSLED)},
+        {"LADDER",            static_cast<lua_Integer>(ABILITY_LADDER)},
+        {"CATAPULT",          static_cast<lua_Integer>(ABILITY_CATAPULT)},
+        {"YETI",              static_cast<lua_Integer>(ABILITY_YETI)},
+        {"BOSS",              static_cast<lua_Integer>(ABILITY_BOSS)},
+    };
+    RegisterEnum(L, ability_flags, sizeof(ability_flags)/sizeof(ability_flags[0]));
+    lua_setfield(L, -2, "ZombieAbility");
+
     // 设置全局 pvz 表
     lua_setglobal(L, "pvz");
 }

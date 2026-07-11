@@ -119,6 +119,20 @@ int l_zombie_get_from_wave(lua_State* L) {
     return 1;
 }
 
+int l_zombie_get_abilities(lua_State* L) {
+    Zombie* z = CheckUserdata<Zombie>(L, 1, MT_ZOMBIE);
+    if (!z) return 0;
+    lua_pushinteger(L, static_cast<lua_Integer>(z->mAbilities));
+    return 1;
+}
+
+int l_zombie_set_abilities(lua_State* L) {
+    Zombie* z = CheckUserdata<Zombie>(L, 1, MT_ZOMBIE);
+    if (!z) return 0;
+    z->mAbilities = static_cast<ZombieAbility>(luaL_checkinteger(L, 3));
+    return 0;
+}
+
 // === Zombie 方法 ===
 
 // zombie:take_damage(damage, flags)
@@ -189,6 +203,7 @@ int l_zombie_index(lua_State* L) {
         {"dead",             l_zombie_get_dead},
         {"phase",            l_zombie_get_phase},
         {"from_wave",        l_zombie_get_from_wave},
+        {"abilities",        l_zombie_get_abilities},
     };
     for (auto& p : props) {
         if (strcmp(key, p.name) == 0) return p.fn(L);
@@ -245,6 +260,8 @@ int l_zombie_newindex(lua_State* L) {
         z->mIceTrapCounter = static_cast<int32_t>(luaL_checkinteger(L, 3));
     } else if (strcmp(key, "mind_controlled") == 0) {
         z->mMindControlled = lua_toboolean(L, 3) != 0;
+    } else if (strcmp(key, "abilities") == 0) {
+        z->mAbilities = static_cast<ZombieAbility>(luaL_checkinteger(L, 3));
     }
     return 0;
 }
