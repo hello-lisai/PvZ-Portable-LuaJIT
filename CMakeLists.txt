@@ -79,6 +79,7 @@ if(PVZ_MOD_API)
 		${CMAKE_CURRENT_SOURCE_DIR}/src/Mod/Lua/BindGridItem.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/src/Mod/Lua/BindLawnMower.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/src/Mod/Lua/BindGraphics.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/src/Mod/Lua/BindSol2.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/src/Mod/Export/PvzExport.cpp
 	)
 
@@ -130,6 +131,23 @@ if(PVZ_MOD_API)
 			)
 		endif()
 	endif()
+
+	# ====== sol2 (C++ Lua 绑定库，header-only) ======
+	# 用于批量绑定 C++ 类/函数到 Lua，逐步替换原生 lua_CFunction 手写绑定
+	# sol2 是 header-only，只需下载头文件，不编译库
+	include(FetchContent)
+	FetchContent_Declare(
+		sol2
+		GIT_REPOSITORY https://github.com/ThePhD/sol2.git
+		GIT_TAG v3.5.0
+		GIT_SHALLOW TRUE
+	)
+	# 禁用 sol2 的测试/示例/interop，只取头文件
+	set(SOL2_TESTS OFF CACHE BOOL "" FORCE)
+	set(SOL2_EXAMPLES OFF CACHE BOOL "" FORCE)
+	set(SOL2_INTEROP OFF CACHE BOOL "" FORCE)
+	set(SOL2_GENERATE_SINGLE_HEADER OFF CACHE BOOL "" FORCE)
+	FetchContent_MakeAvailable(sol2)
 endif()
 
 set(LOW_MEMORY OFF CACHE BOOL "Enable low memory mode")
@@ -341,7 +359,7 @@ else()
 	)
 	# LuaJIT 不支持 wasm，仅在非 EMSCRIPTEN 平台链接
 	if(PVZ_MOD_API)
-		target_link_libraries(pvz-portable PRIVATE LuaJIT::LuaJIT)
+		target_link_libraries(pvz-portable PRIVATE LuaJIT::LuaJIT sol2::sol2)
 	endif()
 endif()
 

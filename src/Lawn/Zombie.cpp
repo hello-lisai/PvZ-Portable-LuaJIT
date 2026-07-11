@@ -2056,6 +2056,164 @@ void Zombie::UpdateZombieJackInTheBox()
     }
 }
 
+// ===== 伽刚特尔小函数实现 =====
+// 提取自 UpdateZombieGargantuar，保持原有行为不变
+
+// 砸击攻击（魅惑砸僵尸/普通砸植物）
+// 提取自 UpdateZombieGargantuar 第 2066-2115 行
+void Zombie::GargantuarSmashAttack()
+{
+#ifdef DO_FIX_BUGS
+    if (mMindControlled)
+    {
+        Zombie* aZombie = FindZombieTarget();
+        if (aZombie)
+        {
+            int aDamage = mZombieType == ZombieType::ZOMBIE_REDEYE_GARGANTUAR ? 1000 : 500;
+            aZombie->TakeDamage(aDamage, 0U);
+        }
+    }
+    else
+#endif
+    {
+        Plant* aPlant = FindPlantTarget(ZombieAttackType::ATTACKTYPE_CHEW);
+        if (aPlant)
+        {
+            if (aPlant->mSeedType == SeedType::SEED_SPIKEROCK)
+            {
+                TakeDamage(20, 32U);
+                aPlant->SpikeRockTakeDamage();
+                if (aPlant->mPlantHealth <= 0)
+                {
+                    SquishAllInSquare(aPlant->mPlantCol, aPlant->mRow, ZombieAttackType::ATTACKTYPE_CHEW);
+                }
+            }
+            else
+            {
+                SquishAllInSquare(aPlant->mPlantCol, aPlant->mRow, ZombieAttackType::ATTACKTYPE_CHEW);
+            }
+        }
+
+        if (mApp->IsScaryPotterLevel())
+        {
+            int aGridX = mBoard->PixelToGridX(mPosX, mPosY);
+            GridItem* aScaryPot = mBoard->GetScaryPotAt(aGridX, mRow);
+            if (aScaryPot)
+            {
+                mBoard->mChallenge->ScaryPotterOpenPot(aScaryPot);
+            }
+        }
+
+        if (mApp->IsIZombieLevel())
+        {
+            GridItem* aBrain = mBoard->mChallenge->IZombieGetBrainTarget(this);
+            if (aBrain)
+            {
+                mBoard->mChallenge->IZombieSquishBrain(aBrain);
+            }
+        }
+    }
+}
+
+// 投掷小鬼
+// 提取自 UpdateZombieGargantuar 第 2136-2189 行
+void Zombie::GargantuarThrowImp()
+{
+    mHasObject = false;
+    ReanimShowPrefix("Zombie_imp", RENDER_GROUP_HIDDEN);
+    ReanimShowTrack("Zombie_gargantuar_whiterope", RENDER_GROUP_HIDDEN);
+    mApp->PlayFoley(FoleyType::FOLEY_SWING);
+
+    Zombie* aZombieImp = mBoard->AddZombie(ZombieType::ZOMBIE_IMP, mFromWave);
+    if (aZombieImp == nullptr)
+        return;
+
+    float aThrowingDistance = mPosX - 360.0f;
+    float aMinThrowDistance = 40.0f;
+    if (mBoard->StageHasRoof())
+    {
+        aThrowingDistance -= 180.0f;
+        aMinThrowDistance = -140.0f;
+    }
+    if (aThrowingDistance < aMinThrowDistance)
+    {
+        aThrowingDistance = aMinThrowDistance;
+    }
+    else if (aThrowingDistance > 140.0f)
+    {
+        aThrowingDistance -= RandRangeFloat(0.0f, 100.0f);
+    }
+
+    aZombieImp->mPosX = mPosX - 133.0f;
+    aZombieImp->mPosY = GetPosYBasedOnRow(mRow);
+    aZombieImp->SetRow(mRow);
+    aZombieImp->mVariant = false;
+    aZombieImp->mAltitude = 88.0f;
+    aZombieImp->mRenderOrder = mRenderOrder + 1;
+    aZombieImp->mZombiePhase = ZombiePhase::PHASE_IMP_GETTING_THROWN;
+#ifdef DO_FIX_BUGS
+    aZombieImp->mScaleZombie = mScaleZombie;
+    aZombieImp->mBodyHealth *= mScaleZombie * mScaleZombie;
+    aZombieImp->mBodyMaxHealth *= mScaleZombie * mScaleZombie;
+
+    if (mMindControlled)
+    {
+        aZombieImp->mPosX = mPosX + mWidth;
+        aZombieImp->StartMindControlled();
+        aZombieImp->mVelX = -3.0f;
+    }
+    else
+    {
+        aZombieImp->mVelX = 3.0f;
+    }
+#else
+    aZombieImp->mVelX = 3.0f;
+#endif
+    aZombieImp->mChilledCounter = mChilledCounter;
+    aZombieImp->mVelZ = 0.5f * (aThrowingDistance / aZombieImp->mVelX) * THOWN_ZOMBIE_GRAVITY;
+    aZombieImp->PlayZombieReanim("anim_thrown", ReanimLoopType::REANIM_PLAY_ONCE_AND_HOLD, 0, 18.0f);
+    aZombieImp->UpdateReanim();
+    mApp->PlayFoley(FoleyType::FOLEY_IMP);
+}
+
+// 检查是否需要砸击
+// 提取自 UpdateZombieGargantuar 第 2211-2257 行
+bool Zombie::GargantuarShouldSmash()
+{
+#ifdef DO_FIX_BUGS
+    if (mMindControlled)
+    {
+        return FindZombieTarget() != nullptr;
+    }
+    if (FindPlantTarget(ZombieAttackType::ATTACKTYPE_CHEW))
+    {
+        return true;
+    }
+#else
+    if (FindPlantTarget(ZombieAttackType::ATTACKTYPE_CHEW))
+    {
+        return true;
+    }
+#endif
+    if (mApp->IsScaryPotterLevel())
+    {
+        int aGridX = mBoard->PixelToGridX(mPosX, mPosY);
+        if (mBoard->GetScaryPotAt(aGridX, mRow))
+        {
+            return true;
+        }
+    }
+    else if (mApp->IsIZombieLevel())
+    {
+        if (mBoard->mChallenge->IZombieGetBrainTarget(this))
+        {
+            return true;
+        }
+    }
+    return false;
+}
+// ===== 伽刚特尔小函数实现结束 =====
+
 void Zombie::UpdateZombieGargantuar()
 {
     if (mZombiePhase == ZombiePhase::PHASE_GARGANTUAR_SMASHING)
@@ -2063,56 +2221,7 @@ void Zombie::UpdateZombieGargantuar()
         Reanimation* aBodyReanim = mApp->ReanimationGet(mBodyReanimID);
         if (aBodyReanim->ShouldTriggerTimedEvent(0.64f))
         {
-#ifdef DO_FIX_BUGS
-            if (mMindControlled)  // 魅惑巨人砸僵尸
-            {
-                Zombie* aZombie = FindZombieTarget();
-                if (aZombie)
-                {
-                    int aDamage = mZombieType == ZombieType::ZOMBIE_REDEYE_GARGANTUAR ? 1000 : 500;
-                    aZombie->TakeDamage(aDamage, 0U);
-                }
-            }
-            else
-#endif
-            {
-                Plant* aPlant = FindPlantTarget(ZombieAttackType::ATTACKTYPE_CHEW);
-                if (aPlant)
-                {
-                    if (aPlant->mSeedType == SeedType::SEED_SPIKEROCK)
-                    {
-                        TakeDamage(20, 32U);
-                        aPlant->SpikeRockTakeDamage();
-                        if (aPlant->mPlantHealth <= 0)
-                        {
-                            SquishAllInSquare(aPlant->mPlantCol, aPlant->mRow, ZombieAttackType::ATTACKTYPE_CHEW);
-                        }
-                    }
-                    else
-                    {
-                        SquishAllInSquare(aPlant->mPlantCol, aPlant->mRow, ZombieAttackType::ATTACKTYPE_CHEW);
-                    }
-                }
-
-                if (mApp->IsScaryPotterLevel())
-                {
-                    int aGridX = mBoard->PixelToGridX(mPosX, mPosY);
-                    GridItem* aScaryPot = mBoard->GetScaryPotAt(aGridX, mRow);
-                    if (aScaryPot)
-                    {
-                        mBoard->mChallenge->ScaryPotterOpenPot(aScaryPot);
-                    }
-                }
-
-                if (mApp->IsIZombieLevel())
-                {
-                    GridItem* aBrain = mBoard->mChallenge->IZombieGetBrainTarget(this);
-                    if (aBrain)
-                    {
-                        mBoard->mChallenge->IZombieSquishBrain(aBrain);
-                    }
-                }
-            }
+            GargantuarSmashAttack();
 
             mApp->PlayFoley(FoleyType::FOLEY_THUMP);
             mBoard->ShakeBoard(0, 3);
@@ -2133,60 +2242,7 @@ void Zombie::UpdateZombieGargantuar()
         Reanimation* aBodyReanim = mApp->ReanimationGet(mBodyReanimID);
         if (aBodyReanim->ShouldTriggerTimedEvent(0.74f))
         {
-            mHasObject = false;
-            ReanimShowPrefix("Zombie_imp", RENDER_GROUP_HIDDEN);
-            ReanimShowTrack("Zombie_gargantuar_whiterope", RENDER_GROUP_HIDDEN);
-            mApp->PlayFoley(FoleyType::FOLEY_SWING);
-
-            Zombie* aZombieImp = mBoard->AddZombie(ZombieType::ZOMBIE_IMP, mFromWave);
-            if (aZombieImp == nullptr)
-                return;
-            
-            float aMinThrowDistance = 40.0f;
-            if (mBoard->StageHasRoof())
-            {
-                aThrowingDistance -= 180.0f;
-                aMinThrowDistance = -140.0f;
-            }
-            if (aThrowingDistance < aMinThrowDistance)
-            {
-                aThrowingDistance = aMinThrowDistance;
-            }
-            else if (aThrowingDistance > 140.0f)
-            {
-                aThrowingDistance -= RandRangeFloat(0.0f, 100.0f);
-            }
-
-            aZombieImp->mPosX = mPosX - 133.0f;
-            aZombieImp->mPosY = GetPosYBasedOnRow(mRow);
-            aZombieImp->SetRow(mRow);
-            aZombieImp->mVariant = false;
-            aZombieImp->mAltitude = 88.0f;
-            aZombieImp->mRenderOrder = mRenderOrder + 1;
-            aZombieImp->mZombiePhase = ZombiePhase::PHASE_IMP_GETTING_THROWN;
-#ifdef DO_FIX_BUGS
-            aZombieImp->mScaleZombie = mScaleZombie;
-            aZombieImp->mBodyHealth *= mScaleZombie * mScaleZombie;
-            aZombieImp->mBodyMaxHealth *= mScaleZombie * mScaleZombie;
-
-            if (mMindControlled)
-            {
-                aZombieImp->mPosX = mPosX + mWidth;
-                aZombieImp->StartMindControlled();
-                aZombieImp->mVelX = -3.0f;
-            }
-            else
-            {
-                aZombieImp->mVelX = 3.0f;
-            }
-#else
-            aZombieImp->mVelX = 3.0f;
-#endif
-            aZombieImp->mChilledCounter = mChilledCounter;
-            aZombieImp->mVelZ = 0.5f * (aThrowingDistance / aZombieImp->mVelX) * THOWN_ZOMBIE_GRAVITY;
-            aZombieImp->PlayZombieReanim("anim_thrown", ReanimLoopType::REANIM_PLAY_ONCE_AND_HOLD, 0, 18.0f);
-            aZombieImp->UpdateReanim();
-            mApp->PlayFoley(FoleyType::FOLEY_IMP);
+            GargantuarThrowImp();
         }
 
         if (aBodyReanim->mLoopCount > 0)
@@ -2208,53 +2264,7 @@ void Zombie::UpdateZombieGargantuar()
         return;
     }
 
-#ifdef DO_FIX_BUGS
-    bool doSmash = false;
-    if (mMindControlled)
-    {
-        doSmash = FindZombieTarget() != nullptr;
-    }
-    else if (FindPlantTarget(ZombieAttackType::ATTACKTYPE_CHEW))
-    {
-        doSmash = true;
-    }
-    else if (mApp->IsScaryPotterLevel())
-    {
-        int aGridX = mBoard->PixelToGridX(mPosX, mPosY);
-        if (mBoard->GetScaryPotAt(aGridX, mRow))
-        {
-            doSmash = true;
-        }
-    }
-    else if (mApp->IsIZombieLevel())
-    {
-        if (mBoard->mChallenge->IZombieGetBrainTarget(this))
-        {
-            doSmash = true;
-        }
-    }
-#else
-    bool doSmash = false;
-    if (FindPlantTarget(ZombieAttackType::ATTACKTYPE_CHEW))
-    {
-        doSmash = true;
-    }
-    else if (mApp->IsScaryPotterLevel())
-    {
-        int aGridX = mBoard->PixelToGridX(mPosX, mPosY);
-        if (mBoard->GetScaryPotAt(aGridX, mRow))
-        {
-            doSmash = true;
-        }
-    }
-    else if (mApp->IsIZombieLevel())
-    {
-        if (mBoard->mChallenge->IZombieGetBrainTarget(this))
-        {
-            doSmash = true;
-        }
-    }
-#endif
+    bool doSmash = GargantuarShouldSmash();
 
     if (doSmash)
     {
@@ -2293,6 +2303,116 @@ void Zombie::UpdateZombieImp()
     }
 }
 
+// ===== 豌豆头/加特林头/辣椒头/倭瓜头小函数实现 =====
+// 提取自 UpdateZombiePeaHead/UpdateZombieGatlingHead/UpdateZombieJalapenoHead/UpdateZombieSquashHead
+
+// 射击豌豆（魅惑射普通豌豆/普通射僵尸豌豆）
+// PeaHead 和 GatlingHead 共用
+void Zombie::PeaHeadShootProjectile(float aOriginX, float aOriginY)
+{
+#ifdef DO_FIX_BUGS
+    if (mMindControlled)  // 魅惑修复
+    {
+        aOriginX += 90.0f * mScaleZombie;
+        Projectile* aProjectile = mBoard->AddProjectile(aOriginX, aOriginY, mRenderOrder, mRow, ProjectileType::PROJECTILE_PEA);
+        aProjectile->mDamageRangeFlags = 1;
+    }
+    else
+    {
+        Projectile* aProjectile = mBoard->AddProjectile(aOriginX, aOriginY, mRenderOrder, mRow, ProjectileType::PROJECTILE_ZOMBIE_PEA);
+        aProjectile->mMotionType = ProjectileMotion::MOTION_BACKWARDS;
+    }
+#else
+    Projectile* aProjectile = mBoard->AddProjectile(aOriginX, aOriginY, mRenderOrder, mRow, ProjectileType::PROJECTILE_ZOMBIE_PEA);
+    aProjectile->mMotionType = ProjectileMotion::MOTION_BACKWARDS;
+#endif
+}
+
+// 点火（魅惑烧同行僵尸/普通烧同行植物）
+void Zombie::JalapenoHeadIgnite()
+{
+#ifdef DO_FIX_BUGS
+    if (mMindControlled)
+    {
+        BurnRow(mRow);
+    }
+    else
+    {
+        Plant* aPlant = nullptr;
+        while (mBoard->IteratePlants(aPlant))
+        {
+            if (aPlant->mRow == mRow && !aPlant->NotOnGround())
+            {
+                mBoard->mPlantsEaten++;
+                aPlant->Die();
+            }
+        }
+    }
+#else
+    Plant* aPlant = nullptr;
+    while (mBoard->IteratePlants(aPlant))
+    {
+        if (aPlant->mRow == mRow && !aPlant->NotOnGround())
+        {
+            mBoard->mPlantsEaten++;
+            aPlant->Die();
+        }
+    }
+#endif
+}
+
+// 获取目标X坐标（魅惑追踪僵尸/普通落植物格）
+int Zombie::SquashHeadGetDestX()
+{
+    int aDestX = mBoard->GridToPixelX(mBoard->PixelToGridXKeepOnBoard(mX, mY), mRow);
+#ifdef DO_FIX_BUGS
+    if (mMindControlled)
+    {
+        Zombie* aZombie = FindZombieTarget();
+        if (aZombie)
+        {
+            aDestX = aZombie->ZombieTargetLeadX(0.0f);
+        }
+        else
+        {
+            aDestX += static_cast<int>(90.0f * mScaleZombie);
+        }
+    }
+#endif
+    return aDestX;
+}
+
+// 砸击攻击（魅惑伤害僵尸/普通压扁植物）
+void Zombie::SquashHeadSmashAttack(int aDestX)
+{
+#ifdef DO_FIX_BUGS
+    if (mMindControlled)  // 魅惑修复
+    {
+        Rect aAttackRect(aDestX - 73, mPosY + 4, 65, 90);
+
+        Zombie* aZombie = nullptr;
+        while (mBoard->IterateZombies(aZombie))
+        {
+            if ((aZombie->mRow == mRow || aZombie->mZombieType == ZombieType::ZOMBIE_BOSS) && aZombie->EffectedByDamage(13U))
+            {
+                Rect aZombieRect = aZombie->GetZombieRect();
+                if (GetRectOverlap(aAttackRect, aZombieRect) > (aZombie->mZombieType == ZombieType::ZOMBIE_FOOTBALL ? -20 : 0))
+                {
+                    aZombie->TakeDamage(1800, 18U);
+                }
+            }
+        }
+    }
+    else
+    {
+        SquishAllInSquare(mBoard->PixelToGridXKeepOnBoard(mX, mY), mRow, ZombieAttackType::ATTACKTYPE_CHEW);
+    }
+#else
+    SquishAllInSquare(mBoard->PixelToGridXKeepOnBoard(mX, mY), mRow, ZombieAttackType::ATTACKTYPE_CHEW);
+#endif
+}
+// ===== 豌豆头/加特林头/辣椒头/倭瓜头小函数实现结束 =====
+
 void Zombie::UpdateZombiePeaHead()
 {
     if (!mHasHead)
@@ -2316,22 +2436,7 @@ void Zombie::UpdateZombiePeaHead()
 
         float aOriginX = mPosX + aTransform.mTransX - 9.0f;
         float aOriginY = mPosY + aTransform.mTransY + 6.0f - mAltitude;
-#ifdef DO_FIX_BUGS
-        if (mMindControlled)  // 魅惑修复
-        {
-            aOriginX += 90.0f * mScaleZombie;
-            Projectile* aProjectile = mBoard->AddProjectile(aOriginX, aOriginY, mRenderOrder, mRow, ProjectileType::PROJECTILE_PEA);
-            aProjectile->mDamageRangeFlags = 1;
-        }
-        else
-        {
-            Projectile* aProjectile = mBoard->AddProjectile(aOriginX, aOriginY, mRenderOrder, mRow, ProjectileType::PROJECTILE_ZOMBIE_PEA);
-            aProjectile->mMotionType = ProjectileMotion::MOTION_BACKWARDS;
-        }
-#else
-        Projectile* aProjectile = mBoard->AddProjectile(aOriginX, aOriginY, mRenderOrder, mRow, ProjectileType::PROJECTILE_ZOMBIE_PEA);
-        aProjectile->mMotionType = ProjectileMotion::MOTION_BACKWARDS;
-#endif
+        PeaHeadShootProjectile(aOriginX, aOriginY);
 
         mPhaseCounter = 150;
     }
@@ -2376,37 +2481,8 @@ void Zombie::UpdateZombieJalapenoHead()
         mApp->PlayFoley(FoleyType::FOLEY_JUICY);
         mBoard->DoFwoosh(mRow);
         mBoard->ShakeBoard(3, -4);
-        
-#ifdef DO_FIX_BUGS
-        if (mMindControlled)
-        {
-            BurnRow(mRow);
-        }
-        else
-        {
-            Plant* aPlant = nullptr;
-            while (mBoard->IteratePlants(aPlant))
-            {
-                //Rect aPlantRect = aPlant->GetPlantRect();
-                if (aPlant->mRow == mRow && !aPlant->NotOnGround())
-                {
-                    mBoard->mPlantsEaten++;
-                    aPlant->Die();
-                }
-            }
-        }
-#else
-        Plant* aPlant = nullptr;
-        while (mBoard->IteratePlants(aPlant))
-        {
-            //Rect aPlantRect = aPlant->GetPlantRect();
-            if (aPlant->mRow == mRow && !aPlant->NotOnGround())
-            {
-                mBoard->mPlantsEaten++;
-                aPlant->Die();
-            }
-        }
-#endif
+
+        JalapenoHeadIgnite();
         DieNoLoot();
     }
 }
@@ -2432,22 +2508,7 @@ void Zombie::UpdateZombieGatlingHead()
 
         float aOriginX = mPosX + aTransform.mTransX - 9.0f;
         float aOriginY = mPosY + aTransform.mTransY + 6.0f;
-#ifdef DO_FIX_BUGS
-        if (mMindControlled)  // 魅惑修复
-        {
-            aOriginX += 90.0f * mScaleZombie;
-            Projectile* aProjectile = mBoard->AddProjectile(aOriginX, aOriginY, mRenderOrder, mRow, ProjectileType::PROJECTILE_PEA);
-            aProjectile->mDamageRangeFlags = 1;
-        }
-        else
-        {
-            Projectile* aProjectile = mBoard->AddProjectile(aOriginX, aOriginY, mRenderOrder, mRow, ProjectileType::PROJECTILE_ZOMBIE_PEA);
-            aProjectile->mMotionType = ProjectileMotion::MOTION_BACKWARDS;
-        }
-#else
-        Projectile* aProjectile = mBoard->AddProjectile(aOriginX, aOriginY, mRenderOrder, mRow, ProjectileType::PROJECTILE_ZOMBIE_PEA);
-        aProjectile->mMotionType = ProjectileMotion::MOTION_BACKWARDS;
-#endif
+        PeaHeadShootProjectile(aOriginX, aOriginY);
     }
     else if (mPhaseCounter == 0)
     {
@@ -2482,21 +2543,7 @@ void Zombie::UpdateZombieSquashHead()
 
     if (mZombiePhase == ZombiePhase::PHASE_SQUASH_RISING)
     {
-        int aDestX = mBoard->GridToPixelX(mBoard->PixelToGridXKeepOnBoard(mX, mY), mRow);
-#ifdef DO_FIX_BUGS
-        if (mMindControlled)
-        {
-            Zombie* aZombie = FindZombieTarget();
-            if (aZombie)
-            {
-                aDestX = aZombie->ZombieTargetLeadX(0.0f);
-            }
-            else
-            {
-                aDestX += 90.0f * mScaleZombie;
-            }
-        }
-#endif
+        int aDestX = SquashHeadGetDestX();
         int aPosX = TodAnimateCurve(50, 20, mPhaseCounter, 0, aDestX - mPosX, TodCurves::CURVE_EASE_IN_OUT);
         int aPosY = TodAnimateCurve(50, 20, mPhaseCounter, 0, -20, TodCurves::CURVE_EASE_IN_OUT);
 
@@ -2515,52 +2562,14 @@ void Zombie::UpdateZombieSquashHead()
     if (mZombiePhase == ZombiePhase::PHASE_SQUASH_FALLING)
     {
         int aPosY = TodAnimateCurve(10, 0, mPhaseCounter, -20, 74, TodCurves::CURVE_LINEAR);
-        int aDestX = mBoard->GridToPixelX(mBoard->PixelToGridXKeepOnBoard(mX, mY), mRow);
-#ifdef DO_FIX_BUGS
-        if (mMindControlled)
-        {
-            Zombie* aZombie = FindZombieTarget();
-            if (aZombie)
-            {
-                aDestX = aZombie->ZombieTargetLeadX(0.0f);
-            }
-            else
-            {
-                aDestX += 90.0f * mScaleZombie;
-            }
-        }
-#endif
+        int aDestX = SquashHeadGetDestX();
 
         Reanimation* aHeadReanim = mApp->ReanimationGet(mSpecialHeadReanimID);
         aHeadReanim->SetPosition(mPosX + 6.0f + aDestX - mPosX, mPosY - 21.0f + aPosY);
-        
+
         if (mPhaseCounter == 2)
         {
-#ifdef DO_FIX_BUGS
-            if (mMindControlled)  // 魅惑修复
-            {
-                Rect aAttackRect(aDestX - 73, mPosY + 4, 65, 90);  // 具体数值未实测，待定
-
-                Zombie* aZombie = nullptr;
-                while (mBoard->IterateZombies(aZombie))
-                {
-                    if ((aZombie->mRow == mRow || aZombie->mZombieType == ZombieType::ZOMBIE_BOSS) && aZombie->EffectedByDamage(13U))
-                    {
-                        Rect aZombieRect = aZombie->GetZombieRect();
-                        if (GetRectOverlap(aAttackRect, aZombieRect) > (aZombie->mZombieType == ZombieType::ZOMBIE_FOOTBALL ? -20 : 0))
-                        {
-                            aZombie->TakeDamage(1800, 18U);
-                        }
-                    }
-                }
-            }
-            else
-            {
-                SquishAllInSquare(mBoard->PixelToGridXKeepOnBoard(mX, mY), mRow, ZombieAttackType::ATTACKTYPE_CHEW);
-            }
-#else
-            SquishAllInSquare(mBoard->PixelToGridXKeepOnBoard(mX, mY), mRow, ZombieAttackType::ATTACKTYPE_CHEW);
-#endif
+            SquashHeadSmashAttack(aDestX);
         }
 
         if (mPhaseCounter == 0)
@@ -3336,8 +3345,7 @@ void Zombie::OverrideParticleColor(TodParticleSystem* aParticle)
     {
         if (mMindControlled)
         {
-            aParticle->OverrideColor(nullptr, ZOMBIE_MINDCONTROLLED_COLOR);
-            aParticle->OverrideExtraAdditiveDraw(nullptr, true);
+            ApplyMindControlParticleTint(aParticle);
         }
         else if (mChilledCounter > 0 || mIceTrapCounter > 0)
         {
@@ -4436,11 +4444,8 @@ void Zombie::UpdateActions()
 
 void Zombie::CheckForBoardEdge()
 {
-    if (IsWalkingBackwards() && mPosX > 850.0f)
-    {
-        DieNoLoot();
+    if (CheckMindControlEdgeDeath())
         return;
-    }
 
     int aEdgeX = BOARD_EDGE;
     if (mZombieType == ZombieType::ZOMBIE_GARGANTUAR || mZombieType == ZombieType::ZOMBIE_REDEYE_GARGANTUAR || mZombieType == ZombieType::ZOMBIE_POLEVAULTER)
@@ -5070,15 +5075,7 @@ void Zombie::DrawZombiePart(Graphics* g, Image* theImage, int theFrame, int theR
     else if (mMindControlled)
     {
         aMirror = true;
-        g->SetColorizeImages(true);
-        Color aMincontrolledColor = ZOMBIE_MINDCONTROLLED_COLOR;
-        aMincontrolledColor.mAlpha = anAlpha;
-        g->SetColor(aMincontrolledColor);
-        g->DrawImageMirror(theImage, aDestRect, aSrcRect, aMirror);
-
-        g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
-        g->DrawImageMirror(theImage, aDestRect, aSrcRect, aMirror);
-        g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
+        ApplyMindControlImageTint(g, theImage, aDestRect, aSrcRect, aMirror, anAlpha);
     }
     else if (mChilledCounter > 0 || mIceTrapCounter > 0)
     {
@@ -5248,7 +5245,7 @@ void Zombie::UpdateReanim()
 
         if (mMindControlled)
         {
-            anOpposite = !anOpposite;
+            ApplyMindControlReanimMirror(anOpposite);
         }
     }
     if (anOpposite)
@@ -5607,10 +5604,7 @@ void Zombie::DrawReanim(Graphics* g, const ZombieDrawPosition& theDrawPos, int t
     }
     else if (mMindControlled)
     {
-        aColorOverride = ZOMBIE_MINDCONTROLLED_COLOR;
-        aColorOverride.mAlpha = aFadeAlpha;
-        aExtraAdditiveColor = aColorOverride;
-        aEnableExtraAdditiveDraw = true;
+        GetMindControlReanimColor(aColorOverride, aExtraAdditiveColor, aEnableExtraAdditiveDraw, aFadeAlpha);
     }
     else if (mChilledCounter > 0 || mIceTrapCounter > 0)
     {
@@ -6356,15 +6350,7 @@ Zombie* Zombie::FindZombieTarget()
     Zombie* aZombie = nullptr;
     while (mBoard->IterateZombies(aZombie))
     {
-        if (mMindControlled != aZombie->mMindControlled && 
-            !aZombie->IsFlying() && 
-            aZombie->mZombiePhase != ZombiePhase::PHASE_DIGGER_TUNNELING && 
-            aZombie->mZombiePhase != ZombiePhase::PHASE_BUNGEE_DIVING && 
-            aZombie->mZombiePhase != ZombiePhase::PHASE_BUNGEE_DIVING_SCREAMING && 
-            aZombie->mZombiePhase != ZombiePhase::PHASE_BUNGEE_RISING && 
-            aZombie->mZombieHeight != ZombieHeight::HEIGHT_GETTING_BUNGEE_DROPPED && 
-            !aZombie->IsDeadOrDying() && 
-            aZombie->mRow == mRow)
+        if (IsMindControlAttackTarget(aZombie))
         {
             Rect aZombieRect = aZombie->GetZombieRect();
             int aOverlap = GetRectOverlap(aAttackRect, aZombieRect);
@@ -6769,23 +6755,9 @@ void Zombie::CheckIfPreyCaught()
         return;
     }
 
-    Zombie* aZombie = FindZombieTarget();
-    if (aZombie)
-    {
-        EatZombie(aZombie);
+    if (TryMindControlAttack())
         return;
-    }
 
-    if (!mMindControlled)
-    {
-        Plant* aPlant = FindPlantTarget(ZombieAttackType::ATTACKTYPE_CHEW);
-        if (aPlant)
-        {
-            EatPlant(aPlant);
-            return;
-        }
-    }
-    
     if (mApp->IsIZombieLevel() && mBoard->mChallenge->IZombieEatBrain(this))
     {
         return;
@@ -6926,6 +6898,117 @@ void Zombie::StartMindControlled()
         }
     }
 }
+
+// ===== 魅惑相关小函数实现 =====
+// 提取自巨形函数，保持原有行为不变，同时暴露为独立可调用接口
+
+// 获取魅惑紫色（带 alpha 修正）
+Color Zombie::GetMindControlColor(int alpha)
+{
+    Color c = ZOMBIE_MINDCONTROLLED_COLOR;
+    c.mAlpha = alpha;
+    return c;
+}
+
+// Image 部件绘制时的紫色着色 + 叠加发光
+// 提取自 DrawZombiePart 第 5070-5082 行
+void Zombie::ApplyMindControlImageTint(Graphics* g, Image* theImage, const Rect& aDestRect, const Rect& aSrcRect, bool aMirror, int anAlpha)
+{
+    g->SetColorizeImages(true);
+    Color aMincontrolledColor = ZOMBIE_MINDCONTROLLED_COLOR;
+    aMincontrolledColor.mAlpha = anAlpha;
+    g->SetColor(aMincontrolledColor);
+    g->DrawImageMirror(theImage, aDestRect, aSrcRect, aMirror);
+
+    g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
+    g->DrawImageMirror(theImage, aDestRect, aSrcRect, aMirror);
+    g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
+}
+
+// 获取 Reanimation 魅惑颜色参数
+// 提取自 DrawReanim 第 5608-5614 行
+void Zombie::GetMindControlReanimColor(Color& aColorOverride, Color& aExtraAdditiveColor, bool& aEnableExtraAdditiveDraw, int aFadeAlpha)
+{
+    aColorOverride = ZOMBIE_MINDCONTROLLED_COLOR;
+    aColorOverride.mAlpha = aFadeAlpha;
+    aExtraAdditiveColor = aColorOverride;
+    aEnableExtraAdditiveDraw = true;
+}
+
+// 翻转 Reanimation 镜像方向
+// 提取自 UpdateReanim 第 5249-5252 行
+void Zombie::ApplyMindControlReanimMirror(bool& anOpposite)
+{
+    if (mMindControlled)
+    {
+        anOpposite = !anOpposite;
+    }
+}
+
+// 检查魅惑僵尸越右界死亡
+// 提取自 CheckForBoardEdge 第 4439-4443 行
+bool Zombie::CheckMindControlEdgeDeath()
+{
+    if (IsWalkingBackwards() && mPosX > 850.0f)
+    {
+        DieNoLoot();
+        return true;
+    }
+    return false;
+}
+
+// 判断目标僵尸是否为魅惑攻击目标
+// 提取自 FindZombieTarget 第 6359-6367 行的核心条件
+bool Zombie::IsMindControlAttackTarget(const Zombie* other) const
+{
+    if (!other) return false;
+    return mMindControlled != other->mMindControlled &&
+        !other->IsFlying() &&
+        other->mZombiePhase != ZombiePhase::PHASE_DIGGER_TUNNELING &&
+        other->mZombiePhase != ZombiePhase::PHASE_BUNGEE_DIVING &&
+        other->mZombiePhase != ZombiePhase::PHASE_BUNGEE_DIVING_SCREAMING &&
+        other->mZombiePhase != ZombiePhase::PHASE_BUNGEE_RISING &&
+        other->mZombieHeight != ZombieHeight::HEIGHT_GETTING_BUNGEE_DROPPED &&
+        !other->IsDeadOrDying() &&
+        other->mRow == mRow;
+}
+
+// 执行魅惑攻击逻辑
+// 提取自 CheckIfPreyCaught 第 6772-6787 行
+// 返回 true 表示已找到并攻击了目标
+bool Zombie::TryMindControlAttack()
+{
+    Zombie* aZombie = FindZombieTarget();
+    if (aZombie)
+    {
+        EatZombie(aZombie);
+        return true;
+    }
+
+    if (!mMindControlled)
+    {
+        Plant* aPlant = FindPlantTarget(ZombieAttackType::ATTACKTYPE_CHEW);
+        if (aPlant)
+        {
+            EatPlant(aPlant);
+            return true;
+        }
+    }
+
+    return false;
+}
+
+// 为粒子应用魅惑紫色
+// 提取自 OverrideParticleColor 第 3337-3341 行
+void Zombie::ApplyMindControlParticleTint(TodParticleSystem* aParticle)
+{
+    if (aParticle)
+    {
+        aParticle->OverrideColor(nullptr, ZOMBIE_MINDCONTROLLED_COLOR);
+        aParticle->OverrideExtraAdditiveDraw(nullptr, true);
+    }
+}
+// ===== 魅惑相关小函数实现结束 =====
 
 void Zombie::EatPlant(Plant* thePlant)
 {

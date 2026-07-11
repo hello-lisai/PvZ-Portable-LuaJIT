@@ -44,6 +44,7 @@ namespace ModLua {
     void BindLawnMower(lua_State* L);
     void BindGraphics(lua_State* L);   // Graphics/Image/Font 元表
     void BindEnums(lua_State* L);  // ZombieType / SeedType / KeyCode 等
+    void BindSol2(lua_State* L);   // sol2 批量绑定（在所有 Bind* 之后调用，覆盖旧 metatable）
 
     // 把 C++ 对象 push 成 Lua userdata（各 Bind*.cpp 提供）
     void PushBoard(lua_State* L, Board* board);
@@ -765,6 +766,10 @@ void Initialize() {
     BindGridItem(g_L);
     BindLawnMower(g_L);
     BindGraphics(g_L);
+
+    // sol2 批量绑定：注册所有 usertype，并覆盖原有 metatable
+    // 必须在所有 Bind*() 之后调用，以便覆盖旧 metatable
+    BindSol2(g_L);
 
     // 提供全局 pvz 表（含 api_version + config 子表）
     lua_newtable(g_L);

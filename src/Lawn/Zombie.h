@@ -292,6 +292,24 @@ public:
     /*inline*/ void                 ReanimShowTrack(const char* theTrackName, int theRenderGroup);
     /*inline*/ void                 PlayZombieAppearSound();
     void                            StartMindControlled();
+    // ===== 魅惑相关小函数（提取自巨形函数，方便 Mod 调用）=====
+    // 获取魅惑紫色（带 alpha 修正）
+    Color                           GetMindControlColor(int alpha = 255);
+    // Image 部件绘制时的紫色着色 + 叠加发光（提取自 DrawZombiePart）
+    void                            ApplyMindControlImageTint(Graphics* g, Image* theImage, const Rect& aDestRect, const Rect& aSrcRect, bool aMirror, int anAlpha);
+    // 获取 Reanimation 魅惑颜色参数（提取自 DrawReanim）
+    void                            GetMindControlReanimColor(Color& aColorOverride, Color& aExtraAdditiveColor, bool& aEnableExtraAdditiveDraw, int aFadeAlpha);
+    // 翻转 Reanimation 镜像方向（提取自 UpdateReanim）
+    void                            ApplyMindControlReanimMirror(bool& anOpposite);
+    // 检查魅惑僵尸越右界死亡（提取自 CheckForBoardEdge）
+    bool                            CheckMindControlEdgeDeath();
+    // 判断目标僵尸是否为魅惑攻击目标（提取自 FindZombieTarget）
+    bool                            IsMindControlAttackTarget(const Zombie* other) const;
+    // 执行魅惑攻击逻辑（提取自 CheckIfPreyCaught）
+    bool                            TryMindControlAttack();
+    // 为粒子应用魅惑紫色（提取自 OverrideParticleColor）
+    void                            ApplyMindControlParticleTint(TodParticleSystem* aParticle);
+    // ===== 魅惑相关小函数结束 =====
     bool                            IsFlying();
     void                            DropHead(unsigned int theDamageFlags);
     bool                            CanTargetPlant(Plant* thePlant, ZombieAttackType theAttackType);
@@ -300,6 +318,11 @@ public:
     void                            ZombieCatapultFire(Plant* thePlant);
     void                            UpdateClimbingLadder();
     void                            UpdateZombieGargantuar();
+    // ===== 伽刚特尔小函数（提取自 UpdateZombieGargantuar）=====
+    void                            GargantuarSmashAttack();       // 砸击攻击（魅惑砸僵尸/普通砸植物）
+    void                            GargantuarThrowImp();          // 投掷小鬼
+    bool                            GargantuarShouldSmash();       // 检查是否需要砸击
+    // ===== 伽刚特尔小函数结束 =====
     int                             GetBodyDamageIndex();
     void                            ApplyBurn();
     void                            UpdateBurn();
@@ -398,6 +421,16 @@ public:
     bool                            ZombiquariumFindClosestBrain();
     void                            UpdateZombieGatlingHead();
     void                            UpdateZombieSquashHead();
+    // ===== 豌豆头/加特林头小函数（提取自 UpdateZombiePeaHead/UpdateZombieGatlingHead）=====
+    void                            PeaHeadShootProjectile(float aOriginX, float aOriginY);  // 射击豌豆（魅惑射普通豌豆/普通射僵尸豌豆）
+    // ===== 豌豆头/加特林头小函数结束 =====
+    // ===== 辣椒头小函数（提取自 UpdateZombieJalapenoHead）=====
+    void                            JalapenoHeadIgnite();   // 点火（魅惑烧同行僵尸/普通烧同行植物）
+    // ===== 辣椒头小函数结束 =====
+    // ===== 倭瓜头小函数（提取自 UpdateZombieSquashHead）=====
+    int                             SquashHeadGetDestX();           // 获取目标X坐标（魅惑追踪僵尸/普通落植物格）
+    void                            SquashHeadSmashAttack(int aDestX); // 砸击攻击（魅惑伤害僵尸/普通压扁植物）
+    // ===== 倭瓜头小函数结束 =====
     bool                            IsTanglekelpTarget();
     bool                            HasYuckyFaceImage();
     bool                            IsTangleKelpTarget();
