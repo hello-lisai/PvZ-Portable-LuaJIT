@@ -220,6 +220,10 @@ public:
     void                            UpdateZombieBungee();
     void                            BungeeLanding();
     bool                            EffectedByDamage(unsigned int theDamageRangeFlags);
+    // ===== 受伤判定小函数（提取自 EffectedByDamage）=====
+    bool                            IsBossDamageable();             // 僵王博士低头状态判定
+    bool                            IsInOffGroundPhase();           // 是否处于离地阶段（撑杆跳/潜水/升起等）
+    // ===== 受伤判定小函数结束 =====
     void                            PickRandomSpeed();
     void                            UpdateZombiePolevaulter();
     // ===== 撑杆跳僵尸更新小函数 =====
@@ -237,6 +241,10 @@ public:
     Plant*                          FindPlantTarget(ZombieAttackType theAttackType);
     void                            CheckSquish(ZombieAttackType theAttackType);
     void                            RiseFromGrave(int theCol, int theRow);
+    // ===== 墓地升起小函数（提取自 RiseFromGrave）=====
+    void                            RiseFromGraveInPool(int theCol, int theRow);   // 水池场景升起（鸭子泳圈/海藻粒子）
+    void                            RiseFromGraveOnLand(int theCol, int theRow);   // 陆地场景升起（墓碑粒子）
+    // ===== 墓地升起小函数结束 =====
     void                            UpdateZombieRiseFromGrave();
     void                            UpdateDamageStates(unsigned int theDamageFlags);
     void                            UpdateZombiePool();
@@ -295,12 +303,21 @@ public:
     void                            PogoBreak(unsigned int theDamageFlags);
     void                            UpdateZombieFalling();
     void                            UpdateZombieDancer();
+    // ===== 舞王僵尸更新小函数（提取自 UpdateZombieDancer）=====
+    void                            UpdateDancerSummonCounter();    // 召唤计数器倒计时
+    void                            UpdateDancerSnappingFingers();  // 响指阶段处理（召唤伴舞）
+    void                            TransitionDancerPhase(ZombiePhase aDancerPhase);  // 舞者阶段切换
+    // ===== 舞王僵尸更新小函数结束 =====
     ZombieID                        SummonBackupDancer(int theRow, int thePosX);
     void                            SummonBackupDancers();
     int                             GetDancerFrame();
     void                            BungeeStealTarget();
     void                            BungeeLiftTarget();
     void                            UpdateYuckyFace();
+    // ===== 难看脸小函数（提取自 UpdateYuckyFace）=====
+    void                            PlayYuckySound();               // 播放难看脸音效（按屏幕僵尸数量）
+    void                            CalcYuckyFaceRowChange();       // 计算难看脸换行目标
+    // ===== 难看脸小函数结束 =====
     void                            DrawIceTrap(Graphics* g, const ZombieDrawPosition& theDrawPos, bool theFront);
     void                            HitIceTrap();
     int                             GetHelmDamageIndex();
@@ -333,6 +350,9 @@ public:
     /*inline*/ int                  TakeFlyingDamage(int theDamage, unsigned int theDamageFlags);
     int                             TakeShieldDamage(int theDamage, unsigned int theDamageFlags);
     int                             TakeHelmDamage(int theDamage, unsigned int theDamageFlags);
+    // ===== 头盔受伤小函数（提取自 TakeHelmDamage）=====
+    void                            UpdateHelmDamageImageOverride(int aDamageIndex);  // 按头盔类型/损伤等级切换贴图
+    // ===== 头盔受伤小函数结束 =====
     void                            TakeBodyDamage(int theDamage, unsigned int theDamageFlags);
     void                            AttachShield();
     void                            DetachShield();
