@@ -92,24 +92,6 @@ enum ZombieAbility : uint32_t
     ABILITY_BOSS             = 1 << 17,  // 博士
 };
 
-inline ZombieAbility operator|(ZombieAbility a, ZombieAbility b)
-{
-    return static_cast<ZombieAbility>(static_cast<uint32_t>(a) | static_cast<uint32_t>(b));
-}
-inline ZombieAbility& operator|=(ZombieAbility& a, ZombieAbility b)
-{
-    a = a | b;
-    return a;
-}
-inline ZombieAbility operator&(ZombieAbility a, ZombieAbility b)
-{
-    return static_cast<ZombieAbility>(static_cast<uint32_t>(a) & static_cast<uint32_t>(b));
-}
-inline bool operator!(ZombieAbility a)
-{
-    return a == ABILITY_NONE;
-}
-
 enum ZombieParts : int32_t
 {
     PART_BODY,
@@ -155,7 +137,7 @@ public:
 
 public:
     ZombieType			            mZombieType;
-    ZombieAbility                   mAbilities = ABILITY_NONE;
+    uint32_t                        mAbilities = 0;   // ZombieAbility 标志位组合（用 uint32_t 存储，避免枚举位运算的类型转换问题）
 	ZombiePhase			            mZombiePhase;
 	float				            mPosX;
 	float				            mPosY;

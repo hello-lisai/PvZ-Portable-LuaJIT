@@ -33,7 +33,7 @@
 #include "../../SexyAppFramework/graphics/Graphics.h"  // Graphics（ON_BOARD_DRAW_HUD 事件）
 #include "../../Resources.h"            // FONT_* / IMAGE_* 全局指针（pvz.fonts / pvz.images）
 #include "../../SexyAppFramework/widget/Widget.h"  // Widget 系统暴露
-#include "../../SexyAppFramework/WidgetManager.h"   // WidgetManager
+#include "../../SexyAppFramework/widget/WidgetManager.h"   // WidgetManager
 
 // 对象绑定（在各自 Bind*.cpp 中实现）
 namespace ModLua {

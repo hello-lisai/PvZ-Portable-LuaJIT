@@ -1,5 +1,6 @@
 #include "LuaBindUtil.h"
 #include "../../ConstEnums.h"
+#include "../../Lawn/Zombie.h"   // ZombieAbility 枚举（ABILITY_WALK 等）
 
 namespace ModLua {
 
