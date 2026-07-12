@@ -49,6 +49,10 @@ namespace ModLua {
     void BindSol2(lua_State* L);   // sol2 批量绑定（在所有 Bind* 之后调用，覆盖旧 metatable）
     void BindWidget(lua_State* L); // Widget 系统绑定
 
+    // 自定义类型 Lua 回调派发（由 Zombie.cpp / Plant.cpp 在 Update 中调用）
+    void CallLuaZombieUpdate(Zombie* z);
+    void CallLuaPlantUpdate(Plant* p);
+
     // 把 C++ 对象 push 成 Lua userdata（各 Bind*.cpp 提供）
     void PushBoard(lua_State* L, Board* board);
     void PushZombie(lua_State* L, Zombie* z);
@@ -632,7 +636,7 @@ public:
         Sexy::Widget::Draw(g);
         if (!g_L || mOnDrawRef == LUA_NOREF) return;
         lua_rawgeti(g_L, LUA_REGISTRYINDEX, mOnDrawRef);
-        PushGraphics(g_L, g);
+        ModLua::PushGraphics(g_L, g);
         SafePCall(g_L, 1, 0);
     }
 
