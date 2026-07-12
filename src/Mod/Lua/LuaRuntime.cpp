@@ -596,7 +596,9 @@ int l_zombies_register(lua_State* L) {
 // ===== 自定义类型 Lua Update 回调派发 =====
 // 在 UpdateActionsByType 中被调用（自定义僵尸类型不会走 C++ switch）
 
-void ModLua::CallLuaZombieUpdate(Zombie* z) {
+namespace ModLua {
+
+void CallLuaZombieUpdate(Zombie* z) {
     if (!g_L || !z) return;
     int typeIdx = static_cast<int>(z->mZombieType);
     auto it = g_zombieUpdateCallbacks.find(typeIdx);
@@ -607,7 +609,7 @@ void ModLua::CallLuaZombieUpdate(Zombie* z) {
     SafePCall(g_L, 1, 0);
 }
 
-void ModLua::CallLuaPlantUpdate(Plant* p) {
+void CallLuaPlantUpdate(Plant* p) {
     if (!g_L || !p) return;
     int typeIdx = static_cast<int>(p->mSeedType);
     auto it = g_plantUpdateCallbacks.find(typeIdx);
@@ -617,6 +619,8 @@ void ModLua::CallLuaPlantUpdate(Plant* p) {
     PushPlant(g_L, p);
     SafePCall(g_L, 1, 0);
 }
+
+} // namespace ModLua
 
 // ===== Widget 绑定 =====
 
@@ -815,7 +819,9 @@ int l_widget_set_title(lua_State* L) {
 
 } // namespace
 
-void ModLua::BindWidget(lua_State* L) {
+namespace ModLua {
+
+void BindWidget(lua_State* L) {
     luaL_newmetatable(L, "PvZ.Widget");
     lua_pushvalue(L, -1);
     lua_setfield(L, -2, "__index");
@@ -848,6 +854,8 @@ void ModLua::BindWidget(lua_State* L) {
     lua_setfield(L, -2, "widget");
     lua_pop(L, 1);
 }
+
+} // namespace ModLua
 
 // 解析 mod.lua 清单（返回 table）
 // 期望 mod.lua 返回一个 table，包含 name/version/author/description/main
