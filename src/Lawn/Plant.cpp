@@ -2916,17 +2916,9 @@ bool Plant::IsInPlay()
     return IsOnBoard() && mApp->mGameMode != GameMode::GAMEMODE_CHALLENGE_ZEN_GARDEN && mApp->mGameMode != GameMode::GAMEMODE_TREE_OF_WISDOM;
 }
 
-void Plant::UpdateReanim()
+// 计算基础偏移/缩放（按植物类型/状态）
+void Plant::CalcReanimBaseTransform(float& aOffsetX, float& aOffsetY, float& aScaleX, float& aScaleY)
 {
-    Reanimation* aBodyReanim = mApp->ReanimationTryToGet(mBodyReanimID);
-    if (aBodyReanim == nullptr)
-        return;
-
-    UpdateReanimColor();
-
-    float aOffsetX = mShakeOffsetX;
-    float aOffsetY = PlantDrawHeightOffset(mBoard, this, mSeedType, mPlantCol, mRow);
-    float aScaleX = 1.0f, aScaleY = 1.0f;
     if ((mApp->mGameMode == GameMode::GAMEMODE_CHALLENGE_BIG_TIME) &&
         (mSeedType == SeedType::SEED_WALLNUT || mSeedType == SeedType::SEED_SUNFLOWER || mSeedType == SeedType::SEED_MARIGOLD))
     {
@@ -2966,6 +2958,78 @@ void Plant::UpdateReanim()
         aScaleY *= aScaleFactor;
         aOffsetY += 80.0f - 80.0f * aScaleFactor;
     }
+}
+
+// 盆栽植物偏移/缩放/生长动画
+void Plant::ApplyPottedPlantTransform(float& aOffsetX, float& aOffsetY, float& aScaleX, float& aScaleY)
+{
+    if (mPottedPlantIndex == -1)
+        return;
+
+    PottedPlant* aPottedPlant = &mApp->mPlayerInfo->mPottedPlant[mPottedPlantIndex];
+
+    if (aPottedPlant->mFacing == PottedPlant::FacingDirection::FACING_LEFT)
+    {
+        aOffsetX += 80.0f * aScaleX;
+        aScaleX *= -1.0f;
+    }
+
+    float aOffsetXStart, aOffsetXEnd;
+    float aOffsetYStart, aOffsetYEnd;
+    float aScaleStart, aScaleEnd;
+    if (aPottedPlant->mPlantAge == PottedPlantAge::PLANTAGE_SMALL)
+    {
+        aOffsetXStart = 20.0f;
+        aOffsetXEnd = 20.0f;
+        aOffsetYStart = 40.0f;
+        aOffsetYEnd = 40.0f;
+        aScaleStart = 0.5f;
+        aScaleEnd = 0.5f;
+    }
+    else if (aPottedPlant->mPlantAge == PottedPlantAge::PLANTAGE_MEDIUM)
+    {
+        aOffsetXStart = 20.0f;
+        aOffsetXEnd = 10.0f;
+        aOffsetYStart = 40.0f;
+        aOffsetYEnd = 20.0f;
+        aScaleStart = 0.5f;
+        aScaleEnd = 0.75f;
+    }
+    else
+    {
+        aOffsetXStart = 10.0f;
+        aOffsetXEnd = 0.0f;
+        aOffsetYStart = 20.0f;
+        aOffsetYEnd = 0.0f;
+        aScaleStart = 0.75f;
+        aScaleEnd = 1.0f;
+    }
+
+    float aAnimatedOffsetX = TodAnimateCurveFloat(100, 0, mStateCountdown, aOffsetXStart, aOffsetXEnd, TodCurves::CURVE_LINEAR);
+    float aAnimatedOffsetY = TodAnimateCurveFloat(100, 0, mStateCountdown, aOffsetYStart, aOffsetYEnd, TodCurves::CURVE_LINEAR);
+    float aAnimatedScale = TodAnimateCurveFloat(100, 0, mStateCountdown, aScaleStart, aScaleEnd, TodCurves::CURVE_LINEAR);
+
+    aOffsetX += aAnimatedOffsetX * aScaleX;
+    aOffsetY += aAnimatedOffsetY * aScaleY;
+    aScaleX *= aAnimatedScale;
+    aScaleY *= aAnimatedScale;
+    aOffsetX += mApp->mZenGarden->ZenPlantOffsetX(aPottedPlant);
+    aOffsetY += mApp->mZenGarden->PlantPottedDrawHeightOffset(mSeedType, aScaleY);
+}
+
+void Plant::UpdateReanim()
+{
+    Reanimation* aBodyReanim = mApp->ReanimationTryToGet(mBodyReanimID);
+    if (aBodyReanim == nullptr)
+        return;
+
+    UpdateReanimColor();
+
+    float aOffsetX = mShakeOffsetX;
+    float aOffsetY = PlantDrawHeightOffset(mBoard, this, mSeedType, mPlantCol, mRow);
+    float aScaleX = 1.0f, aScaleY = 1.0f;
+
+    CalcReanimBaseTransform(aOffsetX, aOffsetY, aScaleX, aScaleY);
 
     aBodyReanim->Update();
 
@@ -2975,58 +3039,7 @@ void Plant::UpdateReanim()
         aScaleX *= -1.0f;
     }
 
-    if (mPottedPlantIndex != -1)
-    {
-        PottedPlant* aPottedPlant = &mApp->mPlayerInfo->mPottedPlant[mPottedPlantIndex];
-
-        if (aPottedPlant->mFacing == PottedPlant::FacingDirection::FACING_LEFT)
-        {
-            aOffsetX += 80.0f * aScaleX;
-            aScaleX *= -1.0f;
-        }
-
-        float aOffsetXStart, aOffsetXEnd;
-        float aOffsetYStart, aOffsetYEnd;
-        float aScaleStart, aScaleEnd;
-        if (aPottedPlant->mPlantAge == PottedPlantAge::PLANTAGE_SMALL)
-        {
-            aOffsetXStart = 20.0f;
-            aOffsetXEnd = 20.0f;
-            aOffsetYStart = 40.0f;
-            aOffsetYEnd = 40.0f;
-            aScaleStart = 0.5f;
-            aScaleEnd = 0.5f;
-        }
-        else if (aPottedPlant->mPlantAge == PottedPlantAge::PLANTAGE_MEDIUM)
-        {
-            aOffsetXStart = 20.0f;
-            aOffsetXEnd = 10.0f;
-            aOffsetYStart = 40.0f;
-            aOffsetYEnd = 20.0f;
-            aScaleStart = 0.5f;
-            aScaleEnd = 0.75f;
-        }
-        else
-        {
-            aOffsetXStart = 10.0f;
-            aOffsetXEnd = 0.0f;
-            aOffsetYStart = 20.0f;
-            aOffsetYEnd = 0.0f;
-            aScaleStart = 0.75f;
-            aScaleEnd = 1.0f;
-        }
-
-        float aAnimatedOffsetX = TodAnimateCurveFloat(100, 0, mStateCountdown, aOffsetXStart, aOffsetXEnd, TodCurves::CURVE_LINEAR);
-        float aAnimatedOffsetY = TodAnimateCurveFloat(100, 0, mStateCountdown, aOffsetYStart, aOffsetYEnd, TodCurves::CURVE_LINEAR);
-        float aAnimatedScale = TodAnimateCurveFloat(100, 0, mStateCountdown, aScaleStart, aScaleEnd, TodCurves::CURVE_LINEAR);
-
-        aOffsetX += aAnimatedOffsetX * aScaleX;
-        aOffsetY += aAnimatedOffsetY * aScaleY;
-        aScaleX *= aAnimatedScale;
-        aScaleY *= aAnimatedScale;
-        aOffsetX += mApp->mZenGarden->ZenPlantOffsetX(aPottedPlant);
-        aOffsetY += mApp->mZenGarden->PlantPottedDrawHeightOffset(mSeedType, aScaleY);
-    }
+    ApplyPottedPlantTransform(aOffsetX, aOffsetY, aScaleX, aScaleY);
 
     aBodyReanim->SetPosition(aOffsetX, aOffsetY);
     aBodyReanim->OverrideScale(aScaleX, aScaleY);

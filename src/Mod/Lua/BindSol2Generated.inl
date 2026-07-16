@@ -664,6 +664,8 @@ static void BindSol2Plant(sol::state_view& lua) {
         "imitater_morph", &Plant::ImitaterMorph,
         "update_imitater", &Plant::UpdateImitater,
         "update_reanim", &Plant::UpdateReanim,
+        // calc_reanim_base_transform: 跳过 (has reference param) — void                    CalcReanimBaseTransform(float& aOffsetX, float& aOffsetY, float& aScaleX, float& aScaleY);  // 计算基础偏移/缩放（按植物类型/状态）
+        // apply_potted_plant_transform: 跳过 (has reference param) — void                    ApplyPottedPlantTransform(float& aOffsetX, float& aOffsetY, float& aScaleX, float& aScaleY);  // 盆栽植物偏移/缩放/生长动画
         "spike_rock_take_damage", &Plant::SpikeRockTakeDamage,
         "is_spiky", &Plant::IsSpiky,
         // preload_plant_resources: 跳过 (static method) — static  void  PreloadPlantResources(SeedType theSeedType);

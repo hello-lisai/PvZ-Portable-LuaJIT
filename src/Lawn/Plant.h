@@ -382,6 +382,10 @@ public:
     void                    ImitaterMorph();
     void                    UpdateImitater();
     void                    UpdateReanim();
+    // ===== UpdateReanim 小函数（提取自 UpdateReanim）=====
+    void                    CalcReanimBaseTransform(float& aOffsetX, float& aOffsetY, float& aScaleX, float& aScaleY);  // 计算基础偏移/缩放（按植物类型/状态）
+    void                    ApplyPottedPlantTransform(float& aOffsetX, float& aOffsetY, float& aScaleX, float& aScaleY);  // 盆栽植物偏移/缩放/生长动画
+    // ===== UpdateReanim 小函数结束 =====
     void                    SpikeRockTakeDamage();
     bool                    IsSpiky();
     static /*inline*/ void  PreloadPlantResources(SeedType theSeedType);
