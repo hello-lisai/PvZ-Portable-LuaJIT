@@ -68,6 +68,9 @@ AlmanacDialog::AlmanacDialog(LawnApp* theApp) : LawnDialog(theApp, DIALOG_ALMANA
 	mLoadedResourceNames.push_back("DelayLoad_Almanac");
 	for (size_t i = 0; i < LENGTH(mZombiePerfTest); i++) mZombiePerfTest[i] = nullptr;
 	LawnDialog::Resize(0, 0, BOARD_WIDTH, BOARD_HEIGHT);
+	// Mod API: 初始化分页状态
+	mPlantPage = 0;
+	mZombiePage = 0;
 
 	for (std::string& resource : mLoadedResourceNames)
 		TodLoadResources(resource.c_str());
@@ -119,6 +122,39 @@ AlmanacDialog::AlmanacDialog(LawnApp* theApp) : LawnDialog(theApp, DIALOG_ALMANA
 	mZombieButton->mDrawStoneButton = true;
 	mZombieButton->mParentWidget = this;
 
+	// Mod API: 翻页按钮（使用 ZOMBATAR 风格图片，放在底部 mIndexButton 和 mCloseButton 之间）
+	// mIndexButton 右边界=196，mCloseButton 左边界=676，中间 480px 可用空间
+	// Prev 放 (350, 565)，Next 放 (430, 565)，页码文字在中间
+	mPrevButton = new GameButton(AlmanacDialog::ALMANAC_BUTTON_PREV);
+	mPrevButton->SetLabel("");
+	mPrevButton->mButtonImage = Sexy::IMAGE_ZOMBATAR_PREV_BUTTON;
+	mPrevButton->mOverImage = Sexy::IMAGE_ZOMBATAR_PREV_BUTTON_HIGHLIGHT;
+	mPrevButton->mDownImage = nullptr;
+	mPrevButton->mDoFinger = true;
+	mPrevButton->mParentWidget = this;
+	if (Sexy::IMAGE_ZOMBATAR_PREV_BUTTON) {
+		int bw = Sexy::IMAGE_ZOMBATAR_PREV_BUTTON->mWidth;
+		int bh = Sexy::IMAGE_ZOMBATAR_PREV_BUTTON->mHeight;
+		mPrevButton->Resize(350, 565, bw, bh);
+		mPrevButton->mBtnNoDraw = true;  // 默认隐藏，仅有多页时显示
+	}
+
+	mNextButton = new GameButton(AlmanacDialog::ALMANAC_BUTTON_NEXT);
+	mNextButton->SetLabel("");
+	mNextButton->mButtonImage = Sexy::IMAGE_ZOMBATAR_NEXT_BUTTON;
+	mNextButton->mOverImage = Sexy::IMAGE_ZOMBATAR_NEXT_BUTTON_HIGHLIGHT;
+	mNextButton->mDownImage = nullptr;
+	mNextButton->mDoFinger = true;
+	mNextButton->mParentWidget = this;
+	if (Sexy::IMAGE_ZOMBATAR_NEXT_BUTTON) {
+		int bw = Sexy::IMAGE_ZOMBATAR_NEXT_BUTTON->mWidth;
+		int bh = Sexy::IMAGE_ZOMBATAR_NEXT_BUTTON->mHeight;
+		// Next 按钮放在 Prev 右侧，中间留 30px 给页码文字
+		int nextX = 350 + (Sexy::IMAGE_ZOMBATAR_PREV_BUTTON ? Sexy::IMAGE_ZOMBATAR_PREV_BUTTON->mWidth : 0) + 30;
+		mNextButton->Resize(nextX, 565, bw, bh);
+		mNextButton->mBtnNoDraw = true;
+	}
+
 	SetPage(ALMANAC_PAGE_INDEX);
 	if (!mApp->mBoard || !mApp->mBoard->mPaused)
 		mApp->mMusic->MakeSureMusicIsPlaying(MUSIC_TUNE_CHOOSE_YOUR_SEEDS);
@@ -130,6 +166,8 @@ AlmanacDialog::~AlmanacDialog()
 	if (mIndexButton)	delete mIndexButton;
 	if (mPlantButton)	delete mPlantButton;
 	if (mZombieButton)	delete mZombieButton;
+	if (mPrevButton)	delete mPrevButton;
+	if (mNextButton)	delete mNextButton;
 
 	ClearPlantsAndZombies();
 }
@@ -239,12 +277,25 @@ void AlmanacDialog::SetPage(AlmanacPage thePage)
 void AlmanacDialog::ShowPlant(SeedType theSeedType)
 {
 	mSelectedSeed = theSeedType;
+	// Mod API: 确保选中植物在当前页
+	int seedIdx = static_cast<int>(theSeedType);
+	int page = seedIdx / ALMANAC_PLANTS_PER_PAGE;
+	if (page != mPlantPage) mPlantPage = page;
 	SetPage(ALMANAC_PAGE_PLANTS);
 }
 
 void AlmanacDialog::ShowZombie(ZombieType theZombieType)
 {
 	mSelectedZombie = theZombieType;
+	// Mod API: 确保选中僵尸在当前页
+	int totalZombies = GetTotalZombieCount();
+	for (int i = 0; i < totalZombies; i++) {
+		if (GetZombieType(i) == theZombieType) {
+			int page = i / ALMANAC_ZOMBIES_PER_PAGE;
+			if (page != mZombiePage) mZombiePage = page;
+			break;
+		}
+	}
 	SetPage(ALMANAC_PAGE_ZOMBIES);
 }
 
@@ -254,6 +305,8 @@ void AlmanacDialog::Update()
 	mIndexButton->Update();
 	mPlantButton->Update();
 	mZombieButton->Update();
+	if (mPrevButton) mPrevButton->Update();
+	if (mNextButton) mNextButton->Update();
 	if (mPlant) mPlant->Update();
 	if (mZombie) mZombie->Update();
 	for (Zombie* aZombie : mZombiePerfTest)
@@ -266,8 +319,10 @@ void AlmanacDialog::Update()
 
 	int aMouseX = mApp->mWidgetManager->mLastMouseX;
 	int aMouseY = mApp->mWidgetManager->mLastMouseY;
-	if (SeedHitTest(aMouseX, aMouseY) != SeedType::SEED_NONE || ZombieHitTest(aMouseX, aMouseY) != ZombieType::ZOMBIE_INVALID || 
-		mCloseButton->IsMouseOver() || mIndexButton->IsMouseOver() || mPlantButton->IsMouseOver() || mZombieButton->IsMouseOver())
+	if (SeedHitTest(aMouseX, aMouseY) != SeedType::SEED_NONE || ZombieHitTest(aMouseX, aMouseY) != ZombieType::ZOMBIE_INVALID ||
+		mCloseButton->IsMouseOver() || mIndexButton->IsMouseOver() || mPlantButton->IsMouseOver() || mZombieButton->IsMouseOver() ||
+		(mPrevButton && !mPrevButton->mBtnNoDraw && mPrevButton->IsMouseOver()) ||
+		(mNextButton && !mNextButton->mBtnNoDraw && mNextButton->IsMouseOver()))
 	{
 		mApp->SetCursor(CURSOR_HAND);
 	}
@@ -316,13 +371,17 @@ void AlmanacDialog::DrawPlants(Graphics* g)
 	TodDrawString(g, "[SUBURBAN_ALMANAC_PLANTS]", BOARD_WIDTH / 2, 48, Sexy::FONT_HOUSEOFTERROR20, Color(213, 159, 43), DrawStringJustification::DS_ALIGN_CENTER);
 
 	SeedType aSeedMouseOn = SeedHitTest(mApp->mWidgetManager->mLastMouseX, mApp->mWidgetManager->mLastMouseY);
-	// Mod API: 遍历范围扩展到原版 + 自定义植物
+	// Mod API: 分页遍历——只绘制当前页的植物
 	int totalSeeds = GetTotalPlantCount();
-	for (int aSeedIdx = static_cast<int>(SeedType::SEED_PEASHOOTER); aSeedIdx < totalSeeds; aSeedIdx++)
+	int pageStart = GetPlantPageStart();
+	int pageEnd = std::min(pageStart + ALMANAC_PLANTS_PER_PAGE, totalSeeds);
+	for (int aSeedIdx = pageStart; aSeedIdx < pageEnd; aSeedIdx++)
 	{
 		SeedType aSeedType = static_cast<SeedType>(aSeedIdx);
 		int aPosX, aPosY;
-		GetSeedPosition(aSeedType, aPosX, aPosY);
+		// 当前页内的索引映射回网格位置（页内相对索引，保持原版布局）
+		int pageOffset = aSeedIdx - pageStart;
+		GetSeedPositionByIndex(pageOffset, aPosX, aPosY);
 		if (mApp->HasSeedType(aSeedType))
 		{
 			if (aSeedType == SeedType::SEED_IMITATER)
@@ -408,13 +467,17 @@ void AlmanacDialog::DrawZombies(Graphics* g)
 	TodDrawString(g, "[SUBURBAN_ALMANAC_ZOMBIES]", BOARD_WIDTH / 2, 54, Sexy::FONT_DWARVENTODCRAFT24, Color(0, 196, 0), DS_ALIGN_CENTER);
 
 	ZombieType aZombieMouseOn = ZombieHitTest(mApp->mWidgetManager->mLastMouseX, mApp->mWidgetManager->mLastMouseY);
-	// Mod API: 遍历范围扩展到原版 + 自定义僵尸
+	// Mod API: 分页遍历——只绘制当前页的僵尸
 	int totalZombies = GetTotalZombieCount();
-	for (int i = 0; i < totalZombies; i++)
+	int pageStart = GetZombiePageStart();
+	int pageEnd = std::min(pageStart + ALMANAC_ZOMBIES_PER_PAGE, totalZombies);
+	for (int i = pageStart; i < pageEnd; i++)
 	{
 		ZombieType aZombieType = GetZombieType(i);
 		int aPosX, aPosY;
-		GetZombiePosition(aZombieType, aPosX, aPosY);
+		// 当前页内的索引映射回网格位置（页内相对索引，保持原版布局）
+		int pageOffset = i - pageStart;
+		GetZombiePositionByIndex(pageOffset, aPosX, aPosY);
 		if (aZombieType != ZombieType::ZOMBIE_INVALID)
 		{
 			if (!ZombieIsShown(aZombieType))
@@ -580,6 +643,19 @@ void AlmanacDialog::Draw(Graphics* g)
 	mIndexButton->Draw(g);
 	mPlantButton->Draw(g);
 	mZombieButton->Draw(g);
+	// Mod API: 翻页按钮 + 页码绘制
+	if (mOpenPage == ALMANAC_PAGE_PLANTS && GetPlantPageCount() > 1) {
+		if (mPrevButton) { mPrevButton->mBtnNoDraw = false; mPrevButton->Draw(g); }
+		if (mNextButton) { mNextButton->mBtnNoDraw = false; mNextButton->Draw(g); }
+		DrawPageNumber(g, mPlantPage + 1, GetPlantPageCount());
+	} else if (mOpenPage == ALMANAC_PAGE_ZOMBIES && GetZombiePageCount() > 1) {
+		if (mPrevButton) { mPrevButton->mBtnNoDraw = false; mPrevButton->Draw(g); }
+		if (mNextButton) { mNextButton->mBtnNoDraw = false; mNextButton->Draw(g); }
+		DrawPageNumber(g, mZombiePage + 1, GetZombiePageCount());
+	} else {
+		if (mPrevButton) mPrevButton->mBtnNoDraw = true;
+		if (mNextButton) mNextButton->mBtnNoDraw = true;
+	}
 }
 
 void AlmanacDialog::GetSeedPosition(SeedType theSeedType, int& x, int& y)
@@ -598,19 +674,38 @@ void AlmanacDialog::GetSeedPosition(SeedType theSeedType, int& x, int& y)
 	}
 }
 
+// Mod API: 按页内索引获取网格位置（用于分页绘制，保持原版布局）
+// 第 0 页时 pageOffset 等于原版 idx，布局完全一致；翻页后自定义植物复用相同网格
+void AlmanacDialog::GetSeedPositionByIndex(int pageOffset, int& x, int& y)
+{
+	if (pageOffset == static_cast<int>(SeedType::SEED_IMITATER))
+	{
+		// Imitater 在第 0 页的固定位置
+		x = 20, y = 23;
+	}
+	else
+	{
+		x = pageOffset % 8 * 52 + 26;
+		y = pageOffset / 8 * 78 + 92;
+	}
+}
+
 SeedType AlmanacDialog::SeedHitTest(int x, int y)
 {
 	if (mMouseVisible && mOpenPage == AlmanacPage::ALMANAC_PAGE_PLANTS)
 	{
-		// Mod API: 遍历范围扩展到原版 + 自定义植物
+		// Mod API: 分页命中测试——只检测当前页的植物
 		int totalSeeds = GetTotalPlantCount();
-		for (int aSeedIdx = static_cast<int>(SeedType::SEED_PEASHOOTER); aSeedIdx < totalSeeds; aSeedIdx++)
+		int pageStart = GetPlantPageStart();
+		int pageEnd = std::min(pageStart + ALMANAC_PLANTS_PER_PAGE, totalSeeds);
+		for (int aSeedIdx = pageStart; aSeedIdx < pageEnd; aSeedIdx++)
 		{
 			SeedType aSeedType = static_cast<SeedType>(aSeedIdx);
 			if (mApp->HasSeedType(aSeedType))
 			{
 				int aSeedX, aSeedY;
-				GetSeedPosition(aSeedType, aSeedX, aSeedY);
+				int pageOffset = aSeedIdx - pageStart;
+				GetSeedPositionByIndex(pageOffset, aSeedX, aSeedY);
 				Rect aSeedRect = aSeedType == SeedType::SEED_IMITATER ? Rect(aSeedX, aSeedY, 34, 46) : Rect(aSeedX, aSeedY, SEED_PACKET_WIDTH, SEED_PACKET_HEIGHT);
 				if (aSeedRect.Contains(x, y)) return aSeedType;
 			}
@@ -704,21 +799,40 @@ void AlmanacDialog::GetZombiePosition(ZombieType theZombieType, int& x, int& y)
 	}
 }
 
+// Mod API: 按页内索引获取僵尸网格位置（用于分页绘制，保持原版布局）
+// BOSS 在每页的固定位置（pageOffset == NUM_ALMANAC_ZOMBIES-1）
+void AlmanacDialog::GetZombiePositionByIndex(int pageOffset, int& x, int& y)
+{
+	// BOSS 僵尸固定在最后一个位置 (192, 486)
+	if (pageOffset == ALMANAC_ZOMBIES_PER_PAGE - 1)
+	{
+		x = 192, y = 486;
+	}
+	else
+	{
+		x = pageOffset % 5 * 85 + 22;
+		y = pageOffset / 5 * 80 + 86;
+	}
+}
+
 // GOTY @Patoke: 0x404DD0
 ZombieType AlmanacDialog::ZombieHitTest(int x, int y)
 {
 	if (mMouseVisible && mOpenPage == AlmanacPage::ALMANAC_PAGE_ZOMBIES)
 	{
-		// Mod API: 遍历范围扩展到原版 + 自定义僵尸
+		// Mod API: 分页命中测试——只检测当前页的僵尸
 		int totalZombies = GetTotalZombieCount();
-		for (int i = 0; i < totalZombies; i++)
+		int pageStart = GetZombiePageStart();
+		int pageEnd = std::min(pageStart + ALMANAC_ZOMBIES_PER_PAGE, totalZombies);
+		for (int i = pageStart; i < pageEnd; i++)
 		{
 			ZombieType aZombieType = GetZombieType(i);
 			// @Patoke: added IsShown check
 			if (aZombieType != ZombieType::ZOMBIE_INVALID && ZombieIsShown(aZombieType))
 			{
 				int aZombieX, aZombieY;
-				GetZombiePosition(aZombieType, aZombieX, aZombieY);
+				int pageOffset = i - pageStart;
+				GetZombiePositionByIndex(pageOffset, aZombieX, aZombieY);
 				if (Rect(aZombieX, aZombieY, 76, 76).Contains(x, y))
 					return aZombieType;
 			}
@@ -734,6 +848,19 @@ void AlmanacDialog::MouseUp(int x, int y, int theClickCount)
 	else if (mZombieButton->IsMouseOver())	SetPage(ALMANAC_PAGE_ZOMBIES);
 	else if (mCloseButton->IsMouseOver())	mApp->KillAlmanacDialog();
 	else if (mIndexButton->IsMouseOver())	SetPage(ALMANAC_PAGE_INDEX);
+	// Mod API: 翻页按钮处理
+	else if (mPrevButton && !mPrevButton->mBtnNoDraw && mPrevButton->IsMouseOver())
+	{
+		if (mOpenPage == ALMANAC_PAGE_PLANTS)     PrevPlantPage();
+		else if (mOpenPage == ALMANAC_PAGE_ZOMBIES) PrevZombiePage();
+		mApp->PlaySample(Sexy::SOUND_TAP);
+	}
+	else if (mNextButton && !mNextButton->mBtnNoDraw && mNextButton->IsMouseOver())
+	{
+		if (mOpenPage == ALMANAC_PAGE_PLANTS)     NextPlantPage();
+		else if (mOpenPage == ALMANAC_PAGE_ZOMBIES) NextZombiePage();
+		mApp->PlaySample(Sexy::SOUND_TAP);
+	}
 }
 
 // GOTY @Patoke: 0x404F10
@@ -744,6 +871,11 @@ void AlmanacDialog::MouseDown(int x, int y, int theClickCount)
 		mApp->PlaySample(Sexy::SOUND_TAP);
 	if (mZombieButton->IsMouseOver())
 		mApp->PlaySample(Sexy::SOUND_GRAVEBUTTON);
+	// Mod API: 翻页按钮点击声
+	if (mPrevButton && !mPrevButton->mBtnNoDraw && mPrevButton->IsMouseOver())
+		mApp->PlaySample(Sexy::SOUND_TAP);
+	if (mNextButton && !mNextButton->mBtnNoDraw && mNextButton->IsMouseOver())
+		mApp->PlaySample(Sexy::SOUND_TAP);
 
 	SeedType aSeedType = SeedHitTest(x, y);
 	if (aSeedType != SeedType::SEED_NONE && aSeedType != mSelectedSeed)
@@ -773,6 +905,87 @@ void AlmanacDialog::KeyDown(KeyCode theKey)
 	}
 
 	LawnDialog::KeyDown(theKey);
+}
+
+// ====== Mod API: 分页辅助方法 ======
+
+int AlmanacDialog::GetPlantPageCount() const
+{
+	int total = GetTotalPlantCount();
+	return (total + ALMANAC_PLANTS_PER_PAGE - 1) / ALMANAC_PLANTS_PER_PAGE;
+}
+
+int AlmanacDialog::GetZombiePageCount() const
+{
+	int total = GetTotalZombieCount();
+	return (total + ALMANAC_ZOMBIES_PER_PAGE - 1) / ALMANAC_ZOMBIES_PER_PAGE;
+}
+
+int AlmanacDialog::GetPlantPageStart() const
+{
+	return mPlantPage * ALMANAC_PLANTS_PER_PAGE;
+}
+
+int AlmanacDialog::GetZombiePageStart() const
+{
+	return mZombiePage * ALMANAC_ZOMBIES_PER_PAGE;
+}
+
+void AlmanacDialog::PrevPlantPage()
+{
+	int pages = GetPlantPageCount();
+	if (pages <= 1) return;
+	mPlantPage = (mPlantPage - 1 + pages) % pages;
+	// 切页后选中第一个植物
+	mSelectedSeed = static_cast<SeedType>(GetPlantPageStart());
+	SetupPlant();
+}
+
+void AlmanacDialog::NextPlantPage()
+{
+	int pages = GetPlantPageCount();
+	if (pages <= 1) return;
+	mPlantPage = (mPlantPage + 1) % pages;
+	mSelectedSeed = static_cast<SeedType>(GetPlantPageStart());
+	SetupPlant();
+}
+
+void AlmanacDialog::PrevZombiePage()
+{
+	int pages = GetZombiePageCount();
+	if (pages <= 1) return;
+	mZombiePage = (mZombiePage - 1 + pages) % pages;
+	mSelectedZombie = GetZombieType(GetZombiePageStart());
+	SetupZombie();
+}
+
+void AlmanacDialog::NextZombiePage()
+{
+	int pages = GetZombiePageCount();
+	if (pages <= 1) return;
+	mZombiePage = (mZombiePage + 1) % pages;
+	mSelectedZombie = GetZombieType(GetZombiePageStart());
+	SetupZombie();
+}
+
+void AlmanacDialog::UpdatePageButtons()
+{
+	// 当前仅控制可见性，实际可见性在 Draw 中根据页数动态设置
+	// 此方法预留供未来扩展（如禁用边界按钮）
+}
+
+void AlmanacDialog::DrawPageNumber(Graphics* g, int current, int total)
+{
+	// 在 Prev 和 Next 按钮之间绘制页码 "current/total"
+	if (!mPrevButton || !mNextButton || mPrevButton->mBtnNoDraw) return;
+	std::string pageStr = StrFormat("%d/%d", current, total);
+	int textW = Sexy::FONT_BRIANNETOD12->StringWidth(pageStr);
+	// Prev 右边界和 Next 左边界之间的中心
+	int prevRight = mPrevButton->mX + mPrevButton->mWidth;
+	int nextLeft  = mNextButton->mX;
+	int centerX = (prevRight + nextLeft) / 2;
+	int posY = mPrevButton->mY + (mPrevButton->mHeight - 12) / 2;
+	TodDrawString(g, pageStr, centerX, posY, Sexy::FONT_BRIANNETOD12, Color(42, 42, 90), DrawStringJustification::DS_ALIGN_CENTER);
 }
 
 void AlmanacInitForPlayer()

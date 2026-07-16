@@ -26,6 +26,9 @@
 
 #define NUM_ALMANAC_SEEDS 49
 #define NUM_ALMANAC_ZOMBIES 26
+// Mod API: 图鉴分页，每页显示的植物/僵尸数量（与原版一致）
+#define ALMANAC_PLANTS_PER_PAGE  NUM_ALMANAC_SEEDS
+#define ALMANAC_ZOMBIES_PER_PAGE NUM_ALMANAC_ZOMBIES
 
 constexpr const float			ALMANAC_PLANT_POSITION_X		= 578.0f;
 constexpr const float			ALMANAC_PLANT_POSITION_Y		= 140.0f;
@@ -49,7 +52,10 @@ private:
 		ALMANAC_BUTTON_CLOSE = 0,
 		ALMANAC_BUTTON_PLANT = 1,
 		ALMANAC_BUTTON_ZOMBIE = 2,
-		ALMANAC_BUTTON_INDEX = 3
+		ALMANAC_BUTTON_INDEX = 3,
+		// Mod API: 翻页按钮
+		ALMANAC_BUTTON_PREV = 4,
+		ALMANAC_BUTTON_NEXT = 5
 	};
 
 public:
@@ -58,6 +64,9 @@ public:
 	GameButton*					mIndexButton;
 	GameButton*					mPlantButton;
 	GameButton*					mZombieButton;
+	// Mod API: 翻页按钮（仅当有自定义植物/僵尸时显示）
+	GameButton*					mPrevButton;
+	GameButton*					mNextButton;
 	AlmanacPage					mOpenPage;
 	Reanimation*				mReanim[4];
 	SeedType					mSelectedSeed;
@@ -65,6 +74,9 @@ public:
 	Plant*						mPlant;
 	Zombie*						mZombie;
 	Zombie*						mZombiePerfTest[400];
+	// Mod API: 分页状态
+	int							mPlantPage;     // 当前植物页（0-based）
+	int							mZombiePage;    // 当前僵尸页（0-based）
 	
 public:
 	AlmanacDialog(LawnApp* theApp);
@@ -90,6 +102,20 @@ public:
 	void						MouseUp(int x, int y, int theClickCount) override;
 	void						MouseDown(int x, int y, int theClickCount) override;
 	void						KeyDown(KeyCode theKey) override;
+	// Mod API: 分页辅助
+	int							GetPlantPageCount() const;   // 植物总页数
+	int							GetZombiePageCount() const;   // 僵尸总页数
+	int							GetPlantPageStart() const;    // 当前页起始索引
+	int							GetZombiePageStart() const;   // 当前页起始索引
+	void						PrevPlantPage();
+	void						NextPlantPage();
+	void						PrevZombiePage();
+	void						NextZombiePage();
+	void						UpdatePageButtons();         // 根据页码更新按钮启用/禁用/可见状态
+	void						DrawPageNumber(Graphics* g, int current, int total); // 绘制页码
+	// Mod API: 按页内索引获取网格位置（分页绘制用，保持原版布局）
+	void						GetSeedPositionByIndex(int pageOffset, int& x, int& y);
+	void						GetZombiePositionByIndex(int pageOffset, int& x, int& y);
 //	virtual void				KeyChar(char theChar);
 
 	static ZombieType			GetZombieType(int theIndex);
