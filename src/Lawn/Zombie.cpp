@@ -826,6 +826,25 @@ void Zombie::InitZombieTypeSquashHead()
     mVariant = false;
 }
 
+// 自定义僵尸初始化（>= NUM_ZOMBIE_TYPES，从 ZombieDefinition 读取字段）
+// Mod API: 原版僵尸的血量/能力位/护甲在 InitZombieType* 函数中硬编码设置；
+// 自定义僵尸走 default 分支调用本函数，从注册时的 ZombieDefinition 字段读取配置。
+// reanim 已在 ZombieInitialize 的 919-922 行通用代码中加载（LoadReanim）。
+void Zombie::InitZombieTypeCustom()
+{
+    const ZombieDefinition& aDef = GetZombieDefinition(mZombieType);
+    mBodyHealth   = aDef.mBodyHealth;
+    mAbilities    = aDef.mAbilities;
+    mHelmType     = aDef.mHelmType;
+    mHelmHealth   = aDef.mHelmHealth;
+    mShieldType   = aDef.mShieldType;
+    mShieldHealth = aDef.mShieldHealth;
+
+    // 走原版普通僵尸的通用动画层配置（设置攻击框、mustache/future 变体等）
+    // 注意：reanim 已在 switch 前加载，这里只做层配置
+    LoadPlainZombieReanim();
+}
+
 // ===== ZombieInitialize 小函数实现结束 =====
 
 // GOTY @Patoke: 0x5329A0
@@ -1063,6 +1082,13 @@ void Zombie::ZombieInitialize(int theRow, ZombieType theType, bool theVariant, Z
     case ZombieType::NUM_ZOMBIE_TYPES:
     case ZombieType::NUM_CACHED_ZOMBIE_TYPES:
     case ZombieType::ZOMBIE_INVALID:
+        break;
+
+    default:
+        // Mod API: >= NUM_ZOMBIE_TYPES 的自定义僵尸走 default 分支，
+        // 从 ZombieDefinition 读取血量/能力位/护甲等字段初始化
+        if (theType >= ZombieType::NUM_ZOMBIE_TYPES)
+            InitZombieTypeCustom();
         break;
     }
 

@@ -302,6 +302,7 @@ static void BindSol2Zombie(sol::state_view& lua) {
         "init_zombie_type_jalapeno_head", &Zombie::InitZombieTypeJalapenoHead,
         "init_zombie_type_gatling_head", &Zombie::InitZombieTypeGatlingHead,
         "init_zombie_type_squash_head", &Zombie::InitZombieTypeSquashHead,
+        "init_zombie_type_custom", &Zombie::InitZombieTypeCustom,
         "update_boss_idle", &Zombie::UpdateBossIdle,
         "update_boss_spawning", &Zombie::UpdateBossSpawning,
         "update_boss_bungees_enter", &Zombie::UpdateBossBungeesEnter,

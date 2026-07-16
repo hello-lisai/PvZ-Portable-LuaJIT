@@ -469,6 +469,7 @@ public:
     void                            InitZombieTypeJalapenoHead();  // 火椒头僵尸初始化
     void                            InitZombieTypeGatlingHead();   // 机枪头僵尸初始化
     void                            InitZombieTypeSquashHead();    // 倭瓜头僵尸初始化
+    void                            InitZombieTypeCustom();        // 自定义僵尸初始化（>= NUM_ZOMBIE_TYPES，从 ZombieDefinition 读取字段）
     // ===== ZombieInitialize 小函数结束 =====
     // ===== UpdateBoss 小函数（提取自 UpdateBoss）=====
     void                            UpdateBossIdle();              // Boss空闲阶段
@@ -666,6 +667,16 @@ public:
     // Mod API: 图鉴显示用字段（自定义僵尸专用，原版僵尸仍走资源文件）
     std::string                     mAlmanacName;        // 图鉴标题（如 "My Custom Zombie"）
     std::string                     mAlmanacDescription; // 图鉴描述正文
+
+    // Mod API: 自定义僵尸初始化字段（仅对 >= NUM_ZOMBIE_TYPES 的自定义类型生效）
+    // 原版僵尸的血量/能力位/护甲在 ZombieInitialize 的 switch 分支中硬编码设置，
+    // 这些字段仅供自定义僵尸的 default 分支读取，不影响原版僵尸行为。
+    int                             mBodyHealth = 270;            // 初始血量（默认与 Normal 一致）
+    unsigned int                    mAbilities = ABILITY_WALK;     // 能力位（默认基本行走，详见 ABILITY_* 宏）
+    HelmType                        mHelmType = HelmType::HELMTYPE_NONE;       // 头盔类型
+    int                             mHelmHealth = 0;              // 头盔血量
+    ShieldType                      mShieldType = ShieldType::SHIELDTYPE_NONE; // 护甲类型（门/报纸/梯子）
+    int                             mShieldHealth = 0;            // 护甲血量
 };
 extern ZombieDefinition gZombieDefs[NUM_ZOMBIE_TYPES];  // Mod API: 移除 const
 

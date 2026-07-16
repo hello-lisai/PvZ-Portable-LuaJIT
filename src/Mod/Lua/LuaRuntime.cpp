@@ -536,11 +536,20 @@ int l_plants_register(lua_State* L) {
 // pvz.zombies.register(definition_table) → 注册新僵尸类型，返回 ZombieType
 // definition_table 字段：
 //   name (string, 必需)              僵尸名称
-//   reanim_type (int, 默认 0)        对应的 ReanimationType
+//   reanim_type (int, 默认 0)        对应的 ReanimationType（pvz.reanim.types.* 或原版整数）
 //   value (int, 默认 0)              僵尸价值（用于波次成本预算）
 //   starting_level (int, 默认 0)     出场起始关卡
 //   first_allowed_wave (int, 默认 0) 首个允许出现的波次
 //   pick_weight (int, 默认 0)        随机挑选权重
+//   body_health (int, 默认 270)      初始血量
+//   abilities (int, 默认 1)          能力位（ABILITY_WALK=1，可组合 |，详见 src/Lawn/Zombie.h ABILITY_*）
+//   helm_type (int, 默认 0)          头盔类型（HelmType，详见 src/ConstEnums.h：0=NONE/1=CONE/2=PAIL/3=FOOTBALL 等）
+//   helm_health (int, 默认 0)        头盔血量
+//   shield_type (int, 默认 0)        护甲类型（ShieldType：0=NONE/1=DOOR/2=NEWSPAPER/3=LADDER）
+//   shield_health (int, 默认 0)      护甲血量
+//   almanac_name (string, 可选)      图鉴标题
+//   almanac_description (string, 可选) 图鉴描述
+//   on_update (function, 可选)       逐帧行为回调 function(zombie)
 int l_zombies_register(lua_State* L) {
     luaL_checktype(L, 1, LUA_TTABLE);
     int tblIdx = lua_absindex(L, 1);
@@ -568,6 +577,31 @@ int l_zombies_register(lua_State* L) {
 
     lua_getfield(L, tblIdx, "pick_weight");
     if (lua_isinteger(L, -1)) def.mPickWeight = static_cast<int>(lua_tointeger(L, -1));
+    lua_pop(L, 1);
+
+    // Mod API: 自定义僵尸初始化字段（ZombieInitialize 的 default 分支读取）
+    lua_getfield(L, tblIdx, "body_health");
+    if (lua_isinteger(L, -1)) def.mBodyHealth = static_cast<int>(lua_tointeger(L, -1));
+    lua_pop(L, 1);
+
+    lua_getfield(L, tblIdx, "abilities");
+    if (lua_isinteger(L, -1)) def.mAbilities = static_cast<unsigned int>(lua_tointeger(L, -1));
+    lua_pop(L, 1);
+
+    lua_getfield(L, tblIdx, "helm_type");
+    if (lua_isinteger(L, -1)) def.mHelmType = static_cast<HelmType>(lua_tointeger(L, -1));
+    lua_pop(L, 1);
+
+    lua_getfield(L, tblIdx, "helm_health");
+    if (lua_isinteger(L, -1)) def.mHelmHealth = static_cast<int>(lua_tointeger(L, -1));
+    lua_pop(L, 1);
+
+    lua_getfield(L, tblIdx, "shield_type");
+    if (lua_isinteger(L, -1)) def.mShieldType = static_cast<ShieldType>(lua_tointeger(L, -1));
+    lua_pop(L, 1);
+
+    lua_getfield(L, tblIdx, "shield_health");
+    if (lua_isinteger(L, -1)) def.mShieldHealth = static_cast<int>(lua_tointeger(L, -1));
     lua_pop(L, 1);
 
     // Mod API: 图鉴显示用字段（可选）
