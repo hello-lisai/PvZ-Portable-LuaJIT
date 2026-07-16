@@ -34,6 +34,7 @@
 #include "../System/ReanimationLawn.h"
 #include "../../Sexy.TodLib/TodStringFile.h"
 #include "widget/WidgetManager.h"
+#include "graphics/Font.h"
 #include <unordered_map>  // Mod API: gZombieDefeated 改用 map 支持自定义僵尸
 
 // Mod API: gZombieDefeated 改用 unordered_map，支持自定义僵尸类型（>= NUM_ZOMBIE_TYPES）
@@ -130,7 +131,6 @@ AlmanacDialog::AlmanacDialog(LawnApp* theApp) : LawnDialog(theApp, DIALOG_ALMANA
 	mPrevButton->mButtonImage = Sexy::IMAGE_ZOMBATAR_PREV_BUTTON;
 	mPrevButton->mOverImage = Sexy::IMAGE_ZOMBATAR_PREV_BUTTON_HIGHLIGHT;
 	mPrevButton->mDownImage = nullptr;
-	mPrevButton->mDoFinger = true;
 	mPrevButton->mParentWidget = this;
 	if (Sexy::IMAGE_ZOMBATAR_PREV_BUTTON) {
 		int bw = Sexy::IMAGE_ZOMBATAR_PREV_BUTTON->mWidth;
@@ -144,7 +144,6 @@ AlmanacDialog::AlmanacDialog(LawnApp* theApp) : LawnDialog(theApp, DIALOG_ALMANA
 	mNextButton->mButtonImage = Sexy::IMAGE_ZOMBATAR_NEXT_BUTTON;
 	mNextButton->mOverImage = Sexy::IMAGE_ZOMBATAR_NEXT_BUTTON_HIGHLIGHT;
 	mNextButton->mDownImage = nullptr;
-	mNextButton->mDoFinger = true;
 	mNextButton->mParentWidget = this;
 	if (Sexy::IMAGE_ZOMBATAR_NEXT_BUTTON) {
 		int bw = Sexy::IMAGE_ZOMBATAR_NEXT_BUTTON->mWidth;
