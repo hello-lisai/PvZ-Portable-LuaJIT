@@ -1,6 +1,8 @@
 #include "LuaBindUtil.h"
 #include "../../Lawn/Board.h"
+#include "../../Lawn/SeedPacket.h"
 #include "../../LawnApp.h"
+#include "../../Resources.h"            // IMAGE_SEEDBANK（set_seed_packet 更新 SeedBank 宽度）
 
 namespace ModLua {
 
@@ -262,6 +264,37 @@ int l_board_count_plants(lua_State* L) {
     return 1;
 }
 
+// board:set_seed_packet(slot_index, seed_type) -> bool
+// 在指定卡槽设置种子卡片（支持自定义植物）。若 slot >= mNumPackets，自动扩展卡槽数量
+// 典型用法：on_level_start 时 board:set_seed_packet(6, custom_seed_type) 添加自定义植物到种子栏
+int l_board_set_seed_packet(lua_State* L) {
+    Board* b = CheckUserdata<Board>(L, 1, MT_BOARD);
+    if (!b) { lua_pushboolean(L, false); return 1; }
+    int slot = static_cast<int>(luaL_checkinteger(L, 2));
+    SeedType st = static_cast<SeedType>(luaL_checkinteger(L, 3));
+
+    if (slot < 0 || slot >= SEEDBANK_MAX) { lua_pushboolean(L, false); return 1; }
+    if (!b->mSeedBank) { lua_pushboolean(L, false); return 1; }
+
+    // 扩展卡槽数量（若 slot 超出当前 mNumPackets）
+    if (slot + 1 > b->mSeedBank->mNumPackets) {
+        b->mSeedBank->mNumPackets = slot + 1;
+        // mNumPackets 变化后，重新计算 SeedBank 宽度和所有卡槽位置
+        // 不能调用 UpdateWidth()，因为它会用 GetNumSeedsInBank() 重置 mNumPackets
+        b->mSeedBank->mWidth = Sexy::IMAGE_SEEDBANK->GetWidth() + b->GetSeedBankExtraWidth();
+        for (int i = 0; i < b->mSeedBank->mNumPackets; i++) {
+            b->mSeedBank->mSeedPackets[i].mX = b->GetSeedPacketPositionX(i);
+        }
+    }
+
+    SeedPacket& packet = b->mSeedBank->mSeedPackets[slot];
+    packet.SetPacketType(st);
+    packet.mIndex = slot;
+    packet.mY = 8;
+    lua_pushboolean(L, true);
+    return 1;
+}
+
 // board:get_ptr() — 返回原始指针（light userdata），供 LuaJIT FFI 使用
 int l_board_get_ptr(lua_State* L) {
     Board* b = CheckUserdata<Board>(L, 1, MT_BOARD);
@@ -302,6 +335,7 @@ int l_board_index(lua_State* L) {
         {"for_each_coin",         l_board_for_each_coin},
         {"count_zombies",         l_board_count_zombies},
         {"count_plants",          l_board_count_plants},
+        {"set_seed_packet",       l_board_set_seed_packet},
     };
     for (auto& m : methods) {
         if (strcmp(key, m.name) == 0) {
