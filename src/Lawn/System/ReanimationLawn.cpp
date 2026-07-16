@@ -457,9 +457,8 @@ void ReanimatorCache::DrawCachedMower(Graphics* g, float thePosX, float thePosY,
 
 void ReanimatorCache::DrawCachedZombie(Graphics* g, float thePosX, float thePosY, ZombieType theZombieType)
 {
-	TOD_ASSERT(theZombieType >= 0 && theZombieType < ZombieType::NUM_CACHED_ZOMBIE_TYPES);
-
 	// Mod API: 自定义僵尸（ZombieType >= NUM_CACHED_ZOMBIE_TYPES）使用 map 缓存
+	// 注意：断言必须在自定义类型检查之后，否则 Debug 构建会因自定义类型触发断言失败
 	if (theZombieType >= ZombieType::NUM_CACHED_ZOMBIE_TYPES)
 	{
 		int key = static_cast<int>(theZombieType);
@@ -475,6 +474,7 @@ void ReanimatorCache::DrawCachedZombie(Graphics* g, float thePosX, float thePosY
 		TodDrawImageScaledF(g, aImage, thePosX, thePosY, g->mScaleX, g->mScaleY);
 		return;
 	}
+	TOD_ASSERT(theZombieType >= 0 && theZombieType < ZombieType::NUM_CACHED_ZOMBIE_TYPES);
 	if (mZombieImages[theZombieType] == nullptr)
 		mZombieImages[theZombieType] = MakeCachedZombieFrame(theZombieType);
 	TodDrawImageScaledF(g, mZombieImages[theZombieType], thePosX, thePosY, g->mScaleX, g->mScaleY);

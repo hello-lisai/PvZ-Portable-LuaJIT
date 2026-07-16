@@ -107,12 +107,14 @@ static ZombieType gBossZombieList[] = {
 // 注意：非匿名 namespace，因为 Zombie.h 中 extern 声明需要链接到此处定义
 std::vector<ZombieDefinition> gCustomZombieDefs;
 namespace {
-    int gNextCustomZombieType = static_cast<int>(ZombieType::NUM_ZOMBIE_TYPES);
+    // Mod API: 自定义僵尸从 NUM_CACHED_ZOMBIE_TYPES 开始分配，避让 ZOMBIE_CACHED_POLEVAULTER_WITH_POLE
+    // （ZOMBIE_CACHED_POLEVAULTER_WITH_POLE 值 = NUM_ZOMBIE_TYPES，是原版图鉴缓存用的内部类型）
+    int gNextCustomZombieType = static_cast<int>(ZombieType::NUM_CACHED_ZOMBIE_TYPES);
 }
 
 const ZombieDefinition& GetZombieDefinition(ZombieType theZombieType)
 {
-    // Mod API: 支持内置类型（< NUM_ZOMBIE_TYPES）和自定义类型（>= NUM_ZOMBIE_TYPES）
+    // Mod API: 支持内置类型（< NUM_ZOMBIE_TYPES）和自定义类型（>= NUM_CACHED_ZOMBIE_TYPES）
     int idx = static_cast<int>(theZombieType);
     if (idx >= 0 && idx < static_cast<int>(NUM_ZOMBIE_TYPES)) {
         TOD_ASSERT(gZombieDefs[idx].mZombieType == theZombieType);
@@ -128,7 +130,7 @@ const ZombieDefinition& GetZombieDefinition(ZombieType theZombieType)
 }
 
 // Mod API: 动态注册新僵尸类型
-// 返回分配的 ZombieType（>= NUM_ZOMBIE_TYPES）
+// 返回分配的 ZombieType（>= NUM_CACHED_ZOMBIE_TYPES，避让 ZOMBIE_CACHED_POLEVAULTER_WITH_POLE）
 ZombieType RegisterZombieDefinition(const ZombieDefinition& theDef)
 {
     ZombieDefinition def = theDef;
@@ -826,7 +828,7 @@ void Zombie::InitZombieTypeSquashHead()
     mVariant = false;
 }
 
-// 自定义僵尸初始化（>= NUM_ZOMBIE_TYPES，从 ZombieDefinition 读取字段）
+// 自定义僵尸初始化（>= NUM_CACHED_ZOMBIE_TYPES，从 ZombieDefinition 读取字段）
 // Mod API: 原版僵尸的血量/能力位/护甲在 InitZombieType* 函数中硬编码设置；
 // 自定义僵尸走 default 分支调用本函数，从注册时的 ZombieDefinition 字段读取配置。
 // reanim 已在 ZombieInitialize 的 919-922 行通用代码中加载（LoadReanim）。
@@ -850,7 +852,7 @@ void Zombie::InitZombieTypeCustom()
 // GOTY @Patoke: 0x5329A0
 void Zombie::ZombieInitialize(int theRow, ZombieType theType, bool theVariant, Zombie* theParentZombie, int theFromWave)
 {
-    // Mod API: 允许自定义僵尸类型（>= NUM_ZOMBIE_TYPES），不再限制上限
+    // Mod API: 允许自定义僵尸类型（>= NUM_CACHED_ZOMBIE_TYPES），不再限制上限
     TOD_ASSERT(theType >= 0);
 
     mFromWave = theFromWave;
@@ -1086,9 +1088,9 @@ void Zombie::ZombieInitialize(int theRow, ZombieType theType, bool theVariant, Z
         break;
 
     default:
-        // Mod API: >= NUM_ZOMBIE_TYPES 的自定义僵尸走 default 分支，
+        // Mod API: >= NUM_CACHED_ZOMBIE_TYPES 的自定义僵尸走 default 分支，
         // 从 ZombieDefinition 读取血量/能力位/护甲等字段初始化
-        if (theType >= ZombieType::NUM_ZOMBIE_TYPES)
+        if (theType >= ZombieType::NUM_CACHED_ZOMBIE_TYPES)
             InitZombieTypeCustom();
         break;
     }
@@ -1199,6 +1201,32 @@ void Zombie::SetupReanimLayers(Reanimation* aReanim, ZombieType theZombieType)
     else if (theZombieType == ZombieType::ZOMBIE_DUCKY_TUBE)
     {
         aReanim->AssignRenderGroupToPrefix("Zombie_duckytube", RENDER_GROUP_NORMAL);
+    }
+    else if (theZombieType >= ZombieType::NUM_CACHED_ZOMBIE_TYPES)
+    {
+        // Mod API: 自定义僵尸根据 ZombieDefinition 的 mHelmType/mShieldType 数据驱动地显示装饰层
+        // 这样自定义僵尸可以套用原版 ZOMBIE_NORMAL 的 reanim，同时显示 cone/bucket/door 等装饰
+        const ZombieDefinition& aDef = GetZombieDefinition(theZombieType);
+        // 根据 mHelmType 显示对应头盔层（与原版 ZOMBIE_TRAFFIC_CONE/ZOMBIE_PAIL 逻辑一致）
+        if (aDef.mHelmType == HelmType::HELMTYPE_TRAFFIC_CONE)
+        {
+            aReanim->AssignRenderGroupToPrefix("anim_cone", RENDER_GROUP_NORMAL);
+            aReanim->AssignRenderGroupToPrefix("anim_hair", RENDER_GROUP_HIDDEN);
+        }
+        else if (aDef.mHelmType == HelmType::HELMTYPE_PAIL)
+        {
+            aReanim->AssignRenderGroupToPrefix("anim_bucket", RENDER_GROUP_NORMAL);
+            aReanim->AssignRenderGroupToPrefix("anim_hair", RENDER_GROUP_HIDDEN);
+        }
+        // 根据 mShieldType 显示对应护甲层（与原版 ZOMBIE_DOOR/ZOMBIE_NEWSPAPER 逻辑一致）
+        if (aDef.mShieldType == ShieldType::SHIELDTYPE_DOOR)
+        {
+            SetupDoorArms(aReanim, true);
+        }
+        else if (aDef.mShieldType == ShieldType::SHIELDTYPE_NEWSPAPER)
+        {
+            aReanim->AssignRenderGroupToPrefix("Zombie_paper_paper", RENDER_GROUP_HIDDEN);
+        }
     }
 }
 
@@ -4868,8 +4896,9 @@ void Zombie::UpdateActionsByHeight()
 // ===== 僵尸动作分派小函数（基于能力位） =====
 void Zombie::UpdateActionsByType()
 {
-    // Mod API: 如果僵尸类型 >= NUM_ZOMBIE_TYPES，视为自定义类型，调用 Lua 回调
-    if (mZombieType >= ZombieType::NUM_ZOMBIE_TYPES)
+    // Mod API: 如果僵尸类型 >= NUM_CACHED_ZOMBIE_TYPES，视为自定义类型，调用 Lua 回调
+    // （避让 ZOMBIE_CACHED_POLEVAULTER_WITH_POLE，后者是原版内部缓存类型）
+    if (mZombieType >= ZombieType::NUM_CACHED_ZOMBIE_TYPES)
     {
         ModLua::CallLuaZombieUpdate(this);
         return;
@@ -9874,6 +9903,17 @@ float Zombie::GetZombieFallTime(Reanimation* aBodyReanim)
         return 0.86f;
 
     default:
+        // Mod API: 自定义僵尸（>= NUM_CACHED_ZOMBIE_TYPES）套用 ZOMBIE_NORMAL 的倒地时间
+        // 这样自定义僵尸死亡时会正常倒地，与原版普通僵尸行为一致
+        if (mZombieType >= ZombieType::NUM_CACHED_ZOMBIE_TYPES)
+        {
+            if (aBodyReanim->IsAnimPlaying("anim_superlongdeath"))
+                return 0.788f;
+            else if (aBodyReanim->IsAnimPlaying("anim_death2"))
+                return 0.71f;
+            else
+                return 0.77f;
+        }
         return -1.0f;
     }
 }

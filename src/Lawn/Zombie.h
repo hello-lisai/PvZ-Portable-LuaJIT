@@ -469,7 +469,7 @@ public:
     void                            InitZombieTypeJalapenoHead();  // 火椒头僵尸初始化
     void                            InitZombieTypeGatlingHead();   // 机枪头僵尸初始化
     void                            InitZombieTypeSquashHead();    // 倭瓜头僵尸初始化
-    void                            InitZombieTypeCustom();        // 自定义僵尸初始化（>= NUM_ZOMBIE_TYPES，从 ZombieDefinition 读取字段）
+    void                            InitZombieTypeCustom();        // 自定义僵尸初始化（>= NUM_CACHED_ZOMBIE_TYPES，从 ZombieDefinition 读取字段）
     // ===== ZombieInitialize 小函数结束 =====
     // ===== UpdateBoss 小函数（提取自 UpdateBoss）=====
     void                            UpdateBossIdle();              // Boss空闲阶段
@@ -668,7 +668,7 @@ public:
     std::string                     mAlmanacName;        // 图鉴标题（如 "My Custom Zombie"）
     std::string                     mAlmanacDescription; // 图鉴描述正文
 
-    // Mod API: 自定义僵尸初始化字段（仅对 >= NUM_ZOMBIE_TYPES 的自定义类型生效）
+    // Mod API: 自定义僵尸初始化字段（仅对 >= NUM_CACHED_ZOMBIE_TYPES 的自定义类型生效）
     // 原版僵尸的血量/能力位/护甲在 ZombieInitialize 的 switch 分支中硬编码设置，
     // 这些字段仅供自定义僵尸的 default 分支读取，不影响原版僵尸行为。
     int                             mBodyHealth = 270;            // 初始血量（默认与 Normal 一致）
@@ -682,15 +682,18 @@ extern ZombieDefinition gZombieDefs[NUM_ZOMBIE_TYPES];  // Mod API: 移除 const
 
 /*inline*/ const ZombieDefinition&            GetZombieDefinition(ZombieType theZombieType);
 
-// Mod API: 动态注册新僵尸类型，返回分配的 ZombieType（>= NUM_ZOMBIE_TYPES）
+// Mod API: 动态注册新僵尸类型，返回分配的 ZombieType（>= NUM_CACHED_ZOMBIE_TYPES）
 ZombieType RegisterZombieDefinition(const ZombieDefinition& theDef);
 
 // Mod API: 自定义僵尸定义的运行时存储（供 AlmanacDialog 查询）
 extern std::vector<ZombieDefinition> gCustomZombieDefs;
 inline int GetCustomZombieCount() { return static_cast<int>(gCustomZombieDefs.size()); }
-inline int GetTotalZombieCount() { return static_cast<int>(ZombieType::NUM_ZOMBIE_TYPES) + GetCustomZombieCount(); }
+// Mod API: 总僵尸数 = NUM_CACHED_ZOMBIE_TYPES（含 ZOMBIE_CACHED_POLEVAULTER_WITH_POLE）+ 自定义僵尸数
+// 注意：ZOMBIE_CACHED_POLEVAULTER_WITH_POLE 会被 IsAlmanacHiddenZombie 隐藏，不在图鉴显示
+inline int GetTotalZombieCount() { return static_cast<int>(ZombieType::NUM_CACHED_ZOMBIE_TYPES) + GetCustomZombieCount(); }
 // 把自定义僵尸的 ZombieType 转换为 gCustomZombieDefs 的索引（0-based）
-inline int CustomZombieTypeToIndex(ZombieType z) { return static_cast<int>(z) - static_cast<int>(ZombieType::NUM_ZOMBIE_TYPES); }
-inline bool IsCustomZombieType(ZombieType z) { return static_cast<int>(z) >= static_cast<int>(ZombieType::NUM_ZOMBIE_TYPES); }
+// 自定义僵尸从 NUM_CACHED_ZOMBIE_TYPES 开始分配，避让 ZOMBIE_CACHED_POLEVAULTER_WITH_POLE
+inline int CustomZombieTypeToIndex(ZombieType z) { return static_cast<int>(z) - static_cast<int>(ZombieType::NUM_CACHED_ZOMBIE_TYPES); }
+inline bool IsCustomZombieType(ZombieType z) { return static_cast<int>(z) >= static_cast<int>(ZombieType::NUM_CACHED_ZOMBIE_TYPES); }
 
 #endif

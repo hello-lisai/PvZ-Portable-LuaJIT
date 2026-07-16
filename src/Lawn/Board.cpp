@@ -1251,7 +1251,8 @@ bool Board::IsZombieWaveDistributionOk()
 			}
 
 			TOD_ASSERT(aZombieType >= 0);
-			// Mod API: 自定义僵尸类型（>= NUM_ZOMBIE_TYPES）跳过波次分布检查
+			// Mod API: 自定义僵尸类型（>= NUM_CACHED_ZOMBIE_TYPES）跳过波次分布检查
+			// ZOMBIE_CACHED_POLEVAULTER_WITH_POLE 也不会计入（它是内部缓存类型）
 			if (aZombieType < ZombieType::NUM_ZOMBIE_TYPES)
 				aZombieTypeCount[aZombieType]++;
 		}

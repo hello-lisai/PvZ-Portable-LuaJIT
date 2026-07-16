@@ -575,6 +575,10 @@ int l_zombies_register(lua_State* L) {
     lua_getfield(L, tblIdx, "reanim_type");
     if (lua_isinteger(L, -1)) def.mReanimationType = static_cast<ReanimationType>(lua_tointeger(L, -1));
     lua_pop(L, 1);
+    // Mod API: 默认使用 REANIM_ZOMBIE（普通僵尸动画），避免 mod 忘记指定 reanim_type
+    // 导致 MakeCachedZombieFrame 中的 TOD_ASSERT(mReanimationType != REANIM_NONE) 失败
+    if (def.mReanimationType == ReanimationType::REANIM_NONE)
+        def.mReanimationType = ReanimationType::REANIM_ZOMBIE;
 
     lua_getfield(L, tblIdx, "value");
     if (lua_isinteger(L, -1)) def.mZombieValue = static_cast<int>(lua_tointeger(L, -1));

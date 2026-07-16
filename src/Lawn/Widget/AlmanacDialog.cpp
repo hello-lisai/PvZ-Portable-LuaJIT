@@ -341,10 +341,12 @@ void AlmanacDialog::Update()
 
 ZombieType AlmanacDialog::GetZombieType(int theIndex)
 {
-	// Mod API: 支持自定义僵尸（索引 >= NUM_ZOMBIE_TYPES 时从 gCustomZombieDefs 取）
-	if (theIndex < NUM_ZOMBIE_TYPES) return (ZombieType)theIndex;
-	int customIdx = theIndex - NUM_ZOMBIE_TYPES;
-	if (customIdx < GetCustomZombieCount()) {
+	// Mod API: 支持自定义僵尸
+	// 索引 < NUM_CACHED_ZOMBIE_TYPES：原版类型（含 ZOMBIE_CACHED_POLEVAULTER_WITH_POLE，但后者被 IsAlmanacHiddenZombie 隐藏）
+	// 索引 >= NUM_CACHED_ZOMBIE_TYPES：自定义僵尸（从 gCustomZombieDefs 取）
+	if (theIndex < static_cast<int>(ZombieType::NUM_CACHED_ZOMBIE_TYPES)) return (ZombieType)theIndex;
+	int customIdx = theIndex - static_cast<int>(ZombieType::NUM_CACHED_ZOMBIE_TYPES);
+	if (customIdx >= 0 && customIdx < GetCustomZombieCount()) {
 		return gCustomZombieDefs[customIdx].mZombieType;
 	}
 	return ZOMBIE_INVALID;
@@ -937,9 +939,11 @@ int AlmanacDialog::GetPlantPageCount() const
 	return (total + ALMANAC_PLANTS_PER_PAGE - 1) / ALMANAC_PLANTS_PER_PAGE;
 }
 
-// Mod API: 小游戏僵尸（ZOMBIE_PEA_HEAD~REDEYE_GARGANTUAR）不在图鉴中显示
+// Mod API: 小游戏僵尸（ZOMBIE_PEA_HEAD~REDEYE_GARGANTUAR）和 ZOMBIE_CACHED_POLEVAULTER_WITH_POLE 不在图鉴中显示
+// ZOMBIE_CACHED_POLEVAULTER_WITH_POLE 是原版图鉴缓存用的内部类型，不应作为独立条目显示
 bool AlmanacDialog::IsAlmanacHiddenZombie(ZombieType theZombieType)
 {
+	if (theZombieType == ZombieType::ZOMBIE_CACHED_POLEVAULTER_WITH_POLE) return true;
 	return theZombieType > ZombieType::ZOMBIE_BOSS && !IsCustomZombieType(theZombieType);
 }
 
