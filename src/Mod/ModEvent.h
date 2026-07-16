@@ -53,6 +53,7 @@ enum class ModEvent : int32_t {
     ON_SPAWN_ZOMBIE_WAVE_PRE,   // Board::SpawnZombieWave 入口，可改波次
     ON_PICK_ZOMBIE_WAVES_PRE,   // Board::PickZombieWaves 入口，可覆盖整张波次表
     ON_PICK_ZOMBIE_TYPE_PRE,    // Board::PickZombieType 入口，可替换选中的僵尸类型
+    ON_PLANT_DIE_PRE,           // Plant::Die 入口，可取消（ctx.cancel=true 让植物免死）
 
     // ====== 关卡 ======
     ON_LEVEL_INIT_POST,         // Board::InitLevel 末尾
@@ -107,6 +108,7 @@ inline const char* ModEventName(ModEvent e) {
     case ModEvent::ON_SPAWN_ZOMBIE_WAVE_PRE:   return "ON_SPAWN_ZOMBIE_WAVE_PRE";
     case ModEvent::ON_PICK_ZOMBIE_WAVES_PRE:   return "ON_PICK_ZOMBIE_WAVES_PRE";
     case ModEvent::ON_PICK_ZOMBIE_TYPE_PRE:    return "ON_PICK_ZOMBIE_TYPE_PRE";
+    case ModEvent::ON_PLANT_DIE_PRE:           return "ON_PLANT_DIE_PRE";
     case ModEvent::ON_LEVEL_INIT_POST:         return "ON_LEVEL_INIT_POST";
     case ModEvent::ON_LEVEL_START_POST:        return "ON_LEVEL_START_POST";
     case ModEvent::ON_LEVEL_END:               return "ON_LEVEL_END";

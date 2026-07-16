@@ -119,6 +119,7 @@ const char* EventToLuaName(ModEvent e) {
     case ModEvent::ON_SPAWN_ZOMBIE_WAVE_PRE:   return "on_spawn_zombie_wave";
     case ModEvent::ON_PICK_ZOMBIE_WAVES_PRE:   return "on_pick_zombie_waves";
     case ModEvent::ON_PICK_ZOMBIE_TYPE_PRE:    return "on_pick_zombie_type";
+    case ModEvent::ON_PLANT_DIE_PRE:           return "on_plant_die";
     case ModEvent::ON_LEVEL_INIT_POST:         return "on_level_init";
     case ModEvent::ON_LEVEL_START_POST:        return "on_level_start";
     case ModEvent::ON_LEVEL_END:               return "on_level_end";
@@ -1377,6 +1378,11 @@ void DispatchEvent(ModCtx& ctx) {
             break;
         case ModEvent::ON_PLANT_CREATED:
             PushPlant(g_L, static_cast<Plant*>(ctx.object));
+            nargs = 1;
+            break;
+        case ModEvent::ON_PLANT_DIE_PRE:
+            // 用 ctx.plant（MOD_HOOK 在 Plant::Die 中设置），fallback 到 ctx.object
+            PushPlant(g_L, ctx.plant ? ctx.plant : static_cast<Plant*>(ctx.object));
             nargs = 1;
             break;
         case ModEvent::ON_ZOMBIE_CREATED:
