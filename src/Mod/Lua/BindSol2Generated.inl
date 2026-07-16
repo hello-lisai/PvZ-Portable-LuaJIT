@@ -551,6 +551,7 @@ static void BindSol2Plant(sol::state_view& lua) {
         "play_fire_sound", &Plant::PlayFireSound,
         "play_fire_muzzle_particle", &Plant::PlayFireMuzzleParticle,
         "setup_projectile_motion", &Plant::SetupProjectileMotion,
+        "setup_lobbed_projectile_motion", &Plant::SetupLobbedProjectileMotion,
         "find_target_zombie", [](Plant* self, int theRow) -> Zombie* { return self->FindTargetZombie(theRow, PlantWeapon::WEAPON_PRIMARY); },
         // filter_zombie_target: 跳过 (has reference param) — bool                    FilterZombieTarget(Zombie* aZombie, int theRow, int aDamageRangeFlags, bool needPortalCheck, Rect& aAttackRect, int& aExtraRange);  // 检查僵尸是否为有效目标，返回 false 表示跳过
         // calc_zombie_target_weight: 跳过 (has reference param) — int                     CalcZombieTargetWeight(Zombie* aZombie, const Rect& aZombieRect);  // 计算僵尸目标权重（越大越优先）

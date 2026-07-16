@@ -257,6 +257,7 @@ public:
     void                    PlayFireSound();                                                // 播放发射音效
     void                    PlayFireMuzzleParticle(int aOriginX, int aOriginY);            // 创建枪口粒子特效
     void                    SetupProjectileMotion(Projectile* aProjectile, Zombie* theTargetZombie, int theRow, PlantWeapon thePlantWeapon, int aOriginX, int aOriginY);  // 设置投射物运动类型
+    void                    SetupLobbedProjectileMotion(Projectile* aProjectile, Zombie* theTargetZombie, int aOriginX, int aOriginY);  // 抛投类投射物运动（射程计算+抛物线参数）
     // ===== 发射投射物相关小函数结束 =====
     Zombie*                 FindTargetZombie(int theRow, PlantWeapon thePlantWeapon = PlantWeapon::WEAPON_PRIMARY);
     // ===== 目标查找小函数（提取自 FindTargetZombie）=====

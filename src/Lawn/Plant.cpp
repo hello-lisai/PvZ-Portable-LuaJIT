@@ -4984,51 +4984,57 @@ void Plant::PlayFireMuzzleParticle(int aOriginX, int aOriginY)
     }
 }
 
+// 抛投类投射物运动（射程计算+抛物线参数）
+void Plant::SetupLobbedProjectileMotion(Projectile* aProjectile, Zombie* theTargetZombie, int aOriginX, int aOriginY)
+{
+    float aRangeX, aRangeY;
+    if (theTargetZombie)
+    {
+        Rect aZombieRect = theTargetZombie->GetZombieRect();
+        aRangeX = theTargetZombie->ZombieTargetLeadX(50.0f) - aOriginX - 30.0f;
+        aRangeY = aZombieRect.mY - aOriginY;
+
+        if (theTargetZombie->mZombiePhase == ZombiePhase::PHASE_DOLPHIN_RIDING)
+        {
+            aRangeX -= 60.0f;
+        }
+        if (theTargetZombie->mZombieType == ZombieType::ZOMBIE_POGO && theTargetZombie->mHasObject)
+        {
+            aRangeX -= 60.0f;
+        }
+        if (theTargetZombie->mZombiePhase == ZombiePhase::PHASE_SNORKEL_WALKING_IN_POOL)
+        {
+            aRangeX -= 40.0f;
+        }
+        if (theTargetZombie->mZombieType == ZombieType::ZOMBIE_BOSS)
+        {
+            aRangeY = mBoard->GridToPixelY(8, mRow) - aOriginY;
+        }
+    }
+    else
+    {
+        aRangeX = 700.0f - aOriginX;
+        aRangeY = 0.0f;
+    }
+    if (aRangeX < 40.0f)
+    {
+        aRangeX = 40.0f;
+    }
+
+    aProjectile->mMotionType = ProjectileMotion::MOTION_LOBBED;
+    aProjectile->mVelX = aRangeX / 120.0f;
+    aProjectile->mVelY = 0.0f;
+    aProjectile->mVelZ = aRangeY / 120.0f - 7.0f;
+    aProjectile->mAccZ = 0.115f;
+}
+
 // 设置投射物运动类型
 void Plant::SetupProjectileMotion(Projectile* aProjectile, Zombie* theTargetZombie, int theRow, PlantWeapon thePlantWeapon, int aOriginX, int aOriginY)
 {
     if (mSeedType == SeedType::SEED_CABBAGEPULT || mSeedType == SeedType::SEED_KERNELPULT ||
         mSeedType == SeedType::SEED_MELONPULT || mSeedType == SeedType::SEED_WINTERMELON)
     {
-        float aRangeX, aRangeY;
-        if (theTargetZombie)
-        {
-            Rect aZombieRect = theTargetZombie->GetZombieRect();
-            aRangeX = theTargetZombie->ZombieTargetLeadX(50.0f) - aOriginX - 30.0f;
-            aRangeY = aZombieRect.mY - aOriginY;
-
-            if (theTargetZombie->mZombiePhase == ZombiePhase::PHASE_DOLPHIN_RIDING)
-            {
-                aRangeX -= 60.0f;
-            }
-            if (theTargetZombie->mZombieType == ZombieType::ZOMBIE_POGO && theTargetZombie->mHasObject)
-            {
-                aRangeX -= 60.0f;
-            }
-            if (theTargetZombie->mZombiePhase == ZombiePhase::PHASE_SNORKEL_WALKING_IN_POOL)
-            {
-                aRangeX -= 40.0f;
-            }
-            if (theTargetZombie->mZombieType == ZombieType::ZOMBIE_BOSS)
-            {
-                aRangeY = mBoard->GridToPixelY(8, mRow) - aOriginY;
-            }
-        }
-        else
-        {
-            aRangeX = 700.0f - aOriginX;
-            aRangeY = 0.0f;
-        }
-        if (aRangeX < 40.0f)
-        {
-            aRangeX = 40.0f;
-        }
-
-        aProjectile->mMotionType = ProjectileMotion::MOTION_LOBBED;
-        aProjectile->mVelX = aRangeX / 120.0f;
-        aProjectile->mVelY = 0.0f;
-        aProjectile->mVelZ = aRangeY / 120.0f - 7.0f;
-        aProjectile->mAccZ = 0.115f;
+        SetupLobbedProjectileMotion(aProjectile, theTargetZombie, aOriginX, aOriginY);
     }
     else if (mSeedType == SeedType::SEED_THREEPEATER)
     {
