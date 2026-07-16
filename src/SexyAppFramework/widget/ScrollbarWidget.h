@@ -100,6 +100,10 @@ public:
 	void					ButtonPress(int theId) override;
 	void					ButtonDepress(int theId) override;
 	void					ButtonDownTick(int theId) override;
+	// Mod API: ButtonListener 纯虚函数空实现（滚动条不需要这些回调）
+	void					ButtonMouseEnter(int theId) override {}
+	void					ButtonMouseLeave(int theId) override {}
+	void					ButtonMouseMove(int theId, int theX, int theY) override {}
 	void					Update() override;
 	virtual int				ThumbCompare(int x, int y);
 	void					MouseDown(int x, int y, int theClickCount) override { Widget::MouseDown(x, y, theClickCount); }

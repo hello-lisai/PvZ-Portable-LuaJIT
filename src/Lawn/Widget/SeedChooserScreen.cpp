@@ -41,6 +41,7 @@
 #include "../../Sexy.TodLib/TodStringFile.h"
 #include "widget/WidgetManager.h"
 #include "widget/ScrollbarWidget.h"
+#include "widget/ScrollbuttonWidget.h"
 
 // GOTY @Patoke: 0x48E020
 SeedChooserScreen::SeedChooserScreen()
@@ -214,7 +215,6 @@ SeedChooserScreen::SeedChooserScreen()
 	mScrollbar->SetInvisIfNoScroll(true);
 	// 滚动条放在右侧 x=778，高度与滚动区域一致
 	mScrollbar->ResizeScrollbar(778, mScrollAreaTop, 20, mScrollAreaBottom - mScrollAreaTop);
-	mScrollbar->mParentWidget = this;
 	UpdateScrollbar();
 }
 
