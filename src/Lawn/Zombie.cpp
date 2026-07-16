@@ -850,7 +850,8 @@ void Zombie::InitZombieTypeCustom()
 // GOTY @Patoke: 0x5329A0
 void Zombie::ZombieInitialize(int theRow, ZombieType theType, bool theVariant, Zombie* theParentZombie, int theFromWave)
 {
-    TOD_ASSERT(theType >= 0 && theType <= ZombieType::NUM_ZOMBIE_TYPES);
+    // Mod API: 允许自定义僵尸类型（>= NUM_ZOMBIE_TYPES），不再限制上限
+    TOD_ASSERT(theType >= 0);
 
     mFromWave = theFromWave;
     mRow = theRow;

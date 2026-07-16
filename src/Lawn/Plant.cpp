@@ -1097,7 +1097,12 @@ void Plant::UpdateShooter()
 
 bool Plant::MakesSun()
 {
-    return mSeedType == SeedType::SEED_SUNFLOWER || mSeedType == SeedType::SEED_TWINSUNFLOWER || mSeedType == SeedType::SEED_SUNSHROOM;
+    if (mSeedType == SeedType::SEED_SUNFLOWER || mSeedType == SeedType::SEED_TWINSUNFLOWER || mSeedType == SeedType::SEED_SUNSHROOM)
+        return true;
+    // Mod API: 自定义植物检查 PlantDefinition.mMakesSun
+    if (mSeedType >= SeedType::NUM_SEED_TYPES)
+        return GetPlantDefinition(mSeedType).mMakesSun;
+    return false;
 }
 
 void Plant::UpdateProductionPlant()
@@ -1156,6 +1161,11 @@ void Plant::UpdateProductionPlant()
         else if (mSeedType == SeedType::SEED_MARIGOLD)
         {
             mBoard->AddCoin(mX, mY, (Sexy::Rand(100) < 10) ? CoinType::COIN_GOLD : CoinType::COIN_SILVER, CoinMotion::COIN_MOTION_COIN);
+        }
+        else if (mSeedType >= SeedType::NUM_SEED_TYPES && GetPlantDefinition(mSeedType).mMakesSun)
+        {
+            // Mod API: 自定义产阳光植物，产出标准阳光
+            mBoard->AddCoin(mX, mY, CoinType::COIN_SUN, CoinMotion::COIN_MOTION_FROM_PLANT);
         }
 
         if (mApp->mGameMode == GameMode::GAMEMODE_CHALLENGE_BIG_TIME)
@@ -4844,7 +4854,8 @@ ProjectileType Plant::GetFireProjectileType(PlantWeapon thePlantWeapon)
         aProjectileType = ProjectileType::PROJECTILE_COBBIG;
         break;
     default:
-        TOD_ASSERT(false);
+        // Mod API: 自定义植物默认发射豌豆投射物，避免未初始化返回值导致崩溃
+        aProjectileType = ProjectileType::PROJECTILE_PEA;
         break;
     }
     if (mSeedType == SeedType::SEED_KERNELPULT && thePlantWeapon == PlantWeapon::WEAPON_SECONDARY)

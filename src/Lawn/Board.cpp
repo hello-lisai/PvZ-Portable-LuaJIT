@@ -1250,8 +1250,10 @@ bool Board::IsZombieWaveDistributionOk()
 				break;
 			}
 
-			TOD_ASSERT(aZombieType >= 0 && aZombieType < ZombieType::NUM_ZOMBIE_TYPES);
-			aZombieTypeCount[aZombieType]++;
+			TOD_ASSERT(aZombieType >= 0);
+			// Mod API: 自定义僵尸类型（>= NUM_ZOMBIE_TYPES）跳过波次分布检查
+			if (aZombieType < ZombieType::NUM_ZOMBIE_TYPES)
+				aZombieTypeCount[aZombieType]++;
 		}
 	}
 

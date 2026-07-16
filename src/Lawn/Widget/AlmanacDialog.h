@@ -26,7 +26,7 @@
 
 #define NUM_ALMANAC_SEEDS 49
 #define NUM_ALMANAC_ZOMBIES 26
-// Mod API: 图鉴分页，每页显示的植物/僵尸数量（与原版一致）
+// Mod API: 图鉴分页，每页显示的植物/僵尸数量
 #define ALMANAC_PLANTS_PER_PAGE  NUM_ALMANAC_SEEDS
 #define ALMANAC_ZOMBIES_PER_PAGE NUM_ALMANAC_ZOMBIES
 
@@ -116,6 +116,14 @@ public:
 	// Mod API: 按页内索引获取网格位置（分页绘制用，保持原版布局）
 	void						GetSeedPositionByIndex(int pageOffset, int& x, int& y);
 	void						GetZombiePositionByIndex(int pageOffset, int& x, int& y);
+	// Mod API: 过滤隐藏植物（SEED_EXPLODE_O_NUT/GIANT_WALLNUT/SPROUT/LEFTPEATER 不在图鉴显示）
+	static bool					IsAlmanacHiddenSeed(SeedType theSeedType);
+	int							GetAlmanacVisibleSeedCount() const;  // 图鉴可见植物总数（排除隐藏植物）
+	SeedType					GetAlmanacSeedByVisibleIndex(int visibleIdx) const;  // 可见索引 → SeedType
+	// Mod API: 过滤隐藏僵尸（小游戏僵尸 ZOMBIE_PEA_HEAD~REDEYE_GARGANTUAR 不在图鉴显示）
+	static bool					IsAlmanacHiddenZombie(ZombieType theZombieType);
+	int							GetAlmanacVisibleZombieCount() const;  // 图鉴可见僵尸总数（排除隐藏僵尸）
+	ZombieType					GetAlmanacZombieByVisibleIndex(int visibleIdx) const;  // 可见索引 → ZombieType
 //	virtual void				KeyChar(char theChar);
 
 	static ZombieType			GetZombieType(int theIndex);

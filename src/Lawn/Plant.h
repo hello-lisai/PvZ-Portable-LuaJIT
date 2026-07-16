@@ -418,6 +418,8 @@ public:
     // Mod API: 图鉴显示用字段（自定义植物专用，原版植物仍走资源文件）
     std::string             mAlmanacName;        // 图鉴标题（如 "My Custom Plant"）
     std::string             mAlmanacDescription; // 图鉴描述正文
+    // Mod API: 自定义植物是否产阳光（MakesSun/UpdateProductionPlant 读取）
+    bool                    mMakesSun = false;
 };
 extern PlantDefinition gPlantDefs[SeedType::NUM_SEED_TYPES];  // Mod API: 移除 const
 

@@ -276,20 +276,25 @@ void AlmanacDialog::SetPage(AlmanacPage thePage)
 void AlmanacDialog::ShowPlant(SeedType theSeedType)
 {
 	mSelectedSeed = theSeedType;
-	// Mod API: 确保选中植物在当前页
-	int seedIdx = static_cast<int>(theSeedType);
-	int page = seedIdx / ALMANAC_PLANTS_PER_PAGE;
-	if (page != mPlantPage) mPlantPage = page;
+	// Mod API: 确保选中植物在当前页（使用可见索引，跳过隐藏植物）
+	int totalVisible = GetAlmanacVisibleSeedCount();
+	for (int i = 0; i < totalVisible; i++) {
+		if (GetAlmanacSeedByVisibleIndex(i) == theSeedType) {
+			int page = i / ALMANAC_PLANTS_PER_PAGE;
+			if (page != mPlantPage) mPlantPage = page;
+			break;
+		}
+	}
 	SetPage(ALMANAC_PAGE_PLANTS);
 }
 
 void AlmanacDialog::ShowZombie(ZombieType theZombieType)
 {
 	mSelectedZombie = theZombieType;
-	// Mod API: 确保选中僵尸在当前页
-	int totalZombies = GetTotalZombieCount();
-	for (int i = 0; i < totalZombies; i++) {
-		if (GetZombieType(i) == theZombieType) {
+	// Mod API: 确保选中僵尸在当前页（使用可见索引，跳过小游戏僵尸）
+	int totalVisible = GetAlmanacVisibleZombieCount();
+	for (int i = 0; i < totalVisible; i++) {
+		if (GetAlmanacZombieByVisibleIndex(i) == theZombieType) {
 			int page = i / ALMANAC_ZOMBIES_PER_PAGE;
 			if (page != mZombiePage) mZombiePage = page;
 			break;
@@ -370,16 +375,16 @@ void AlmanacDialog::DrawPlants(Graphics* g)
 	TodDrawString(g, "[SUBURBAN_ALMANAC_PLANTS]", BOARD_WIDTH / 2, 48, Sexy::FONT_HOUSEOFTERROR20, Color(213, 159, 43), DrawStringJustification::DS_ALIGN_CENTER);
 
 	SeedType aSeedMouseOn = SeedHitTest(mApp->mWidgetManager->mLastMouseX, mApp->mWidgetManager->mLastMouseY);
-	// Mod API: 分页遍历——只绘制当前页的植物
-	int totalSeeds = GetTotalPlantCount();
+	// Mod API: 分页遍历——只绘制当前页的可见植物（跳过隐藏植物 49-52）
+	int totalVisible = GetAlmanacVisibleSeedCount();
 	int pageStart = GetPlantPageStart();
-	int pageEnd = std::min(pageStart + ALMANAC_PLANTS_PER_PAGE, totalSeeds);
-	for (int aSeedIdx = pageStart; aSeedIdx < pageEnd; aSeedIdx++)
+	int pageEnd = std::min(pageStart + ALMANAC_PLANTS_PER_PAGE, totalVisible);
+	for (int aVisIdx = pageStart; aVisIdx < pageEnd; aVisIdx++)
 	{
-		SeedType aSeedType = static_cast<SeedType>(aSeedIdx);
+		SeedType aSeedType = GetAlmanacSeedByVisibleIndex(aVisIdx);
 		int aPosX, aPosY;
 		// 当前页内的索引映射回网格位置（页内相对索引，保持原版布局）
-		int pageOffset = aSeedIdx - pageStart;
+		int pageOffset = aVisIdx - pageStart;
 		GetSeedPositionByIndex(pageOffset, aPosX, aPosY);
 		if (mApp->HasSeedType(aSeedType))
 		{
@@ -466,16 +471,16 @@ void AlmanacDialog::DrawZombies(Graphics* g)
 	TodDrawString(g, "[SUBURBAN_ALMANAC_ZOMBIES]", BOARD_WIDTH / 2, 54, Sexy::FONT_DWARVENTODCRAFT24, Color(0, 196, 0), DS_ALIGN_CENTER);
 
 	ZombieType aZombieMouseOn = ZombieHitTest(mApp->mWidgetManager->mLastMouseX, mApp->mWidgetManager->mLastMouseY);
-	// Mod API: 分页遍历——只绘制当前页的僵尸
-	int totalZombies = GetTotalZombieCount();
+	// Mod API: 分页遍历——只绘制当前页的可见僵尸（跳过小游戏僵尸）
+	int totalVisible = GetAlmanacVisibleZombieCount();
 	int pageStart = GetZombiePageStart();
-	int pageEnd = std::min(pageStart + ALMANAC_ZOMBIES_PER_PAGE, totalZombies);
-	for (int i = pageStart; i < pageEnd; i++)
+	int pageEnd = std::min(pageStart + ALMANAC_ZOMBIES_PER_PAGE, totalVisible);
+	for (int aVisIdx = pageStart; aVisIdx < pageEnd; aVisIdx++)
 	{
-		ZombieType aZombieType = GetZombieType(i);
+		ZombieType aZombieType = GetAlmanacZombieByVisibleIndex(aVisIdx);
 		int aPosX, aPosY;
 		// 当前页内的索引映射回网格位置（页内相对索引，保持原版布局）
-		int pageOffset = i - pageStart;
+		int pageOffset = aVisIdx - pageStart;
 		GetZombiePositionByIndex(pageOffset, aPosX, aPosY);
 		if (aZombieType != ZombieType::ZOMBIE_INVALID)
 		{
@@ -693,17 +698,17 @@ SeedType AlmanacDialog::SeedHitTest(int x, int y)
 {
 	if (mMouseVisible && mOpenPage == AlmanacPage::ALMANAC_PAGE_PLANTS)
 	{
-		// Mod API: 分页命中测试——只检测当前页的植物
-		int totalSeeds = GetTotalPlantCount();
+		// Mod API: 分页命中测试——只检测当前页的可见植物（跳过隐藏植物）
+		int totalVisible = GetAlmanacVisibleSeedCount();
 		int pageStart = GetPlantPageStart();
-		int pageEnd = std::min(pageStart + ALMANAC_PLANTS_PER_PAGE, totalSeeds);
-		for (int aSeedIdx = pageStart; aSeedIdx < pageEnd; aSeedIdx++)
+		int pageEnd = std::min(pageStart + ALMANAC_PLANTS_PER_PAGE, totalVisible);
+		for (int aVisIdx = pageStart; aVisIdx < pageEnd; aVisIdx++)
 		{
-			SeedType aSeedType = static_cast<SeedType>(aSeedIdx);
+			SeedType aSeedType = GetAlmanacSeedByVisibleIndex(aVisIdx);
 			if (mApp->HasSeedType(aSeedType))
 			{
 				int aSeedX, aSeedY;
-				int pageOffset = aSeedIdx - pageStart;
+				int pageOffset = aVisIdx - pageStart;
 				GetSeedPositionByIndex(pageOffset, aSeedX, aSeedY);
 				Rect aSeedRect = aSeedType == SeedType::SEED_IMITATER ? Rect(aSeedX, aSeedY, 34, 46) : Rect(aSeedX, aSeedY, SEED_PACKET_WIDTH, SEED_PACKET_HEIGHT);
 				if (aSeedRect.Contains(x, y)) return aSeedType;
@@ -819,18 +824,18 @@ ZombieType AlmanacDialog::ZombieHitTest(int x, int y)
 {
 	if (mMouseVisible && mOpenPage == AlmanacPage::ALMANAC_PAGE_ZOMBIES)
 	{
-		// Mod API: 分页命中测试——只检测当前页的僵尸
-		int totalZombies = GetTotalZombieCount();
+		// Mod API: 分页命中测试——只检测当前页的可见僵尸（跳过小游戏僵尸）
+		int totalVisible = GetAlmanacVisibleZombieCount();
 		int pageStart = GetZombiePageStart();
-		int pageEnd = std::min(pageStart + ALMANAC_ZOMBIES_PER_PAGE, totalZombies);
-		for (int i = pageStart; i < pageEnd; i++)
+		int pageEnd = std::min(pageStart + ALMANAC_ZOMBIES_PER_PAGE, totalVisible);
+		for (int aVisIdx = pageStart; aVisIdx < pageEnd; aVisIdx++)
 		{
-			ZombieType aZombieType = GetZombieType(i);
+			ZombieType aZombieType = GetAlmanacZombieByVisibleIndex(aVisIdx);
 			// @Patoke: added IsShown check
 			if (aZombieType != ZombieType::ZOMBIE_INVALID && ZombieIsShown(aZombieType))
 			{
 				int aZombieX, aZombieY;
-				int pageOffset = i - pageStart;
+				int pageOffset = aVisIdx - pageStart;
 				GetZombiePositionByIndex(pageOffset, aZombieX, aZombieY);
 				if (Rect(aZombieX, aZombieY, 76, 76).Contains(x, y))
 					return aZombieType;
@@ -908,15 +913,90 @@ void AlmanacDialog::KeyDown(KeyCode theKey)
 
 // ====== Mod API: 分页辅助方法 ======
 
-int AlmanacDialog::GetPlantPageCount() const
+// Mod API: 隐藏植物不在图鉴中显示（保龄球/禅境花园专用植物）
+bool AlmanacDialog::IsAlmanacHiddenSeed(SeedType theSeedType)
+{
+	return theSeedType == SeedType::SEED_EXPLODE_O_NUT ||
+	       theSeedType == SeedType::SEED_GIANT_WALLNUT ||
+	       theSeedType == SeedType::SEED_SPROUT ||
+	       theSeedType == SeedType::SEED_LEFTPEATER;
+}
+
+// Mod API: 图鉴可见植物总数（排除隐藏植物 49-52）
+int AlmanacDialog::GetAlmanacVisibleSeedCount() const
 {
 	int total = GetTotalPlantCount();
+	int hiddenCount = 0;
+	for (int i = 0; i < total; i++)
+	{
+		if (IsAlmanacHiddenSeed(static_cast<SeedType>(i)))
+			hiddenCount++;
+	}
+	return total - hiddenCount;
+}
+
+// Mod API: 可见索引 → SeedType（跳过隐藏植物）
+// 例如：visibleIdx 0-48 → SeedType 0-48
+//       visibleIdx 49 → SeedType 53（第一个自定义植物，跳过 49-52）
+SeedType AlmanacDialog::GetAlmanacSeedByVisibleIndex(int visibleIdx) const
+{
+	int total = GetTotalPlantCount();
+	int visCount = 0;
+	for (int i = 0; i < total; i++)
+	{
+		if (IsAlmanacHiddenSeed(static_cast<SeedType>(i)))
+			continue;
+		if (visCount == visibleIdx)
+			return static_cast<SeedType>(i);
+		visCount++;
+	}
+	return SeedType::SEED_NONE;
+}
+
+int AlmanacDialog::GetPlantPageCount() const
+{
+	int total = GetAlmanacVisibleSeedCount();
 	return (total + ALMANAC_PLANTS_PER_PAGE - 1) / ALMANAC_PLANTS_PER_PAGE;
+}
+
+// Mod API: 小游戏僵尸（ZOMBIE_PEA_HEAD~REDEYE_GARGANTUAR）不在图鉴中显示
+bool AlmanacDialog::IsAlmanacHiddenZombie(ZombieType theZombieType)
+{
+	return theZombieType > ZombieType::ZOMBIE_BOSS && !IsCustomZombieType(theZombieType);
+}
+
+// Mod API: 图鉴可见僵尸总数（排除小游戏僵尸 26-33）
+int AlmanacDialog::GetAlmanacVisibleZombieCount() const
+{
+	int total = GetTotalZombieCount();
+	int hiddenCount = 0;
+	for (int i = 0; i < total; i++)
+	{
+		if (IsAlmanacHiddenZombie(static_cast<ZombieType>(i)))
+			hiddenCount++;
+	}
+	return total - hiddenCount;
+}
+
+// Mod API: 可见索引 → ZombieType（跳过小游戏僵尸）
+ZombieType AlmanacDialog::GetAlmanacZombieByVisibleIndex(int visibleIdx) const
+{
+	int total = GetTotalZombieCount();
+	int visCount = 0;
+	for (int i = 0; i < total; i++)
+	{
+		if (IsAlmanacHiddenZombie(static_cast<ZombieType>(i)))
+			continue;
+		if (visCount == visibleIdx)
+			return GetZombieType(i);
+		visCount++;
+	}
+	return ZombieType::ZOMBIE_INVALID;
 }
 
 int AlmanacDialog::GetZombiePageCount() const
 {
-	int total = GetTotalZombieCount();
+	int total = GetAlmanacVisibleZombieCount();
 	return (total + ALMANAC_ZOMBIES_PER_PAGE - 1) / ALMANAC_ZOMBIES_PER_PAGE;
 }
 
@@ -935,8 +1015,8 @@ void AlmanacDialog::PrevPlantPage()
 	int pages = GetPlantPageCount();
 	if (pages <= 1) return;
 	mPlantPage = (mPlantPage - 1 + pages) % pages;
-	// 切页后选中第一个植物
-	mSelectedSeed = static_cast<SeedType>(GetPlantPageStart());
+	// 切页后选中本页第一个可见植物
+	mSelectedSeed = GetAlmanacSeedByVisibleIndex(GetPlantPageStart());
 	SetupPlant();
 }
 
@@ -945,7 +1025,7 @@ void AlmanacDialog::NextPlantPage()
 	int pages = GetPlantPageCount();
 	if (pages <= 1) return;
 	mPlantPage = (mPlantPage + 1) % pages;
-	mSelectedSeed = static_cast<SeedType>(GetPlantPageStart());
+	mSelectedSeed = GetAlmanacSeedByVisibleIndex(GetPlantPageStart());
 	SetupPlant();
 }
 
@@ -954,7 +1034,7 @@ void AlmanacDialog::PrevZombiePage()
 	int pages = GetZombiePageCount();
 	if (pages <= 1) return;
 	mZombiePage = (mZombiePage - 1 + pages) % pages;
-	mSelectedZombie = GetZombieType(GetZombiePageStart());
+	mSelectedZombie = GetAlmanacZombieByVisibleIndex(GetZombiePageStart());
 	SetupZombie();
 }
 
@@ -963,7 +1043,7 @@ void AlmanacDialog::NextZombiePage()
 	int pages = GetZombiePageCount();
 	if (pages <= 1) return;
 	mZombiePage = (mZombiePage + 1) % pages;
-	mSelectedZombie = GetZombieType(GetZombiePageStart());
+	mSelectedZombie = GetAlmanacZombieByVisibleIndex(GetZombiePageStart());
 	SetupZombie();
 }
 

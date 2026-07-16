@@ -545,7 +545,10 @@ void CutScene::PlaceStreetZombies()
 				continue;
 			}
 
-			TOD_ASSERT(aZombieType >= 0 && aZombieType < ZombieType::NUM_ZOMBIE_TYPES);
+			TOD_ASSERT(aZombieType >= 0);
+			// Mod API: 自定义僵尸类型（>= NUM_ZOMBIE_TYPES）跳过预览统计，不计入固定数组
+			if (aZombieType >= ZombieType::NUM_ZOMBIE_TYPES)
+				continue;
 
 			++aZombieTypeCount[aZombieType];
 			++aTotalZombieCount;

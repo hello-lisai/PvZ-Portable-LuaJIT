@@ -32,6 +32,7 @@ function M.on_app_init()
             packet_index       = 1,
             subclass           = 0,
             launch_rate        = 1000,
+            makes_sun          = true,
             almanac_name        = "快速向日葵",
             almanac_description = "产阳光速度比普通向日葵快一倍。\n\n{KEYWORD}阳光产出:{STAT} 每 10 秒\n{KEYWORD}成本:{STAT} 100 阳光\n{KEYWORD}冷却:{STAT} 短",
         })

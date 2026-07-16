@@ -519,6 +519,11 @@ int l_plants_register(lua_State* L) {
     if (lua_isstring(L, -1)) def.mAlmanacDescription = lua_tostring(L, -1);
     lua_pop(L, 1);
 
+    // Mod API: 自定义植物是否产阳光（MakesSun/UpdateProductionPlant 读取）
+    lua_getfield(L, tblIdx, "makes_sun");
+    if (lua_isboolean(L, -1)) def.mMakesSun = lua_toboolean(L, -1) != 0;
+    lua_pop(L, 1);
+
     lua_getfield(L, tblIdx, "on_update");
     if (lua_isfunction(L, -1)) {
         int ref = luaL_ref(L, LUA_REGISTRYINDEX);
