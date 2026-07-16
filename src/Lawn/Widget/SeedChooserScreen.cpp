@@ -40,6 +40,7 @@
 #include "misc/MTRand.h"
 #include "../../Sexy.TodLib/TodStringFile.h"
 #include "widget/WidgetManager.h"
+#include "widget/ScrollbarWidget.h"
 
 // GOTY @Patoke: 0x48E020
 SeedChooserScreen::SeedChooserScreen()
@@ -202,6 +203,19 @@ SeedChooserScreen::SeedChooserScreen()
 	if (mApp->IsAdventureMode() && !mApp->IsFirstTimeAdventureMode())
 		CrazyDavePickSeeds();
 	UpdateImitaterButton();
+
+	// Mod API: 滚动条初始化
+	// 滚动区域：y 87（背景图顶部）到 y 510（按钮区上方），宽度内 x 0~770
+	mScrollAreaTop = 87;
+	mScrollAreaBottom = 510;
+	mScrollOffset = 0;
+	mScrollbar = new ScrollbarWidget(0, this);
+	mScrollbar->SetHorizontal(false);
+	mScrollbar->SetInvisIfNoScroll(true);
+	// 滚动条放在右侧 x=778，高度与滚动区域一致
+	mScrollbar->ResizeScrollbar(778, mScrollAreaTop, 20, mScrollAreaBottom - mScrollAreaTop);
+	mScrollbar->mParentWidget = this;
+	UpdateScrollbar();
 }
 
 int SeedChooserScreen::PickFromWeightedArrayUsingSpecialRandSeed(TodWeightedArray* theArray, int theCount, MTRand& theLevelRNG)
@@ -291,30 +305,16 @@ void SeedChooserScreen::GetSeedPositionInChooser(int theIndex, int& x, int& y)
 		x = mImitaterButton->mX;
 		y = mImitaterButton->mY;
 	}
-	else if (IsCustomSeedType(static_cast<SeedType>(theIndex)))
-	{
-		// Mod API: 自定义植物从第 8 行（row 7）开始布局，避免与 row 6 的底部按钮区重叠
-		// 内置植物占 row 0-5（6行）或 row 0-6（7行），row 6 与 start/random 按钮重叠故不用
-		int customIdx = CustomSeedTypeToIndex(static_cast<SeedType>(theIndex));
-		int aRow = 7 + customIdx / 8;
-		int aCol = customIdx % 8;
-		x = aCol * 53 + 22;
-		y = aRow * 70 + 123;
-	}
 	else
 	{
+		// Mod API: 所有种子（内置+自定义）统一用 % 8 / 8 网格布局
+		// 内置植物占 row 0-5/6（原版位置不变），自定义植物从 row 7 开始
+		// 滚动偏移在 Draw 和 SeedHitTest 中处理（GetSeedPositionInChooser 返回不含偏移的基础位置）
 		int aRow = theIndex / 8;
 		int aCol = theIndex % 8;
-
 		x = aCol * 53 + 22;
-		if (Has7Rows())
-		{
-			y = aRow * 70 + 123;
-		}
-		else
-		{
-			y = aRow * 73 + 128;
-		}
+		// 统一用 7 行模式的行间距（70px），起始 y=123
+		y = aRow * 70 + 123;
 	}
 }
 
@@ -334,6 +334,7 @@ SeedChooserScreen::~SeedChooserScreen()
 	if (mStoreButton) delete mStoreButton;
 	if (mToolTip) delete mToolTip;
 	if (mMenuButton) delete mMenuButton;
+	if (mScrollbar) delete mScrollbar;
 }
 
 unsigned int SeedChooserScreen::SeedNotRecommendedToPick(SeedType theSeedType)
@@ -372,16 +373,34 @@ void SeedChooserScreen::Draw(Graphics* g)
 	// @Patoke: wrong local name
 	TodDrawString(g, "[CHOOSE_YOUR_PLANTS]", 229, 110, Sexy::FONT_DWARVENTODCRAFT18YELLOW, Color::White, DS_ALIGN_CENTER);
 
-	int aNumSeeds = Has7Rows() ? 48 : 40;
-	for (SeedType aSeedShadow = SEED_PEASHOOTER; aSeedShadow < aNumSeeds; aSeedShadow = (SeedType)(aSeedShadow + 1))
+	// Mod API: 银行槽位剪影（不在滚动区内，不随滚动偏移）
+	int aNumSeedsInBank = mBoard->mSeedBank->mNumPackets;
+	for (int anIndex = 0; anIndex < aNumSeedsInBank; anIndex++)
 	{
+		if (FindSeedInBank(anIndex) == SEED_NONE)
+		{
+			int x, y;
+			GetSeedPositionInBank(anIndex, x, y);
+			g->DrawImage(Sexy::IMAGE_SEEDPACKETSILHOUETTE, x, y);
+		}
+	}
+
+	// Mod API: 仅当需要滚动时才建立裁剪视口（无自定义植物时保持原版无裁剪行为）
+	bool aNeedScroll = NeedsScrollbar();
+	if (aNeedScroll)
+	{
+		g->PushState();
+		g->SetClipRect(0, mScrollAreaTop, 778, mScrollAreaBottom - mScrollAreaTop);
+		g->Translate(0, -mScrollOffset);
+	}
+
+	// Mod API: 槽位背景/剪影（随滚动偏移；已扩展到自定义植物）
+	for (SeedType aSeedShadow = SEED_PEASHOOTER; aSeedShadow < GetTotalPlantCount(); aSeedShadow = (SeedType)(aSeedShadow + 1))
+	{
+		if (aSeedShadow == SEED_IMITATER)
+			continue;
 		int x, y;
 		GetSeedPositionInChooser(aSeedShadow, x, y);
-		if (aSeedShadow == SEED_IMITATER)
-		{
-			continue;
-		}
-
 		if (mApp->HasSeedType(aSeedShadow))
 		{
 			ChosenSeed& aChosenSeed = mChosenSeeds[aSeedShadow];
@@ -396,29 +415,18 @@ void SeedChooserScreen::Draw(Graphics* g)
 		}
 	}
 
-	int aNumSeedsInBank = mBoard->mSeedBank->mNumPackets;
-	for (int anIndex = 0; anIndex < aNumSeedsInBank; anIndex++)
-	{
-		if (FindSeedInBank(anIndex) == SEED_NONE)
-		{
-			int x, y;
-			GetSeedPositionInBank(anIndex, x, y);
-			g->DrawImage(Sexy::IMAGE_SEEDPACKETSILHOUETTE, x, y);
-		}
-	}
-
 	for (SeedType aSeedType = SEED_PEASHOOTER; aSeedType < GetTotalPlantCount(); aSeedType = (SeedType)(aSeedType + 1))
 	{
 		ChosenSeed& aChosenSeed = mChosenSeeds[aSeedType];
 		ChosenSeedState aSeedState = aChosenSeed.mSeedState;
-		if (mApp->HasSeedType(aSeedType) && aSeedState != SEED_FLYING_TO_BANK && aSeedState != SEED_FLYING_TO_CHOOSER && 
+		if (mApp->HasSeedType(aSeedType) && aSeedState != SEED_FLYING_TO_BANK && aSeedState != SEED_FLYING_TO_CHOOSER &&
 			aSeedState != SEED_PACKET_HIDDEN && (aSeedState == SEED_IN_CHOOSER || mBoard->mCutScene->mSeedChoosing))
 		{
 			bool aGrayed = false;
 			if (((SeedNotRecommendedToPick(aSeedType) || SeedNotAllowedToPick(aSeedType)) && aSeedState == SEED_IN_CHOOSER) ||
 				SeedNotAllowedDuringTrial(aSeedType))
 				aGrayed = true;
-			
+
 			int aPosX = aChosenSeed.mX;
 			int aPosY = aChosenSeed.mY;
 			if (aSeedState == SEED_IN_BANK)
@@ -430,7 +438,6 @@ void SeedChooserScreen::Draw(Graphics* g)
 		}
 	}
 
-	mImitaterButton->Draw(g);
 	for (SeedType aSeedType = SEED_PEASHOOTER; aSeedType < GetTotalPlantCount(); aSeedType = (SeedType)(aSeedType + 1))
 	{
 		ChosenSeed& aChosenSeed = mChosenSeeds[aSeedType];
@@ -441,6 +448,13 @@ void SeedChooserScreen::Draw(Graphics* g)
 		}
 	}
 
+	if (aNeedScroll)
+	{
+		g->PopState();
+	}
+
+	// Mod API: imitater 按钮+其他按钮（固定位置，不受滚动影响）
+	mImitaterButton->Draw(g);
 	mStartButton->Draw(g);
 	mRandomButton->Draw(g);
 	mViewLawnButton->Draw(g);
@@ -451,6 +465,30 @@ void SeedChooserScreen::Draw(Graphics* g)
 	aBoardFrameG.mTransY -= mY;
 	mMenuButton->Draw(&aBoardFrameG);
 	mToolTip->Draw(g);
+
+	// Mod API: 绘制滚动条（固定位置，不在滚动视口内）
+	if (mScrollbar && mScrollbar->mVisible)
+	{
+		Graphics aScrollbarG = Graphics(*g);
+		aScrollbarG.mTransX += mScrollbar->mX;
+		aScrollbarG.mTransY += mScrollbar->mY;
+		mScrollbar->Draw(&aScrollbarG);
+		// 绘制上/下箭头按钮
+		if (mScrollbar->mUpButton && mScrollbar->mUpButton->mVisible)
+		{
+			Graphics aUpG = Graphics(aScrollbarG);
+			aUpG.mTransX += mScrollbar->mUpButton->mX;
+			aUpG.mTransY += mScrollbar->mUpButton->mY;
+			mScrollbar->mUpButton->Draw(&aUpG);
+		}
+		if (mScrollbar->mDownButton && mScrollbar->mDownButton->mVisible)
+		{
+			Graphics aDownG = Graphics(aScrollbarG);
+			aDownG.mTransX += mScrollbar->mDownButton->mX;
+			aDownG.mTransY += mScrollbar->mDownButton->mY;
+			mScrollbar->mDownButton->Draw(&aDownG);
+		}
+	}
 }
 
 void SeedChooserScreen::UpdateViewLawn()
@@ -570,6 +608,13 @@ void SeedChooserScreen::Update()
 	mImitaterButton->Update();
 	mStoreButton->Update();
 	mMenuButton->Update();
+	// Mod API: 滚动条及其上下箭头按钮更新
+	if (mScrollbar)
+	{
+		mScrollbar->Update();
+		if (mScrollbar->mUpButton) mScrollbar->mUpButton->Update();
+		if (mScrollbar->mDownButton) mScrollbar->mDownButton->Update();
+	}
 	UpdateViewLawn();
 	UpdateCursor();
 	MarkDirty();
@@ -794,7 +839,10 @@ SeedType SeedChooserScreen::SeedHitTest(int x, int y)
 		{
 			ChosenSeed& aChosenSeed = mChosenSeeds[aSeedType];
 			if (!mApp->HasSeedType(aSeedType) || aChosenSeed.mSeedState == SEED_PACKET_HIDDEN) continue;
-			if (Rect(aChosenSeed.mX, aChosenSeed.mY, SEED_PACKET_WIDTH, SEED_PACKET_HEIGHT).Contains(x, y)) return aSeedType;
+			// Mod API: 选择器中的种子在滚动视口内绘制时 y 减去了 mScrollOffset
+			// 命中测试需将鼠标 y 加回 mScrollOffset 以匹配基础坐标
+			int aHitY = (aChosenSeed.mSeedState == SEED_IN_CHOOSER) ? (y + mScrollOffset) : y;
+			if (Rect(aChosenSeed.mX, aChosenSeed.mY, SEED_PACKET_WIDTH, SEED_PACKET_HEIGHT).Contains(x, aHitY)) return aSeedType;
 		}
 	}
 	return SEED_NONE;
@@ -974,13 +1022,38 @@ void SeedChooserScreen::CancelLawnView()
 
 void SeedChooserScreen::MouseUp(int x, int y, int theClickCount)
 {
-	(void)x;(void)y;
+	// Mod API: 释放滚动条交互状态
+	if (mScrollbar)
+	{
+		if (mScrollbar->mUpButton) mScrollbar->mUpButton->mIsDown = false;
+		if (mScrollbar->mDownButton) mScrollbar->mDownButton->mIsDown = false;
+		if (mScrollbar->mPressedOnThumb)
+		{
+			int sbX = x - mScrollbar->mX;
+			int sbY = y - mScrollbar->mY;
+			mScrollbar->MouseUp(sbX, sbY, 0, theClickCount);
+		}
+	}
+
 	if (theClickCount == 1)
 	{
 		if (mMenuButton->IsMouseOver()) ButtonDepress(SeedChooserScreen::SeedChooserScreen_Menu);
 		else if (mStartButton->IsMouseOver()) ButtonDepress(SeedChooserScreen::SeedChooserScreen_Start);
 		else if (mAlmanacButton->IsMouseOver()) ButtonDepress(SeedChooserScreen::SeedChooserScreen_Almanac);
 		else if (mStoreButton->IsMouseOver()) ButtonDepress(SeedChooserScreen::SeedChooserScreen_Store);
+	}
+}
+
+void SeedChooserScreen::MouseDrag(int x, int y)
+{
+	Widget::MouseDrag(x, y);
+
+	// Mod API: 拖动滚动条滑块
+	if (mScrollbar && mScrollbar->mPressedOnThumb)
+	{
+		int sbX = x - mScrollbar->mX;
+		int sbY = y - mScrollbar->mY;
+		mScrollbar->MouseDrag(sbX, sbY);
 	}
 }
 
@@ -1001,6 +1074,39 @@ void SeedChooserScreen::UpdateImitaterButton()
 void SeedChooserScreen::MouseDown(int x, int y, int theClickCount)
 {
 	Widget::MouseDown(x, y, theClickCount);
+
+	// Mod API: 滚动条鼠标交互
+	if (mScrollbar && mScrollbar->mVisible && !mScrollbar->mDisabled)
+	{
+		int sbX = x - mScrollbar->mX;
+		int sbY = y - mScrollbar->mY;
+		if (sbX >= 0 && sbX < mScrollbar->mWidth && sbY >= 0 && sbY < mScrollbar->mHeight)
+		{
+			// 检查是否点击上/下箭头按钮
+			auto& upBtn = mScrollbar->mUpButton;
+			auto& dnBtn = mScrollbar->mDownButton;
+			if (upBtn && sbX >= upBtn->mX && sbX < upBtn->mX + upBtn->mWidth &&
+				sbY >= upBtn->mY && sbY < upBtn->mY + upBtn->mHeight)
+			{
+				upBtn->mIsDown = true;
+				upBtn->mIsOver = true;
+				mScrollbar->ButtonPress(0);
+			}
+			else if (dnBtn && sbX >= dnBtn->mX && sbX < dnBtn->mX + dnBtn->mWidth &&
+					 sbY >= dnBtn->mY && sbY < dnBtn->mY + dnBtn->mHeight)
+			{
+				dnBtn->mIsDown = true;
+				dnBtn->mIsOver = true;
+				mScrollbar->ButtonPress(1);
+			}
+			else
+			{
+				// 滑块或轨道——转发给 ScrollbarWidget 自身处理
+				mScrollbar->MouseDown(sbX, sbY, 0, theClickCount);
+			}
+			return;
+		}
+	}
 
 	if (mSeedsInFlight > 0)
 	{
@@ -1166,4 +1272,74 @@ void SeedChooserScreen::UpdateAfterPurchase()
 	}
 	EnableStartButton(mSeedsInBank == mBoard->mSeedBank->mNumPackets);
 	UpdateImitaterButton();
+}
+
+// ============================================================
+// Mod API: 滚动条相关方法实现
+// ============================================================
+
+// 是否需要滚动条（自定义植物导致总行数超过原版 7 行显示区域时）
+// 原版 7 行模式: 7 行 × 8 列 = 56 槽位（实际 53 种内置植物）
+// 超过 7 行时需要滚动条才能看到后面的自定义植物
+bool SeedChooserScreen::NeedsScrollbar()
+{
+	int aTotalRows = (GetTotalPlantCount() + 7) / 8;  // ceil(GetTotalPlantCount() / 8)
+	return aTotalRows > 7;
+}
+
+// 计算最大滚动偏移量（像素）
+// 内容底部 - 视口底部 = 最大可滚动距离
+int SeedChooserScreen::GetMaxScrollOffset()
+{
+	if (!NeedsScrollbar()) return 0;
+	// 第一行 y=123, 行间距 70 (与 GetSeedPositionInChooser 一致)
+	int aTotalRows = (GetTotalPlantCount() + 7) / 8;
+	int aContentBottom = aTotalRows * 70 + 123;  // 最后一行底部 y
+	int aMaxOffset = aContentBottom - mScrollAreaBottom;
+	if (aMaxOffset < 0) aMaxOffset = 0;
+	return aMaxOffset;
+}
+
+// 更新滚动条状态（范围/可见性）
+// 使用行作为单位（70px/行），使箭头按钮每次滚动一行而非一像素
+void SeedChooserScreen::UpdateScrollbar()
+{
+	if (!mScrollbar) return;
+	const double aRowHeight = 70.0;
+	int aTotalRows = (GetTotalPlantCount() + 7) / 8;
+	int aContentBottom = aTotalRows * 70 + 123;
+	// MaxValue = 内容总高度（行数），PageSize = 视口高度（行数）
+	// Value 范围 [0, MaxValue - PageSize]，对应像素偏移 [0, GetMaxScrollOffset()]
+	double aMaxValue = (aContentBottom - mScrollAreaTop) / aRowHeight;
+	double aPageSize = (mScrollAreaBottom - mScrollAreaTop) / aRowHeight;
+	mScrollbar->SetMaxValue(aMaxValue);
+	mScrollbar->SetPageSize(aPageSize);
+	// 确保当前偏移不越界（自定义植物数量可能动态变化）
+	int aMaxOffset = GetMaxScrollOffset();
+	if (mScrollOffset > aMaxOffset)
+	{
+		mScrollOffset = aMaxOffset;
+		mScrollbar->SetValue(mScrollOffset / aRowHeight);
+	}
+}
+
+// ScrollListener 回调——滚动位置变化时调用
+void SeedChooserScreen::ScrollPosition(int theId, double thePosition)
+{
+	// thePosition 单位为行，转换为像素偏移
+	mScrollOffset = (int)(thePosition * 70.0);
+	MarkDirty();
+}
+
+// 鼠标滚轮处理——每次滚动半行（35 像素）
+void SeedChooserScreen::MouseWheel(int theDelta)
+{
+	if (mScrollbar && mScrollbar->mVisible && !mScrollbar->mDisabled)
+	{
+		double aStep = 0.5;  // 半行
+		if (theDelta > 0)
+			mScrollbar->SetValue(mScrollbar->mValue - aStep);
+		else
+			mScrollbar->SetValue(mScrollbar->mValue + aStep);
+	}
 }

@@ -25,6 +25,7 @@
 #include "../../ConstEnums.h"
 #include "../../Sexy.TodLib/TodCommon.h"
 #include "widget/Widget.h"
+#include "widget/ScrollListener.h"
 #include <vector>
 using namespace Sexy;
 
@@ -35,6 +36,7 @@ class ToolTipWidget;
 namespace Sexy
 {
     class MTRand;
+    class ScrollbarWidget;
 }
 
 class ChosenSeed
@@ -57,7 +59,7 @@ public:
     bool                    mCrazyDavePicked;
 };
 
-class SeedChooserScreen : public Widget
+class SeedChooserScreen : public Widget, public ScrollListener
 {
 private:
     enum
@@ -93,6 +95,11 @@ public:
     int                     mLastMouseY;
     SeedChooserState        mChooseState;
     int                     mViewLawnTime;
+    // Mod API: 滚动条支持自定义植物
+    Sexy::ScrollbarWidget*  mScrollbar;
+    int                     mScrollOffset;     // 当前滚动偏移（像素，向下为正）
+    int                     mScrollAreaTop;    // 滚动区域顶部 y（种子卡片绘制区上界）
+    int                     mScrollAreaBottom;  // 滚动区域底部 y（种子卡片绘制区下界）
 
 public:
     SeedChooserScreen();
@@ -129,11 +136,18 @@ public:
     void                    MouseUp(int x, int y, int theClickCount) override;
     void                    UpdateImitaterButton();
     void                    MouseDown(int x, int y, int theClickCount) override;
+    void                    MouseDrag(int x, int y) override;
     /*inline*/ bool         PickedPlantType(SeedType theSeedType);
     void                    CloseSeedChooser();
     void                    KeyDown(KeyCode theKey) override;
     void                    KeyChar(char theChar) override;
     void                    UpdateAfterPurchase();
+    // Mod API: 滚动相关
+    void                    ScrollPosition(int theId, double thePosition) override;
+    void                    MouseWheel(int theDelta) override;
+    int                     GetMaxScrollOffset();     // 最大滚动偏移量
+    void                    UpdateScrollbar();          // 更新滚动条状态（可见性/范围）
+    bool                    NeedsScrollbar();          // 是否需要滚动条（自定义植物超出可见区域时）
 };
 
 #endif
