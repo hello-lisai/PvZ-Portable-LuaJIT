@@ -344,6 +344,14 @@ public:
     int                     DistanceToClosestZombie();
     void                    UpdateSpikeweed();
     void                    MagnetShroomAttactItem(Zombie* theZombie);
+    // ===== 磁铁吸引装备小函数（提取自 MagnetShroomAttactItem）=====
+    void                    MagnetAttractPail(Zombie* theZombie, MagnetItem* aMagnetItem);          // 铁桶
+    void                    MagnetAttractFootball(Zombie* theZombie, MagnetItem* aMagnetItem);     // 橄榄球头盔
+    void                    MagnetAttractDoor(Zombie* theZombie, MagnetItem* aMagnetItem);          // 纱门
+    void                    MagnetAttractLadder(Zombie* theZombie, MagnetItem* aMagnetItem);       // 梯子
+    void                    MagnetAttractPogo(Zombie* theZombie, MagnetItem* aMagnetItem);         // 弹跳杆
+    void                    MagnetAttractJackInTheBox(Zombie* theZombie, MagnetItem* aMagnetItem); // 小丑盒
+    void                    MagnetAttractDiggerAxe(Zombie* theZombie, MagnetItem* aMagnetItem);    // 镐
     void                    UpdateSunShroom();
     void                    UpdateBowling();
     // ===== 保龄球小函数（提取自 UpdateBowling）=====

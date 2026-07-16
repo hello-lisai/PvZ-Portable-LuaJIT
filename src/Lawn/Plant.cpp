@@ -1940,6 +1940,124 @@ MagnetItem* Plant::GetFreeMagnetItem()
     return &mMagnetItems[0];
 }
 
+// 铁桶
+void Plant::MagnetAttractPail(Zombie* theZombie, MagnetItem* aMagnetItem)
+{
+    int aDamageIndex = theZombie->GetHelmDamageIndex();
+
+    theZombie->mHelmHealth = 0;
+    theZombie->mHelmType = HelmType::HELMTYPE_NONE;
+    theZombie->GetTrackPosition("anim_bucket", aMagnetItem->mPosX, aMagnetItem->mPosY);
+    theZombie->ReanimShowPrefix("anim_bucket", RENDER_GROUP_HIDDEN);
+    theZombie->ReanimShowPrefix("anim_hair", RENDER_GROUP_NORMAL);
+
+    aMagnetItem->mPosX -= IMAGE_REANIM_ZOMBIE_BUCKET1->GetWidth() / 2;
+    aMagnetItem->mPosY -= IMAGE_REANIM_ZOMBIE_BUCKET1->GetHeight() / 2;
+    aMagnetItem->mDestOffsetX = RandRangeFloat(-10.0f, 10.0f) + 25.0f;
+    aMagnetItem->mDestOffsetY = RandRangeFloat(-10.0f, 10.0f) + 20.0f;
+    aMagnetItem->mItemType = static_cast<MagnetItemType>(static_cast<int>(MagnetItemType::MAGNET_ITEM_PAIL_1) + aDamageIndex);
+}
+
+// 橄榄球头盔
+void Plant::MagnetAttractFootball(Zombie* theZombie, MagnetItem* aMagnetItem)
+{
+    int aDamageIndex = theZombie->GetHelmDamageIndex();
+
+    theZombie->mHelmHealth = 0;
+    theZombie->mHelmType = HelmType::HELMTYPE_NONE;
+    theZombie->GetTrackPosition("zombie_football_helmet", aMagnetItem->mPosX, aMagnetItem->mPosY);
+    theZombie->ReanimShowPrefix("zombie_football_helmet", RENDER_GROUP_HIDDEN);
+    theZombie->ReanimShowPrefix("anim_hair", RENDER_GROUP_NORMAL);
+
+    aMagnetItem->mPosX += 37.0f;
+    aMagnetItem->mPosY -= 60.0f;
+    aMagnetItem->mDestOffsetX = RandRangeFloat(-10.0f, 10.0f) + 20.0f;
+    aMagnetItem->mDestOffsetY = RandRangeFloat(-10.0f, 10.0f) + 20.0f;
+    aMagnetItem->mItemType = static_cast<MagnetItemType>(static_cast<int>(MagnetItemType::MAGNET_ITEM_FOOTBALL_HELMET_1) + aDamageIndex);
+}
+
+// 纱门
+void Plant::MagnetAttractDoor(Zombie* theZombie, MagnetItem* aMagnetItem)
+{
+    int aDamageIndex = theZombie->GetShieldDamageIndex();
+
+    theZombie->DetachShield();
+    theZombie->mZombiePhase = ZombiePhase::PHASE_ZOMBIE_NORMAL;
+    if (!theZombie->mIsEating)
+    {
+        TOD_ASSERT(theZombie->mZombieHeight == ZombieHeight::HEIGHT_ZOMBIE_NORMAL);
+        theZombie->StartWalkAnim(0);
+    }
+    theZombie->GetTrackPosition("anim_screendoor", aMagnetItem->mPosX, aMagnetItem->mPosY);
+
+    aMagnetItem->mPosX -= IMAGE_REANIM_ZOMBIE_SCREENDOOR1->GetWidth() / 2;
+    aMagnetItem->mPosY -= IMAGE_REANIM_ZOMBIE_SCREENDOOR1->GetHeight() / 2;
+    aMagnetItem->mDestOffsetX = RandRangeFloat(-10.0f, 10.0f) + 30.0f;
+    aMagnetItem->mDestOffsetY = RandRangeFloat(-10.0f, 10.0f);
+    aMagnetItem->mItemType = static_cast<MagnetItemType>(static_cast<int>(MagnetItemType::MAGNET_ITEM_DOOR_1) + aDamageIndex);
+}
+
+// 梯子
+void Plant::MagnetAttractLadder(Zombie* theZombie, MagnetItem* aMagnetItem)
+{
+    int aDamageIndex = theZombie->GetShieldDamageIndex();
+
+    theZombie->DetachShield();
+
+    aMagnetItem->mPosX = theZombie->mPosX + 31.0f;
+    aMagnetItem->mPosY = theZombie->mPosY + 20.0f;
+    aMagnetItem->mPosX -= IMAGE_REANIM_ZOMBIE_LADDER_5->GetWidth() / 2;
+    aMagnetItem->mPosY -= IMAGE_REANIM_ZOMBIE_LADDER_5->GetHeight() / 2;
+    aMagnetItem->mDestOffsetX = RandRangeFloat(-10.0f, 10.0f) + 30.0f;
+    aMagnetItem->mDestOffsetY = RandRangeFloat(-10.0f, 10.0f);
+    aMagnetItem->mItemType = static_cast<MagnetItemType>(static_cast<int>(MagnetItemType::MAGNET_ITEM_LADDER_1) + aDamageIndex);
+}
+
+// 弹跳杆
+void Plant::MagnetAttractPogo(Zombie* theZombie, MagnetItem* aMagnetItem)
+{
+    theZombie->PogoBreak(16U);
+    // ZombieDrawPosition aDrawPos;
+    // theZombie->GetDrawPos(aDrawPos);
+    theZombie->GetTrackPosition("Zombie_pogo_stick", aMagnetItem->mPosX, aMagnetItem->mPosY);
+
+    aMagnetItem->mPosX += 40.0f - IMAGE_REANIM_ZOMBIE_LADDER_5->GetWidth() / 2;
+    aMagnetItem->mPosY += 84.0f - IMAGE_REANIM_ZOMBIE_LADDER_5->GetHeight() / 2;
+    aMagnetItem->mDestOffsetX = RandRangeFloat(-10.0f, 10.0f) + 30.0f;
+    aMagnetItem->mDestOffsetY = RandRangeFloat(-10.0f, 10.0f);
+    aMagnetItem->mItemType = theZombie->mHasArm ? MagnetItemType::MAGNET_ITEM_POGO_1 : MagnetItemType::MAGNET_ITEM_POGO_3;
+}
+
+// 小丑盒
+void Plant::MagnetAttractJackInTheBox(Zombie* theZombie, MagnetItem* aMagnetItem)
+{
+    theZombie->StopZombieSound();
+    theZombie->PickRandomSpeed();
+    theZombie->mZombiePhase = ZombiePhase::PHASE_ZOMBIE_NORMAL;
+    theZombie->ReanimShowPrefix("Zombie_jackbox_box", RENDER_GROUP_HIDDEN);
+    theZombie->ReanimShowPrefix("Zombie_jackbox_handle", RENDER_GROUP_HIDDEN);
+    theZombie->GetTrackPosition("Zombie_jackbox_box", aMagnetItem->mPosX, aMagnetItem->mPosY);
+
+    aMagnetItem->mPosX -= IMAGE_REANIM_ZOMBIE_JACKBOX_BOX->GetWidth() / 2;
+    aMagnetItem->mPosY -= IMAGE_REANIM_ZOMBIE_JACKBOX_BOX->GetHeight() / 2;
+    aMagnetItem->mDestOffsetX = RandRangeFloat(-10.0f, 10.0f) + 20.0f;
+    aMagnetItem->mDestOffsetY = RandRangeFloat(-10.0f, 10.0f) + 15.0f;
+    aMagnetItem->mItemType = MagnetItemType::MAGNET_ITEM_JACK_IN_THE_BOX;
+}
+
+// 镐
+void Plant::MagnetAttractDiggerAxe(Zombie* theZombie, MagnetItem* aMagnetItem)
+{
+    theZombie->DiggerLoseAxe();
+    theZombie->GetTrackPosition("Zombie_digger_pickaxe", aMagnetItem->mPosX, aMagnetItem->mPosY);
+
+    aMagnetItem->mPosX -= IMAGE_REANIM_ZOMBIE_DIGGER_PICKAXE->GetWidth() / 2;
+    aMagnetItem->mPosY -= IMAGE_REANIM_ZOMBIE_DIGGER_PICKAXE->GetHeight() / 2;
+    aMagnetItem->mDestOffsetX = RandRangeFloat(-10.0f, 10.0f) + 45.0f;
+    aMagnetItem->mDestOffsetY = RandRangeFloat(-10.0f, 10.0f) + 15.0f;
+    aMagnetItem->mItemType = MagnetItemType::MAGNET_ITEM_PICK_AXE;
+}
+
 void Plant::MagnetShroomAttactItem(Zombie* theZombie)
 {
     mState = PlantState::STATE_MAGNETSHROOM_SUCKING;
@@ -1949,109 +2067,19 @@ void Plant::MagnetShroomAttactItem(Zombie* theZombie)
 
     MagnetItem* aMagnetItem = GetFreeMagnetItem();
     if (theZombie->mHelmType == HelmType::HELMTYPE_PAIL)
-    {
-        int aDamageIndex = theZombie->GetHelmDamageIndex();
-
-        theZombie->mHelmHealth = 0;
-        theZombie->mHelmType = HelmType::HELMTYPE_NONE;
-        theZombie->GetTrackPosition("anim_bucket", aMagnetItem->mPosX, aMagnetItem->mPosY);
-        theZombie->ReanimShowPrefix("anim_bucket", RENDER_GROUP_HIDDEN);
-        theZombie->ReanimShowPrefix("anim_hair", RENDER_GROUP_NORMAL);
-
-        aMagnetItem->mPosX -= IMAGE_REANIM_ZOMBIE_BUCKET1->GetWidth() / 2;
-        aMagnetItem->mPosY -= IMAGE_REANIM_ZOMBIE_BUCKET1->GetHeight() / 2;
-        aMagnetItem->mDestOffsetX = RandRangeFloat(-10.0f, 10.0f) + 25.0f;
-        aMagnetItem->mDestOffsetY = RandRangeFloat(-10.0f, 10.0f) + 20.0f;
-        aMagnetItem->mItemType = static_cast<MagnetItemType>(static_cast<int>(MagnetItemType::MAGNET_ITEM_PAIL_1) + aDamageIndex);
-    }
+        MagnetAttractPail(theZombie, aMagnetItem);
     else if (theZombie->mHelmType == HelmType::HELMTYPE_FOOTBALL)
-    {
-        int aDamageIndex = theZombie->GetHelmDamageIndex();
-
-        theZombie->mHelmHealth = 0;
-        theZombie->mHelmType = HelmType::HELMTYPE_NONE;
-        theZombie->GetTrackPosition("zombie_football_helmet", aMagnetItem->mPosX, aMagnetItem->mPosY);
-        theZombie->ReanimShowPrefix("zombie_football_helmet", RENDER_GROUP_HIDDEN);
-        theZombie->ReanimShowPrefix("anim_hair", RENDER_GROUP_NORMAL);
-
-        aMagnetItem->mPosX += 37.0f;
-        aMagnetItem->mPosY -= 60.0f;
-        aMagnetItem->mDestOffsetX = RandRangeFloat(-10.0f, 10.0f) + 20.0f;
-        aMagnetItem->mDestOffsetY = RandRangeFloat(-10.0f, 10.0f) + 20.0f;
-        aMagnetItem->mItemType = static_cast<MagnetItemType>(static_cast<int>(MagnetItemType::MAGNET_ITEM_FOOTBALL_HELMET_1) + aDamageIndex);
-    }
+        MagnetAttractFootball(theZombie, aMagnetItem);
     else if (theZombie->mShieldType == ShieldType::SHIELDTYPE_DOOR)
-    {
-        int aDamageIndex = theZombie->GetShieldDamageIndex();
-
-        theZombie->DetachShield();
-        theZombie->mZombiePhase = ZombiePhase::PHASE_ZOMBIE_NORMAL;
-        if (!theZombie->mIsEating)
-        {
-            TOD_ASSERT(theZombie->mZombieHeight == ZombieHeight::HEIGHT_ZOMBIE_NORMAL);
-            theZombie->StartWalkAnim(0);
-        }
-        theZombie->GetTrackPosition("anim_screendoor", aMagnetItem->mPosX, aMagnetItem->mPosY);
-
-        aMagnetItem->mPosX -= IMAGE_REANIM_ZOMBIE_SCREENDOOR1->GetWidth() / 2;
-        aMagnetItem->mPosY -= IMAGE_REANIM_ZOMBIE_SCREENDOOR1->GetHeight() / 2;
-        aMagnetItem->mDestOffsetX = RandRangeFloat(-10.0f, 10.0f) + 30.0f;
-        aMagnetItem->mDestOffsetY = RandRangeFloat(-10.0f, 10.0f);
-        aMagnetItem->mItemType = static_cast<MagnetItemType>(static_cast<int>(MagnetItemType::MAGNET_ITEM_DOOR_1) + aDamageIndex);
-    }
+        MagnetAttractDoor(theZombie, aMagnetItem);
     else if (theZombie->mShieldType == ShieldType::SHIELDTYPE_LADDER)
-    {
-        int aDamageIndex = theZombie->GetShieldDamageIndex();
-
-        theZombie->DetachShield();
-
-        aMagnetItem->mPosX = theZombie->mPosX + 31.0f;
-        aMagnetItem->mPosY = theZombie->mPosY + 20.0f;
-        aMagnetItem->mPosX -= IMAGE_REANIM_ZOMBIE_LADDER_5->GetWidth() / 2;
-        aMagnetItem->mPosY -= IMAGE_REANIM_ZOMBIE_LADDER_5->GetHeight() / 2;
-        aMagnetItem->mDestOffsetX = RandRangeFloat(-10.0f, 10.0f) + 30.0f;
-        aMagnetItem->mDestOffsetY = RandRangeFloat(-10.0f, 10.0f);
-        aMagnetItem->mItemType = static_cast<MagnetItemType>(static_cast<int>(MagnetItemType::MAGNET_ITEM_LADDER_1) + aDamageIndex);
-    }
+        MagnetAttractLadder(theZombie, aMagnetItem);
     else if (theZombie->mZombieType == ZombieType::ZOMBIE_POGO)
-    {
-        theZombie->PogoBreak(16U);
-        // ZombieDrawPosition aDrawPos;
-        // theZombie->GetDrawPos(aDrawPos);
-        theZombie->GetTrackPosition("Zombie_pogo_stick", aMagnetItem->mPosX, aMagnetItem->mPosY);
-
-        aMagnetItem->mPosX += 40.0f - IMAGE_REANIM_ZOMBIE_LADDER_5->GetWidth() / 2;
-        aMagnetItem->mPosY += 84.0f - IMAGE_REANIM_ZOMBIE_LADDER_5->GetHeight() / 2;
-        aMagnetItem->mDestOffsetX = RandRangeFloat(-10.0f, 10.0f) + 30.0f;
-        aMagnetItem->mDestOffsetY = RandRangeFloat(-10.0f, 10.0f);
-        aMagnetItem->mItemType = theZombie->mHasArm ? MagnetItemType::MAGNET_ITEM_POGO_1 : MagnetItemType::MAGNET_ITEM_POGO_3;
-    }
+        MagnetAttractPogo(theZombie, aMagnetItem);
     else if (theZombie->mZombiePhase == ZombiePhase::PHASE_JACK_IN_THE_BOX_RUNNING)
-    {
-        theZombie->StopZombieSound();
-        theZombie->PickRandomSpeed();
-        theZombie->mZombiePhase = ZombiePhase::PHASE_ZOMBIE_NORMAL;
-        theZombie->ReanimShowPrefix("Zombie_jackbox_box", RENDER_GROUP_HIDDEN);
-        theZombie->ReanimShowPrefix("Zombie_jackbox_handle", RENDER_GROUP_HIDDEN);
-        theZombie->GetTrackPosition("Zombie_jackbox_box", aMagnetItem->mPosX, aMagnetItem->mPosY);
-
-        aMagnetItem->mPosX -= IMAGE_REANIM_ZOMBIE_JACKBOX_BOX->GetWidth() / 2;
-        aMagnetItem->mPosY -= IMAGE_REANIM_ZOMBIE_JACKBOX_BOX->GetHeight() / 2;
-        aMagnetItem->mDestOffsetX = RandRangeFloat(-10.0f, 10.0f) + 20.0f;
-        aMagnetItem->mDestOffsetY = RandRangeFloat(-10.0f, 10.0f) + 15.0f;
-        aMagnetItem->mItemType = MagnetItemType::MAGNET_ITEM_JACK_IN_THE_BOX;
-    }
+        MagnetAttractJackInTheBox(theZombie, aMagnetItem);
     else if (theZombie->mZombieType == ZombieType::ZOMBIE_DIGGER)
-    {
-        theZombie->DiggerLoseAxe();
-        theZombie->GetTrackPosition("Zombie_digger_pickaxe", aMagnetItem->mPosX, aMagnetItem->mPosY);
-
-        aMagnetItem->mPosX -= IMAGE_REANIM_ZOMBIE_DIGGER_PICKAXE->GetWidth() / 2;
-        aMagnetItem->mPosY -= IMAGE_REANIM_ZOMBIE_DIGGER_PICKAXE->GetHeight() / 2;
-        aMagnetItem->mDestOffsetX = RandRangeFloat(-10.0f, 10.0f) + 45.0f;
-        aMagnetItem->mDestOffsetY = RandRangeFloat(-10.0f, 10.0f) + 15.0f;
-        aMagnetItem->mItemType = MagnetItemType::MAGNET_ITEM_PICK_AXE;
-    }
+        MagnetAttractDiggerAxe(theZombie, aMagnetItem);
 }
 
 // GOTY @Patoke: 0x4656B0

@@ -629,6 +629,13 @@ static void BindSol2Plant(sol::state_view& lua) {
         "distance_to_closest_zombie", &Plant::DistanceToClosestZombie,
         "update_spikeweed", &Plant::UpdateSpikeweed,
         "magnet_shroom_attact_item", &Plant::MagnetShroomAttactItem,
+        // magnet_attract_pail: 跳过 (has unregistered pointer param (MagnetItem*)) — void                    MagnetAttractPail(Zombie* theZombie, MagnetItem* aMagnetItem);          // 铁桶
+        // magnet_attract_football: 跳过 (has unregistered pointer param (MagnetItem*)) — void                    MagnetAttractFootball(Zombie* theZombie, MagnetItem* aMagnetItem);     // 橄榄球头盔
+        // magnet_attract_door: 跳过 (has unregistered pointer param (MagnetItem*)) — void                    MagnetAttractDoor(Zombie* theZombie, MagnetItem* aMagnetItem);          // 纱门
+        // magnet_attract_ladder: 跳过 (has unregistered pointer param (MagnetItem*)) — void                    MagnetAttractLadder(Zombie* theZombie, MagnetItem* aMagnetItem);       // 梯子
+        // magnet_attract_pogo: 跳过 (has unregistered pointer param (MagnetItem*)) — void                    MagnetAttractPogo(Zombie* theZombie, MagnetItem* aMagnetItem);         // 弹跳杆
+        // magnet_attract_jack_in_the_box: 跳过 (has unregistered pointer param (MagnetItem*)) — void                    MagnetAttractJackInTheBox(Zombie* theZombie, MagnetItem* aMagnetItem); // 小丑盒
+        // magnet_attract_digger_axe: 跳过 (has unregistered pointer param (MagnetItem*)) — void                    MagnetAttractDiggerAxe(Zombie* theZombie, MagnetItem* aMagnetItem);    // 镐
         "update_sun_shroom", &Plant::UpdateSunShroom,
         "update_bowling", &Plant::UpdateBowling,
         // update_bowling_movement: 跳过 (has reference param) — bool                    UpdateBowlingMovement(PlantState& aNewState);    // 水平+垂直移动及边界反弹状态计算（返回 false 表示未到网格需提前 return）
