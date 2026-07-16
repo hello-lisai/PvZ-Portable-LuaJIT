@@ -733,7 +733,24 @@ void Plant::SpikeRockTakeDamage()
 
     SpikeweedAttack();
 
-    mPlantHealth -= 50;
+    // Mod API: ON_PLANT_TAKE_DAMAGE_PRE，mod 可改伤害值或取消（Spikerock 免疫碾压车自伤）
+    // 注意：函数内拿不到碾压者 zombie，ctx.zombie=nullptr（与抛射物相同），
+    //       但 ctx.projectile=nullptr 可与抛射物撞击区分（抛射物撞击时 ctx.projectile 非空）
+    int aDamage = 50;
+    bool aCanceled = false;
+    if (ModBus::HasListenersFor(ModEvent::ON_PLANT_TAKE_DAMAGE_PRE)) {
+        ModCtx _ctx = MakeCtx(ModEvent::ON_PLANT_TAKE_DAMAGE_PRE);
+        _ctx.app = mApp;
+        _ctx.plant = this;
+        _ctx.zombie = nullptr;
+        _ctx.damage = 50;
+        ModBus::Fire(ModEvent::ON_PLANT_TAKE_DAMAGE_PRE, _ctx);
+        if (_ctx.newDamage >= 0) aDamage = _ctx.newDamage;
+        aCanceled = _ctx.cancel;
+    }
+    if (aCanceled) return;
+
+    mPlantHealth -= aDamage;
     if (mPlantHealth <= 300)
     {
         aBodyReanim->AssignRenderGroupToTrack("bigspike3", RENDER_GROUP_HIDDEN);
