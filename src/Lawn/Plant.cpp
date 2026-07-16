@@ -5285,7 +5285,7 @@ int Plant::DistanceToClosestZombie()
 void Plant::Die()
 {
     // Mod API: ON_PLANT_DIE_PRE，mod 可设 ctx.cancel=true 让植物免死
-    MOD_HOOK(ModEvent::ON_PLANT_DIE_PRE, ctx.plant = this);
+    MOD_HOOK(ModEvent::ON_PLANT_DIE_PRE, _ctx.plant = this);
     // 注意：ModCtx 当前未透传 cancel 回此函数（Die 走 void 返回），先做只读观察
     // 后续若要支持取消死亡，需要把 Die 改为返回 bool 或在 ModCtx 加 plantCancel 字段
 
