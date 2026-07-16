@@ -432,6 +432,9 @@ static void BindSol2Zombie(sol::state_view& lua) {
         // update_zombiquarium_back_and_forth: 跳过 (has reference param) — void                            UpdateZombiquariumBackAndForth(float aVelX, float& aMaxSpeed);
         // update_zombiquarium_drift: 跳过 (has reference param) — void                            UpdateZombiquariumDrift(float& aMaxSpeed);
         "zombiquarium_find_closest_brain", &Zombie::ZombiquariumFindClosestBrain,
+        // update_zombiquarium_phase_switch: 跳过 (has unregistered pointer param (Reanimation*)) — void                            UpdateZombiquariumPhaseSwitch(Reanimation* aBodyReanim);  // 无目标且计时归零时随机切换阶段
+        "update_zombiquarium_movement", &Zombie::UpdateZombiquariumMovement,
+        "update_zombiquarium_sun_and_damage", &Zombie::UpdateZombiquariumSunAndDamage,
         "update_zombie_gatling_head", &Zombie::UpdateZombieGatlingHead,
         "update_zombie_squash_head", &Zombie::UpdateZombieSquashHead,
         "pea_head_shoot_projectile", &Zombie::PeaHeadShootProjectile,

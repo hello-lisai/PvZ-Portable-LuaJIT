@@ -3501,50 +3501,43 @@ void Zombie::UpdateZombiquariumDrift(float& aMaxSpeed)
     aMaxSpeed = 0.05f;
 }
 
-void Zombie::UpdateZombiquarium()
+// 无目标且计时归零时随机切换阶段
+void Zombie::UpdateZombiquariumPhaseSwitch(Reanimation* aBodyReanim)
 {
-    if (IsDeadOrDying())
-        return;
-
-    //float& num2 = mVelX; // unused
-    Reanimation* aBodyReanim = mApp->ReanimationTryToGet(mBodyReanimID);
-    if (mZombiePhase == ZombiePhase::PHASE_ZOMBIQUARIUM_BITE)
+    int aPhaseHit = Rand(7);
+    if (aPhaseHit <= 4)
     {
-        UpdateZombiquariumBite(aBodyReanim);
+        mZombiePhase = ZombiePhase::PHASE_ZOMBIQUARIUM_ACCEL;
+        mVelZ = RandRangeFloat(0.0f, PI * 2);
+        mPhaseCounter = RandRangeInt(300, 1000);
+        aBodyReanim->mAnimRate = RandRangeFloat(15.0f, 20.0f);
     }
-    else if (!ZombiquariumFindClosestBrain() && mPhaseCounter == 0)
+    //else if (aPhaseHit == 4)
+    //{
+    //    mZombiePhase = ZombiePhase::PHASE_ZOMBIQUARIUM_DRIFT;
+    //    mVelZ = PI * 1.5f;
+    //    mPhaseCounter = RandRangeInt(300, 1000);
+    //    aBodyReanim->mAnimRate = RandRangeFloat(8.0f, 10.0f);
+    //}
+    else if (aPhaseHit == 5)
     {
-        int aPhaseHit = Rand(7);
-        if (aPhaseHit <= 4)
-        {
-            mZombiePhase = ZombiePhase::PHASE_ZOMBIQUARIUM_ACCEL;
-            mVelZ = RandRangeFloat(0.0f, PI * 2);
-            mPhaseCounter = RandRangeInt(300, 1000);
-            aBodyReanim->mAnimRate = RandRangeFloat(15.0f, 20.0f);
-        }
-        //else if (aPhaseHit == 4)
-        //{
-        //    mZombiePhase = ZombiePhase::PHASE_ZOMBIQUARIUM_DRIFT;
-        //    mVelZ = PI * 1.5f;
-        //    mPhaseCounter = RandRangeInt(300, 1000);
-        //    aBodyReanim->mAnimRate = RandRangeFloat(8.0f, 10.0f);
-        //}
-        else if (aPhaseHit == 5)
-        {
-            mZombiePhase = ZombiePhase::PHASE_ZOMBIQUARIUM_BACK_AND_FORTH;
-            mVelZ = 0.0f;
-            mPhaseCounter = RandRangeInt(300, 1000);
-            aBodyReanim->mAnimRate = RandRangeFloat(15.0f, 20.0f);
-        }
-        else
-        {
-            mZombiePhase = ZombiePhase::PHASE_ZOMBIQUARIUM_BACK_AND_FORTH;
-            mVelZ = PI;
-            mPhaseCounter = RandRangeInt(300, 1000);
-            aBodyReanim->mAnimRate = RandRangeFloat(15.0f, 20.0f);
-        }
+        mZombiePhase = ZombiePhase::PHASE_ZOMBIQUARIUM_BACK_AND_FORTH;
+        mVelZ = 0.0f;
+        mPhaseCounter = RandRangeInt(300, 1000);
+        aBodyReanim->mAnimRate = RandRangeFloat(15.0f, 20.0f);
     }
+    else
+    {
+        mZombiePhase = ZombiePhase::PHASE_ZOMBIQUARIUM_BACK_AND_FORTH;
+        mVelZ = PI;
+        mPhaseCounter = RandRangeInt(300, 1000);
+        aBodyReanim->mAnimRate = RandRangeFloat(15.0f, 20.0f);
+    }
+}
 
+// 边界检查+速度计算+位置更新
+void Zombie::UpdateZombiquariumMovement()
+{
     float aVelX = cos(mVelZ);
     float aVelY = sin(mVelZ);
     bool aIsOutOfBounds = false;
@@ -3589,29 +3582,52 @@ void Zombie::UpdateZombiquarium()
     aVelY *= mVelX;
     mPosX += aVelX;
     mPosY += aVelY;
+}
 
-    if (!mBoard->HasLevelAwardDropped())
+// 阳光生成与定期掉血
+void Zombie::UpdateZombiquariumSunAndDamage()
+{
+    if (mBoard->HasLevelAwardDropped())
+        return;
+
+    if (mSummonCounter > 0)
     {
-        if (mSummonCounter > 0)
+        mSummonCounter--;
+        if (mSummonCounter == 0)
         {
-            mSummonCounter--;
-            if (mSummonCounter == 0)
-            {
-                mApp->PlayFoley(FoleyType::FOLEY_SPAWN_SUN);
-                mBoard->AddCoin(mX + 50, mY + 40, CoinType::COIN_SUN, CoinMotion::COIN_MOTION_FROM_PLANT);
-                mSummonCounter = RandRangeInt(1000, 1500);
-            }
-        }
-
-        if (mZombieAge % 100 == 0)
-        {
-            TakeDamage(10, 8U);
-            if (IsDeadOrDying())
-            {
-                mApp->PlaySample(SOUND_ZOMBAQUARIUM_DIE);
-            }
+            mApp->PlayFoley(FoleyType::FOLEY_SPAWN_SUN);
+            mBoard->AddCoin(mX + 50, mY + 40, CoinType::COIN_SUN, CoinMotion::COIN_MOTION_FROM_PLANT);
+            mSummonCounter = RandRangeInt(1000, 1500);
         }
     }
+
+    if (mZombieAge % 100 == 0)
+    {
+        TakeDamage(10, 8U);
+        if (IsDeadOrDying())
+        {
+            mApp->PlaySample(SOUND_ZOMBAQUARIUM_DIE);
+        }
+    }
+}
+
+void Zombie::UpdateZombiquarium()
+{
+    if (IsDeadOrDying())
+        return;
+
+    Reanimation* aBodyReanim = mApp->ReanimationTryToGet(mBodyReanimID);
+    if (mZombiePhase == ZombiePhase::PHASE_ZOMBIQUARIUM_BITE)
+    {
+        UpdateZombiquariumBite(aBodyReanim);
+    }
+    else if (!ZombiquariumFindClosestBrain() && mPhaseCounter == 0)
+    {
+        UpdateZombiquariumPhaseSwitch(aBodyReanim);
+    }
+
+    UpdateZombiquariumMovement();
+    UpdateZombiquariumSunAndDamage();
 }
 
 void Zombie::UpdateZombiePool()

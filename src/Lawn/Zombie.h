@@ -613,6 +613,9 @@ public:
     void                            UpdateZombiquariumBackAndForth(float aVelX, float& aMaxSpeed);
     void                            UpdateZombiquariumDrift(float& aMaxSpeed);
     bool                            ZombiquariumFindClosestBrain();
+    void                            UpdateZombiquariumPhaseSwitch(Reanimation* aBodyReanim);  // 无目标且计时归零时随机切换阶段
+    void                            UpdateZombiquariumMovement();   // 边界检查+速度计算+位置更新
+    void                            UpdateZombiquariumSunAndDamage();  // 阳光生成与定期掉血
     void                            UpdateZombieGatlingHead();
     void                            UpdateZombieSquashHead();
     // ===== 豌豆头/加特林头小函数（提取自 UpdateZombiePeaHead/UpdateZombieGatlingHead）=====
