@@ -295,6 +295,13 @@ static void BindSol2Zombie(sol::state_view& lua) {
         "init_zombie_type_backup_dancer", &Zombie::InitZombieTypeBackupDancer,
         "init_zombie_type_imp", &Zombie::InitZombieTypeImp,
         // init_zombie_type_boss: 跳过 (has reference param) — void                            InitZombieTypeBoss(RenderLayer& aRenderLayer);  // Boss僵尸初始化
+        "init_zombie_type_flag", &Zombie::InitZombieTypeFlag,
+        "init_zombie_type_pea_head", &Zombie::InitZombieTypePeaHead,
+        "init_zombie_type_wallnut_head", &Zombie::InitZombieTypeWallnutHead,
+        "init_zombie_type_tallnut_head", &Zombie::InitZombieTypeTallnutHead,
+        "init_zombie_type_jalapeno_head", &Zombie::InitZombieTypeJalapenoHead,
+        "init_zombie_type_gatling_head", &Zombie::InitZombieTypeGatlingHead,
+        "init_zombie_type_squash_head", &Zombie::InitZombieTypeSquashHead,
         "update_boss_idle", &Zombie::UpdateBossIdle,
         "update_boss_spawning", &Zombie::UpdateBossSpawning,
         "update_boss_bungees_enter", &Zombie::UpdateBossBungeesEnter,

@@ -462,6 +462,13 @@ public:
     void                            InitZombieTypeBackupDancer();  // 伴舞僵尸初始化
     void                            InitZombieTypeImp();           // 小鬼僵尸初始化
     void                            InitZombieTypeBoss(RenderLayer& aRenderLayer);  // Boss僵尸初始化
+    void                            InitZombieTypeFlag();          // 旗手僵尸初始化
+    void                            InitZombieTypePeaHead();      // 豌豆头僵尸初始化
+    void                            InitZombieTypeWallnutHead();   // 坚果头僵尸初始化
+    void                            InitZombieTypeTallnutHead();   // 高坚果头僵尸初始化
+    void                            InitZombieTypeJalapenoHead();  // 火椒头僵尸初始化
+    void                            InitZombieTypeGatlingHead();   // 机枪头僵尸初始化
+    void                            InitZombieTypeSquashHead();    // 倭瓜头僵尸初始化
     // ===== ZombieInitialize 小函数结束 =====
     // ===== UpdateBoss 小函数（提取自 UpdateBoss）=====
     void                            UpdateBossIdle();              // Boss空闲阶段

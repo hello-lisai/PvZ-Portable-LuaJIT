@@ -656,6 +656,176 @@ void Zombie::InitZombieTypeBoss(RenderLayer& aRenderLayer)
     BossSetupReanim();
 }
 
+// 旗手僵尸初始化
+void Zombie::InitZombieTypeFlag()
+{
+    mAbilities = ABILITY_WALK;
+    mHasObject = true;
+    LoadPlainZombieReanim();
+
+    Reanimation* aBodyReanim = mApp->ReanimationGet(mBodyReanimID);
+    Reanimation* aFlagReanim = mApp->AddReanimation(0.0f, 0.0f, 0, ReanimationType::REANIM_FLAG);
+    aFlagReanim->PlayReanim("Zombie_flag", ReanimLoopType::REANIM_LOOP, 0, 15.0f);
+    mSpecialHeadReanimID = mApp->ReanimationGetID(aFlagReanim);
+    ReanimatorTrackInstance* aTrackInstance = aBodyReanim->GetTrackInstanceByName("Zombie_flaghand");
+    AttachReanim(aTrackInstance->mAttachmentID, aFlagReanim, 0.0f, 0.0f);
+    aBodyReanim->mFrameBasePose = 0;
+
+    mPosX = WIDE_BOARD_WIDTH;
+}
+
+// 豌豆头僵尸初始化
+void Zombie::InitZombieTypePeaHead()
+{
+    mAbilities = ABILITY_WALK;
+    LoadPlainZombieReanim();
+    ReanimShowPrefix("anim_hair", RENDER_GROUP_HIDDEN);
+    ReanimShowPrefix("anim_head2", RENDER_GROUP_HIDDEN);
+
+    Reanimation* aBodyReanim = mApp->ReanimationGet(mBodyReanimID);
+    if (IsOnBoard())
+    {
+        aBodyReanim->SetFramesForLayer("anim_walk2");
+    }
+
+    ReanimatorTrackInstance* aTrackInstance = aBodyReanim->GetTrackInstanceByName("anim_head1");
+    aTrackInstance->mImageOverride = IMAGE_BLANK;
+    Reanimation* aHeadReanim = mApp->AddReanimation(0.0f, 0.0f, 0, ReanimationType::REANIM_PEASHOOTER);
+    aHeadReanim->PlayReanim("anim_head_idle", ReanimLoopType::REANIM_LOOP, 0, 15.0f);
+    mSpecialHeadReanimID = mApp->ReanimationGetID(aHeadReanim);
+    AttachEffect* aAttachEffect = AttachReanim(aTrackInstance->mAttachmentID, aHeadReanim, 0.0f, 0.0f);
+    aBodyReanim->mFrameBasePose = 0;
+    TodScaleRotateTransformMatrix(aAttachEffect->mOffset, 65.0f, -5.0f, 0.2f, -1.0f, 1.0f);
+
+    mPhaseCounter = 150;
+    mVariant = false;
+}
+
+// 坚果头僵尸初始化
+void Zombie::InitZombieTypeWallnutHead()
+{
+    mAbilities = ABILITY_WALK;
+    LoadPlainZombieReanim();
+    ReanimShowPrefix("anim_hair", RENDER_GROUP_HIDDEN);
+    ReanimShowPrefix("anim_head", RENDER_GROUP_HIDDEN);
+    ReanimShowPrefix("Zombie_tie", RENDER_GROUP_HIDDEN);
+
+    Reanimation* aBodyReanim = mApp->ReanimationGet(mBodyReanimID);
+    ReanimatorTrackInstance* aTrackInstance = aBodyReanim->GetTrackInstanceByName("Zombie_body");
+    Reanimation* aHeadReanim = mApp->AddReanimation(0.0f, 0.0f, 0, ReanimationType::REANIM_WALLNUT);
+    aHeadReanim->PlayReanim("anim_idle", ReanimLoopType::REANIM_LOOP, 0, 15.0f);
+    mSpecialHeadReanimID = mApp->ReanimationGetID(aHeadReanim);
+    AttachEffect* aAttachEffect = AttachReanim(aTrackInstance->mAttachmentID, aHeadReanim, 0.0f, 0.0f);
+    aBodyReanim->mFrameBasePose = 0;
+    TodScaleRotateTransformMatrix(aAttachEffect->mOffset, 50.0f, 0.0f, 0.2f, -0.8f, 0.8f);
+
+    mHelmType = HelmType::HELMTYPE_WALLNUT;
+    mHelmHealth = 1100;
+    mVariant = false;
+}
+
+// 高坚果头僵尸初始化
+void Zombie::InitZombieTypeTallnutHead()
+{
+    mAbilities = ABILITY_WALK;
+    LoadPlainZombieReanim();
+    ReanimShowPrefix("anim_hair", RENDER_GROUP_HIDDEN);
+    ReanimShowPrefix("anim_head", RENDER_GROUP_HIDDEN);
+    ReanimShowPrefix("Zombie_tie", RENDER_GROUP_HIDDEN);
+
+    Reanimation* aBodyReanim = mApp->ReanimationGet(mBodyReanimID);
+    ReanimatorTrackInstance* aTrackInstance = aBodyReanim->GetTrackInstanceByName("Zombie_body");
+    Reanimation* aHeadReanim = mApp->AddReanimation(0.0f, 0.0f, 0, ReanimationType::REANIM_TALLNUT);
+    aHeadReanim->PlayReanim("anim_idle", ReanimLoopType::REANIM_LOOP, 0, 15.0f);
+    mSpecialHeadReanimID = mApp->ReanimationGetID(aHeadReanim);
+    AttachEffect* aAttachEffect = AttachReanim(aTrackInstance->mAttachmentID, aHeadReanim, 0.0f, 0.0f);
+    aBodyReanim->mFrameBasePose = 0;
+    TodScaleRotateTransformMatrix(aAttachEffect->mOffset, 37.0f, 0.0f, 0.2f, -0.8f, 0.8f);
+
+    mHelmType = HelmType::HELMTYPE_TALLNUT;
+    mHelmHealth = 2200;
+    mVariant = false;
+    mPosX += 30.0f;
+}
+
+// 火椒头僵尸初始化
+void Zombie::InitZombieTypeJalapenoHead()
+{
+    mAbilities = ABILITY_WALK;
+    LoadPlainZombieReanim();
+    ReanimShowPrefix("anim_hair", RENDER_GROUP_HIDDEN);
+    ReanimShowPrefix("anim_head", RENDER_GROUP_HIDDEN);
+    ReanimShowPrefix("Zombie_tie", RENDER_GROUP_HIDDEN);
+
+    Reanimation* aBodyReanim = mApp->ReanimationGet(mBodyReanimID);
+    ReanimatorTrackInstance* aTrackInstance = aBodyReanim->GetTrackInstanceByName("Zombie_body");
+    Reanimation* aHeadReanim = mApp->AddReanimation(0.0f, 0.0f, 0, ReanimationType::REANIM_JALAPENO);
+    aHeadReanim->PlayReanim("anim_idle", ReanimLoopType::REANIM_LOOP, 0, 15.0f);
+    mSpecialHeadReanimID = mApp->ReanimationGetID(aHeadReanim);
+    AttachEffect* aAttachEffect = AttachReanim(aTrackInstance->mAttachmentID, aHeadReanim, 0.0f, 0.0f);
+    aBodyReanim->mFrameBasePose = 0;
+    TodScaleRotateTransformMatrix(aAttachEffect->mOffset, 55.0f, -5.0f, 0.2f, -1.0f, 1.0f);
+
+    mVariant = false;
+    mBodyHealth = 500;
+    int aDistance = 275 + Rand(175);
+    mPhaseCounter = static_cast<int>(aDistance / mVelX) * ZOMBIE_LIMP_SPEED_FACTOR;
+}
+
+// 机枪头僵尸初始化
+void Zombie::InitZombieTypeGatlingHead()
+{
+    mAbilities = ABILITY_WALK;
+    LoadPlainZombieReanim();
+    ReanimShowPrefix("anim_hair", RENDER_GROUP_HIDDEN);
+    ReanimShowPrefix("anim_head2", RENDER_GROUP_HIDDEN);
+
+    Reanimation* aBodyReanim = mApp->ReanimationGet(mBodyReanimID);
+    if (IsOnBoard())
+    {
+        aBodyReanim->SetFramesForLayer("anim_walk2");
+    }
+
+    ReanimatorTrackInstance* aTrackInstance = aBodyReanim->GetTrackInstanceByName("anim_head1");
+    aTrackInstance->mImageOverride = IMAGE_BLANK;
+    Reanimation* aHeadReanim = mApp->AddReanimation(0.0f, 0.0f, 0, ReanimationType::REANIM_GATLINGPEA);
+    aHeadReanim->PlayReanim("anim_head_idle", ReanimLoopType::REANIM_LOOP, 0, 15.0f);
+    mSpecialHeadReanimID = mApp->ReanimationGetID(aHeadReanim);
+    AttachEffect* aAttachEffect = AttachReanim(aTrackInstance->mAttachmentID, aHeadReanim, 0.0f, 0.0f);
+    aBodyReanim->mFrameBasePose = 0;
+    TodScaleRotateTransformMatrix(aAttachEffect->mOffset, 65.0f, -5.0f, 0.2f, -1.0f, 1.0f);
+
+    mPhaseCounter = 150;
+    mVariant = false;
+}
+
+// 倭瓜头僵尸初始化
+void Zombie::InitZombieTypeSquashHead()
+{
+    mAbilities = ABILITY_WALK;
+    LoadPlainZombieReanim();
+    ReanimShowPrefix("anim_hair", RENDER_GROUP_HIDDEN);
+    ReanimShowPrefix("anim_head2", RENDER_GROUP_HIDDEN);
+
+    Reanimation* aBodyReanim = mApp->ReanimationGet(mBodyReanimID);
+    if (IsOnBoard())
+    {
+        aBodyReanim->SetFramesForLayer("anim_walk2");
+    }
+
+    ReanimatorTrackInstance* aTrackInstance = aBodyReanim->GetTrackInstanceByName("anim_head1");
+    aTrackInstance->mImageOverride = IMAGE_BLANK;
+    Reanimation* aHeadReanim = mApp->AddReanimation(0.0f, 0.0f, 0, ReanimationType::REANIM_SQUASH);
+    aHeadReanim->PlayReanim("anim_idle", ReanimLoopType::REANIM_LOOP, 0, 15.0f);
+    mSpecialHeadReanimID = mApp->ReanimationGetID(aHeadReanim);
+    AttachEffect* aAttachEffect = AttachReanim(aTrackInstance->mAttachmentID, aHeadReanim, 0.0f, 0.0f);
+    aBodyReanim->mFrameBasePose = 0;
+    TodScaleRotateTransformMatrix(aAttachEffect->mOffset, 55.0f, -15.0f, 0.2f, -0.75f, 0.75f);
+
+    mZombiePhase = ZombiePhase::PHASE_SQUASH_PRE_LAUNCH;
+    mVariant = false;
+}
+
 // ===== ZombieInitialize 小函数实现结束 =====
 
 // GOTY @Patoke: 0x5329A0
@@ -835,22 +1005,8 @@ void Zombie::ZombieInitialize(int theRow, ZombieType theType, bool theVariant, Z
         break;
 
     case ZombieType::ZOMBIE_FLAG:
-    {
-        mAbilities = ABILITY_WALK;
-        mHasObject = true;
-        LoadPlainZombieReanim();
-
-        Reanimation* aBodyReanim = mApp->ReanimationGet(mBodyReanimID);
-        Reanimation* aFlagReanim = mApp->AddReanimation(0.0f, 0.0f, 0, ReanimationType::REANIM_FLAG);
-        aFlagReanim->PlayReanim("Zombie_flag", ReanimLoopType::REANIM_LOOP, 0, 15.0f);
-        mSpecialHeadReanimID = mApp->ReanimationGetID(aFlagReanim);
-        ReanimatorTrackInstance* aTrackInstance = aBodyReanim->GetTrackInstanceByName("Zombie_flaghand");
-        AttachReanim(aTrackInstance->mAttachmentID, aFlagReanim, 0.0f, 0.0f);
-        aBodyReanim->mFrameBasePose = 0;
-
-        mPosX = WIDE_BOARD_WIDTH;
+        InitZombieTypeFlag();
         break;
-    }
 
     case ZombieType::ZOMBIE_POGO:
         InitZombieTypePogo();
@@ -881,156 +1037,28 @@ void Zombie::ZombieInitialize(int theRow, ZombieType theType, bool theVariant, Z
         break;
     
     case ZombieType::ZOMBIE_PEA_HEAD:
-    {
-        mAbilities = ABILITY_WALK;
-        LoadPlainZombieReanim();
-        ReanimShowPrefix("anim_hair", RENDER_GROUP_HIDDEN);
-        ReanimShowPrefix("anim_head2", RENDER_GROUP_HIDDEN);
-
-        Reanimation* aBodyReanim = mApp->ReanimationGet(mBodyReanimID);
-        if (IsOnBoard())
-        {
-            aBodyReanim->SetFramesForLayer("anim_walk2");
-        }
-
-        ReanimatorTrackInstance* aTrackInstance = aBodyReanim->GetTrackInstanceByName("anim_head1");
-        aTrackInstance->mImageOverride = IMAGE_BLANK;
-        Reanimation* aHeadReanim = mApp->AddReanimation(0.0f, 0.0f, 0, ReanimationType::REANIM_PEASHOOTER);
-        aHeadReanim->PlayReanim("anim_head_idle", ReanimLoopType::REANIM_LOOP, 0, 15.0f);
-        mSpecialHeadReanimID = mApp->ReanimationGetID(aHeadReanim);
-        AttachEffect* aAttachEffect = AttachReanim(aTrackInstance->mAttachmentID, aHeadReanim, 0.0f, 0.0f);
-        aBodyReanim->mFrameBasePose = 0;
-        TodScaleRotateTransformMatrix(aAttachEffect->mOffset, 65.0f, -5.0f, 0.2f, -1.0f, 1.0f);
-
-        mPhaseCounter = 150;
-        mVariant = false;
+        InitZombieTypePeaHead();
         break;
-    }
-    
+
     case ZombieType::ZOMBIE_WALLNUT_HEAD:
-    {
-        mAbilities = ABILITY_WALK;
-        LoadPlainZombieReanim();
-        ReanimShowPrefix("anim_hair", RENDER_GROUP_HIDDEN);
-        ReanimShowPrefix("anim_head", RENDER_GROUP_HIDDEN);
-        ReanimShowPrefix("Zombie_tie", RENDER_GROUP_HIDDEN);
-
-        Reanimation* aBodyReanim = mApp->ReanimationGet(mBodyReanimID);
-        ReanimatorTrackInstance* aTrackInstance = aBodyReanim->GetTrackInstanceByName("Zombie_body");
-        Reanimation* aHeadReanim = mApp->AddReanimation(0.0f, 0.0f, 0, ReanimationType::REANIM_WALLNUT);
-        aHeadReanim->PlayReanim("anim_idle", ReanimLoopType::REANIM_LOOP, 0, 15.0f);
-        mSpecialHeadReanimID = mApp->ReanimationGetID(aHeadReanim);
-        AttachEffect* aAttachEffect = AttachReanim(aTrackInstance->mAttachmentID, aHeadReanim, 0.0f, 0.0f);
-        aBodyReanim->mFrameBasePose = 0;
-        TodScaleRotateTransformMatrix(aAttachEffect->mOffset, 50.0f, 0.0f, 0.2f, -0.8f, 0.8f);
-
-        mHelmType = HelmType::HELMTYPE_WALLNUT;
-        mHelmHealth = 1100;
-        mVariant = false;
+        InitZombieTypeWallnutHead();
         break;
-    }
 
     case ZombieType::ZOMBIE_TALLNUT_HEAD:
-    {
-        mAbilities = ABILITY_WALK;
-        LoadPlainZombieReanim();
-        ReanimShowPrefix("anim_hair", RENDER_GROUP_HIDDEN);
-        ReanimShowPrefix("anim_head", RENDER_GROUP_HIDDEN);
-        ReanimShowPrefix("Zombie_tie", RENDER_GROUP_HIDDEN);
-
-        Reanimation* aBodyReanim = mApp->ReanimationGet(mBodyReanimID);
-        ReanimatorTrackInstance* aTrackInstance = aBodyReanim->GetTrackInstanceByName("Zombie_body");
-        Reanimation* aHeadReanim = mApp->AddReanimation(0.0f, 0.0f, 0, ReanimationType::REANIM_TALLNUT);
-        aHeadReanim->PlayReanim("anim_idle", ReanimLoopType::REANIM_LOOP, 0, 15.0f);
-        mSpecialHeadReanimID = mApp->ReanimationGetID(aHeadReanim);
-        AttachEffect* aAttachEffect = AttachReanim(aTrackInstance->mAttachmentID, aHeadReanim, 0.0f, 0.0f);
-        aBodyReanim->mFrameBasePose = 0;
-        TodScaleRotateTransformMatrix(aAttachEffect->mOffset, 37.0f, 0.0f, 0.2f, -0.8f, 0.8f);
-
-        mHelmType = HelmType::HELMTYPE_TALLNUT;
-        mHelmHealth = 2200;
-        mVariant = false;
-        mPosX += 30.0f;
+        InitZombieTypeTallnutHead();
         break;
-    }
 
     case ZombieType::ZOMBIE_JALAPENO_HEAD:
-    {
-        mAbilities = ABILITY_WALK;
-        LoadPlainZombieReanim();
-        ReanimShowPrefix("anim_hair", RENDER_GROUP_HIDDEN);
-        ReanimShowPrefix("anim_head", RENDER_GROUP_HIDDEN);
-        ReanimShowPrefix("Zombie_tie", RENDER_GROUP_HIDDEN);
-
-        Reanimation* aBodyReanim = mApp->ReanimationGet(mBodyReanimID);
-        ReanimatorTrackInstance* aTrackInstance = aBodyReanim->GetTrackInstanceByName("Zombie_body");
-        Reanimation* aHeadReanim = mApp->AddReanimation(0.0f, 0.0f, 0, ReanimationType::REANIM_JALAPENO);
-        aHeadReanim->PlayReanim("anim_idle", ReanimLoopType::REANIM_LOOP, 0, 15.0f);
-        mSpecialHeadReanimID = mApp->ReanimationGetID(aHeadReanim);
-        AttachEffect* aAttachEffect = AttachReanim(aTrackInstance->mAttachmentID, aHeadReanim, 0.0f, 0.0f);
-        aBodyReanim->mFrameBasePose = 0;
-        TodScaleRotateTransformMatrix(aAttachEffect->mOffset, 55.0f, -5.0f, 0.2f, -1.0f, 1.0f);
-
-        mVariant = false;
-        mBodyHealth = 500;
-        int aDistance = 275 + Rand(175);
-        mPhaseCounter = static_cast<int>(aDistance / mVelX) * ZOMBIE_LIMP_SPEED_FACTOR;
+        InitZombieTypeJalapenoHead();
         break;
-    }
 
     case ZombieType::ZOMBIE_GATLING_HEAD:
-    {
-        mAbilities = ABILITY_WALK;
-        LoadPlainZombieReanim();
-        ReanimShowPrefix("anim_hair", RENDER_GROUP_HIDDEN);
-        ReanimShowPrefix("anim_head2", RENDER_GROUP_HIDDEN);
-
-        Reanimation* aBodyReanim = mApp->ReanimationGet(mBodyReanimID);
-        if (IsOnBoard())
-        {
-            aBodyReanim->SetFramesForLayer("anim_walk2");
-        }
-
-        ReanimatorTrackInstance* aTrackInstance = aBodyReanim->GetTrackInstanceByName("anim_head1");
-        aTrackInstance->mImageOverride = IMAGE_BLANK;
-        Reanimation* aHeadReanim = mApp->AddReanimation(0.0f, 0.0f, 0, ReanimationType::REANIM_GATLINGPEA);
-        aHeadReanim->PlayReanim("anim_head_idle", ReanimLoopType::REANIM_LOOP, 0, 15.0f);
-        mSpecialHeadReanimID = mApp->ReanimationGetID(aHeadReanim);
-        AttachEffect* aAttachEffect = AttachReanim(aTrackInstance->mAttachmentID, aHeadReanim, 0.0f, 0.0f);
-        aBodyReanim->mFrameBasePose = 0;
-        TodScaleRotateTransformMatrix(aAttachEffect->mOffset, 65.0f, -5.0f, 0.2f, -1.0f, 1.0f);
-
-        mPhaseCounter = 150;
-        mVariant = false;
+        InitZombieTypeGatlingHead();
         break;
-    }
 
     case ZombieType::ZOMBIE_SQUASH_HEAD:
-    {
-        mAbilities = ABILITY_WALK;
-        LoadPlainZombieReanim();
-        ReanimShowPrefix("anim_hair", RENDER_GROUP_HIDDEN);
-        ReanimShowPrefix("anim_head2", RENDER_GROUP_HIDDEN);
-
-        Reanimation* aBodyReanim = mApp->ReanimationGet(mBodyReanimID);
-        if (IsOnBoard())
-        {
-            aBodyReanim->SetFramesForLayer("anim_walk2");
-        }
-
-        ReanimatorTrackInstance* aTrackInstance = aBodyReanim->GetTrackInstanceByName("anim_head1");
-        aTrackInstance->mImageOverride = IMAGE_BLANK;
-        Reanimation* aHeadReanim = mApp->AddReanimation(0.0f, 0.0f, 0, ReanimationType::REANIM_SQUASH);
-        aHeadReanim->PlayReanim("anim_idle", ReanimLoopType::REANIM_LOOP, 0, 15.0f);
-        mSpecialHeadReanimID = mApp->ReanimationGetID(aHeadReanim);
-        AttachEffect* aAttachEffect = AttachReanim(aTrackInstance->mAttachmentID, aHeadReanim, 0.0f, 0.0f);
-        aBodyReanim->mFrameBasePose = 0;
-        TodScaleRotateTransformMatrix(aAttachEffect->mOffset, 55.0f, -15.0f, 0.2f, -0.75f, 0.75f);
-
-        mZombiePhase = ZombiePhase::PHASE_SQUASH_PRE_LAUNCH;
-        mVariant = false;
+        InitZombieTypeSquashHead();
         break;
-    }
     case ZombieType::ZOMBIE_CACHED_POLEVAULTER_WITH_POLE:
     case ZombieType::NUM_ZOMBIE_TYPES:
     case ZombieType::NUM_CACHED_ZOMBIE_TYPES:
