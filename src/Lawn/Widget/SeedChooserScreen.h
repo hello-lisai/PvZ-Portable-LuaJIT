@@ -25,6 +25,7 @@
 #include "../../ConstEnums.h"
 #include "../../Sexy.TodLib/TodCommon.h"
 #include "widget/Widget.h"
+#include <vector>
 using namespace Sexy;
 
 class Board;
@@ -78,7 +79,8 @@ public:
     GameButton*             mAlmanacButton;
     GameButton*             mMenuButton;
     GameButton*             mImitaterButton;
-    ChosenSeed              mChosenSeeds[NUM_SEED_TYPES];
+    // Mod API: 改为 vector 以支持运行时注册的自定义植物（SeedType >= NUM_SEED_TYPES）
+    std::vector<ChosenSeed> mChosenSeeds;
     LawnApp*                mApp;
     Board*                  mBoard;
     int                     mNumSeedsToChoose;
