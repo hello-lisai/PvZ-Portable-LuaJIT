@@ -628,6 +628,9 @@ static void BindSol2Plant(sol::state_view& lua) {
         "magnet_shroom_attact_item", &Plant::MagnetShroomAttactItem,
         "update_sun_shroom", &Plant::UpdateSunShroom,
         "update_bowling", &Plant::UpdateBowling,
+        // update_bowling_movement: 跳过 (has reference param) — bool                    UpdateBowlingMovement(PlantState& aNewState);    // 水平+垂直移动及边界反弹状态计算（返回 false 表示未到网格需提前 return）
+        // handle_bowling_zombie_impact: 跳过 (has reference param) — bool                    HandleBowlingZombieImpact(PlantState& aNewState); // 撞击僵尸处理（伤害/金币/方向变更，返回 false 表示已爆炸需终止）
+        "apply_bowling_state", &Plant::ApplyBowlingState,
         "animate_pumpkin", &Plant::AnimatePumpkin,
         "update_blover", &Plant::UpdateBlover,
         "update_cactus", &Plant::UpdateCactus,

@@ -346,6 +346,11 @@ public:
     void                    MagnetShroomAttactItem(Zombie* theZombie);
     void                    UpdateSunShroom();
     void                    UpdateBowling();
+    // ===== 保龄球小函数（提取自 UpdateBowling）=====
+    bool                    UpdateBowlingMovement(PlantState& aNewState);    // 水平+垂直移动及边界反弹状态计算（返回 false 表示未到网格需提前 return）
+    bool                    HandleBowlingZombieImpact(PlantState& aNewState); // 撞击僵尸处理（伤害/金币/方向变更，返回 false 表示已爆炸需终止）
+    void                    ApplyBowlingState(PlantState aNewState);       // 应用新状态（更新行/状态/渲染顺序）
+    // ===== 保龄球小函数结束 =====
     void                    AnimatePumpkin();
     void                    UpdateBlover();
     void                    UpdateCactus();

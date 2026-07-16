@@ -2469,7 +2469,8 @@ void Plant::Squish()
 }
 
 // GOTY @Patoke: 0x4666E0
-void Plant::UpdateBowling()
+// 水平+垂直移动及边界反弹状态计算（返回 false 表示未到网格需提前 return）
+bool Plant::UpdateBowlingMovement(PlantState& aNewState)
 {
     Reanimation* aBodyReanim = mApp->ReanimationTryToGet(mBodyReanimID);
     if (aBodyReanim && aBodyReanim->TrackExists("_ground"))
@@ -2495,9 +2496,9 @@ void Plant::UpdateBowling()
     }
     int aDistToGrid = mBoard->GridToPixelY(0, mRow) - mY;
     if (aDistToGrid < -2 || aDistToGrid > 2)
-        return;
+        return false;
 
-    PlantState aNewState = mState;
+    aNewState = mState;
     if (mState == PlantState::STATE_BOWLING_UP && mRow <= 0)
     {
         aNewState = PlantState::STATE_BOWLING_DOWN;
@@ -2507,106 +2508,118 @@ void Plant::UpdateBowling()
         aNewState = PlantState::STATE_BOWLING_UP;
     }
 
+    return true;
+}
+
+// 撞击僵尸处理（伤害/金币/方向变更，返回 false 表示已爆炸需终止）
+bool Plant::HandleBowlingZombieImpact(PlantState& aNewState)
+{
     Zombie* aZombie = FindTargetZombie(mRow, PlantWeapon::WEAPON_PRIMARY);
-    if (aZombie)
+    if (!aZombie)
+        return true;
+
+    int aPosX = mX + mWidth / 2;
+    int aPosY = mY + mHeight / 2;
+
+    if (mSeedType == SeedType::SEED_EXPLODE_O_NUT)
     {
-        int aPosX = mX + mWidth / 2;
-        int aPosY = mY + mHeight / 2;
+        mApp->PlayFoley(FoleyType::FOLEY_CHERRYBOMB);
+        mApp->PlaySample(SOUND_BOWLINGIMPACT2);
 
-        if (mSeedType == SeedType::SEED_EXPLODE_O_NUT)
+        int aDamageRangeFlags = GetDamageRangeFlags(PlantWeapon::WEAPON_PRIMARY) | 32U;
+        mBoard->KillAllZombiesInRadius(mRow, aPosX, aPosY, 90, 1, true, aDamageRangeFlags);
+        mApp->AddTodParticle(aPosX, aPosY, static_cast<int>(RenderLayer::RENDER_LAYER_TOP), ParticleEffect::PARTICLE_POWIE);
+        mBoard->ShakeBoard(3, -4);
+
+        Die();
+
+        return false;
+    }
+
+    mApp->PlayFoley(FoleyType::FOLEY_BOWLINGIMPACT);
+    mBoard->ShakeBoard(1, -2);
+
+    if (mSeedType == SeedType::SEED_GIANT_WALLNUT)
+    {
+        aZombie->TakeDamage(1800, 0U);
+    }
+    else if (aZombie->mShieldType == ShieldType::SHIELDTYPE_DOOR && mState != PlantState::STATE_NOTREADY)
+    {
+        aZombie->TakeDamage(1800, 0U);
+    }
+    else if (aZombie->mShieldType != ShieldType::SHIELDTYPE_NONE)
+    {
+        aZombie->TakeShieldDamage(400, 0U);
+    }
+    else if (aZombie->mHelmType != HelmType::HELMTYPE_NONE)
+    {
+        if (aZombie->mHelmType == HelmType::HELMTYPE_PAIL)
         {
-            mApp->PlayFoley(FoleyType::FOLEY_CHERRYBOMB);
-            mApp->PlaySample(SOUND_BOWLINGIMPACT2);
-
-            int aDamageRangeFlags = GetDamageRangeFlags(PlantWeapon::WEAPON_PRIMARY) | 32U;
-            mBoard->KillAllZombiesInRadius(mRow, aPosX, aPosY, 90, 1, true, aDamageRangeFlags);
-            mApp->AddTodParticle(aPosX, aPosY, static_cast<int>(RenderLayer::RENDER_LAYER_TOP), ParticleEffect::PARTICLE_POWIE);
-            mBoard->ShakeBoard(3, -4);
-
-            Die();
-
-            return;
+            mApp->PlayFoley(FoleyType::FOLEY_SHIELD_HIT);
+        }
+        else if (aZombie->mHelmType == HelmType::HELMTYPE_TRAFFIC_CONE)
+        {
+            mApp->PlayFoley(FoleyType::FOLEY_PLASTIC_HIT);
         }
 
-        mApp->PlayFoley(FoleyType::FOLEY_BOWLINGIMPACT);
-        mBoard->ShakeBoard(1, -2);
+        aZombie->TakeHelmDamage(900, 0U);
+    }
+    else
+    {
+        aZombie->TakeDamage(1800, 0U);
+    }
 
-        if (mSeedType == SeedType::SEED_GIANT_WALLNUT)
+    if ((!mApp->IsFirstTimeAdventureMode() || mApp->mPlayerInfo->GetLevel() > 10) && mSeedType == SeedType::SEED_WALLNUT)
+    {
+        mLaunchCounter++;
+        if (mLaunchCounter == 2)
         {
-            aZombie->TakeDamage(1800, 0U);
+            mApp->PlayFoley(FoleyType::FOLEY_SPAWN_SUN);
+            mBoard->AddCoin(aPosX, aPosY, CoinType::COIN_SILVER, CoinMotion::COIN_MOTION_COIN);
         }
-        else if (aZombie->mShieldType == ShieldType::SHIELDTYPE_DOOR && mState != PlantState::STATE_NOTREADY)
+        else if (mLaunchCounter == 3)
         {
-            aZombie->TakeDamage(1800, 0U);
+            mApp->PlayFoley(FoleyType::FOLEY_SPAWN_SUN);
+            mBoard->AddCoin(aPosX - 5.0f, aPosY, CoinType::COIN_SILVER, CoinMotion::COIN_MOTION_COIN);
+            mBoard->AddCoin(aPosX + 5.0f, aPosY, CoinType::COIN_SILVER, CoinMotion::COIN_MOTION_COIN);
         }
-        else if (aZombie->mShieldType != ShieldType::SHIELDTYPE_NONE)
+        else if (mLaunchCounter == 4)
         {
-            aZombie->TakeShieldDamage(400, 0U);
+            mApp->PlayFoley(FoleyType::FOLEY_SPAWN_SUN);
+            mBoard->AddCoin(aPosX - 10.0f, aPosY, CoinType::COIN_SILVER, CoinMotion::COIN_MOTION_COIN);
+            mBoard->AddCoin(aPosX, aPosY, CoinType::COIN_SILVER, CoinMotion::COIN_MOTION_COIN);
+            mBoard->AddCoin(aPosX + 10.0f, aPosY, CoinType::COIN_SILVER, CoinMotion::COIN_MOTION_COIN);
         }
-        else if (aZombie->mHelmType != HelmType::HELMTYPE_NONE)
+        else if (mLaunchCounter >= 5)
         {
-            if (aZombie->mHelmType == HelmType::HELMTYPE_PAIL)
-            {
-                mApp->PlayFoley(FoleyType::FOLEY_SHIELD_HIT);
-            }
-            else if (aZombie->mHelmType == HelmType::HELMTYPE_TRAFFIC_CONE)
-            {
-                mApp->PlayFoley(FoleyType::FOLEY_PLASTIC_HIT);
-            }
-            
-            aZombie->TakeHelmDamage(900, 0U);
-        }
-        else
-        {
-            aZombie->TakeDamage(1800, 0U);
-        }
-
-        if ((!mApp->IsFirstTimeAdventureMode() || mApp->mPlayerInfo->GetLevel() > 10) && mSeedType == SeedType::SEED_WALLNUT)
-        {
-            mLaunchCounter++;
-            if (mLaunchCounter == 2)
-            {
-                mApp->PlayFoley(FoleyType::FOLEY_SPAWN_SUN);
-                mBoard->AddCoin(aPosX, aPosY, CoinType::COIN_SILVER, CoinMotion::COIN_MOTION_COIN);
-            }
-            else if (mLaunchCounter == 3)
-            {
-                mApp->PlayFoley(FoleyType::FOLEY_SPAWN_SUN);
-                mBoard->AddCoin(aPosX - 5.0f, aPosY, CoinType::COIN_SILVER, CoinMotion::COIN_MOTION_COIN);
-                mBoard->AddCoin(aPosX + 5.0f, aPosY, CoinType::COIN_SILVER, CoinMotion::COIN_MOTION_COIN);
-            }
-            else if (mLaunchCounter == 4)
-            {
-                mApp->PlayFoley(FoleyType::FOLEY_SPAWN_SUN);
-                mBoard->AddCoin(aPosX - 10.0f, aPosY, CoinType::COIN_SILVER, CoinMotion::COIN_MOTION_COIN);
-                mBoard->AddCoin(aPosX, aPosY, CoinType::COIN_SILVER, CoinMotion::COIN_MOTION_COIN);
-                mBoard->AddCoin(aPosX + 10.0f, aPosY, CoinType::COIN_SILVER, CoinMotion::COIN_MOTION_COIN);
-            }
-            else if (mLaunchCounter >= 5)
-            {
-                mApp->PlayFoley(FoleyType::FOLEY_SPAWN_SUN);
-                mBoard->AddCoin(aPosX, aPosY, CoinType::COIN_GOLD, CoinMotion::COIN_MOTION_COIN);
-                ReportAchievement::GiveAchievement(mApp, RollSomeHeads, true); // @Patoke: add achievement
-            }
-        }
-
-        if (mSeedType != SeedType::SEED_GIANT_WALLNUT)
-        {
-            if (mRow == 4 || mState == PlantState::STATE_BOWLING_DOWN)
-            {
-                aNewState = PlantState::STATE_BOWLING_UP;
-            }
-            else if (mRow == 0 || mState == PlantState::STATE_BOWLING_UP)
-            {
-                aNewState = PlantState::STATE_BOWLING_DOWN;
-            }
-            else
-            {
-                aNewState = Sexy::Rand(2) ? PlantState::STATE_BOWLING_UP : PlantState::STATE_BOWLING_DOWN;
-            }
+            mApp->PlayFoley(FoleyType::FOLEY_SPAWN_SUN);
+            mBoard->AddCoin(aPosX, aPosY, CoinType::COIN_GOLD, CoinMotion::COIN_MOTION_COIN);
+            ReportAchievement::GiveAchievement(mApp, RollSomeHeads, true); // @Patoke: add achievement
         }
     }
 
+    if (mSeedType != SeedType::SEED_GIANT_WALLNUT)
+    {
+        if (mRow == 4 || mState == PlantState::STATE_BOWLING_DOWN)
+        {
+            aNewState = PlantState::STATE_BOWLING_UP;
+        }
+        else if (mRow == 0 || mState == PlantState::STATE_BOWLING_UP)
+        {
+            aNewState = PlantState::STATE_BOWLING_DOWN;
+        }
+        else
+        {
+            aNewState = Sexy::Rand(2) ? PlantState::STATE_BOWLING_UP : PlantState::STATE_BOWLING_DOWN;
+        }
+    }
+
+    return true;
+}
+
+// 应用新状态（更新行/状态/渲染顺序）
+void Plant::ApplyBowlingState(PlantState aNewState)
+{
     if (aNewState == PlantState::STATE_BOWLING_UP)
     {
         mRow--;
@@ -2619,6 +2632,16 @@ void Plant::UpdateBowling()
         mRenderOrder = CalcRenderOrder();
         mRow++;
     }
+}
+
+void Plant::UpdateBowling()
+{
+    PlantState aNewState = mState;
+    if (!UpdateBowlingMovement(aNewState))
+        return;
+    if (!HandleBowlingZombieImpact(aNewState))
+        return;
+    ApplyBowlingState(aNewState);
 }
 
 void Plant::UpdatePlantAbilityByType()
