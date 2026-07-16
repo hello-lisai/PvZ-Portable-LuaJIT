@@ -1829,6 +1829,54 @@ void Plant::UpdateCactus()
     }
 }
 
+void Plant::UpdateChomperBiting()
+{
+    if (mStateCountdown == 0)
+    {
+        mApp->PlayFoley(FoleyType::FOLEY_BIGCHOMP);
+
+        Zombie* aZombie = FindTargetZombie(mRow, PlantWeapon::WEAPON_PRIMARY);
+        bool doBite = false;
+        if (aZombie)
+        {
+            if (aZombie->mZombieType == ZombieType::ZOMBIE_GARGANTUAR || aZombie->mZombieType == ZombieType::ZOMBIE_REDEYE_GARGANTUAR ||
+                aZombie->mZombieType == ZombieType::ZOMBIE_BOSS)
+            {
+                doBite = true;
+            }
+        }
+        bool doMiss = false;
+        if (aZombie == nullptr)
+        {
+            doMiss = true;
+        }
+        else if (!aZombie->IsImmobilizied())
+        {
+            if (aZombie->IsBouncingPogo() ||
+                aZombie->mZombiePhase == ZombiePhase::PHASE_POLEVAULTER_IN_VAULT || aZombie->mZombiePhase == ZombiePhase::PHASE_POLEVAULTER_PRE_VAULT)
+            {
+                doMiss = true;
+            }
+        }
+
+        if (doBite)
+        {
+            mApp->PlayFoley(FoleyType::FOLEY_SPLAT);
+            aZombie->TakeDamage(40, 0U);
+            mState = PlantState::STATE_CHOMPER_BITING_MISSED;
+        }
+        else if (doMiss)
+        {
+            mState = PlantState::STATE_CHOMPER_BITING_MISSED;
+        }
+        else
+        {
+            aZombie->DieWithLoot();
+            mState = PlantState::STATE_CHOMPER_BITING_GOT_ONE;
+        }
+    }
+}
+
 void Plant::UpdateChomper()
 {
     Reanimation* aBodyReanim = mApp->ReanimationTryToGet(mBodyReanimID);
@@ -1843,50 +1891,7 @@ void Plant::UpdateChomper()
     }
     else if (mState == PlantState::STATE_CHOMPER_BITING)
     {
-        if (mStateCountdown == 0)
-        {
-            mApp->PlayFoley(FoleyType::FOLEY_BIGCHOMP);
-
-            Zombie* aZombie = FindTargetZombie(mRow, PlantWeapon::WEAPON_PRIMARY);
-            bool doBite = false;
-            if (aZombie)
-            {
-                if (aZombie->mZombieType == ZombieType::ZOMBIE_GARGANTUAR || aZombie->mZombieType == ZombieType::ZOMBIE_REDEYE_GARGANTUAR || 
-                    aZombie->mZombieType == ZombieType::ZOMBIE_BOSS)
-                {
-                    doBite = true;
-                }
-            }
-            bool doMiss = false;
-            if (aZombie == nullptr)
-            {
-                doMiss = true;
-            }
-            else if (!aZombie->IsImmobilizied())
-            {
-                if (aZombie->IsBouncingPogo() ||
-                    aZombie->mZombiePhase == ZombiePhase::PHASE_POLEVAULTER_IN_VAULT || aZombie->mZombiePhase == ZombiePhase::PHASE_POLEVAULTER_PRE_VAULT)
-                {
-                    doMiss = true;
-                }
-            }
-
-            if (doBite)
-            {
-                mApp->PlayFoley(FoleyType::FOLEY_SPLAT);
-                aZombie->TakeDamage(40, 0U);
-                mState = PlantState::STATE_CHOMPER_BITING_MISSED;
-            }
-            else if (doMiss)
-            {
-                mState = PlantState::STATE_CHOMPER_BITING_MISSED;
-            }
-            else
-            {
-                aZombie->DieWithLoot();
-                mState = PlantState::STATE_CHOMPER_BITING_GOT_ONE;
-            }
-        }
+        UpdateChomperBiting();
     }
     else if (mState == PlantState::STATE_CHOMPER_BITING_GOT_ONE)
     {
@@ -2086,7 +2091,7 @@ bool Plant::DrawMagnetItemsOnTop()
     return false;
 }
 
-void Plant::UpdateMagnetShroom()
+void Plant::UpdateMagnetItemPositions()
 {
     for (int i = 0; i < MAX_MAGNET_ITEMS; i++)
     {
@@ -2101,125 +2106,150 @@ void Plant::UpdateMagnetShroom()
             }
         }
     }
+}
 
-    if (mState == PlantState::STATE_MAGNETSHROOM_CHARGING)
+void Plant::UpdateMagnetShroomCharging()
+{
+    if (mStateCountdown == 0)
     {
-        if (mStateCountdown == 0)
+        mState = PlantState::STATE_READY;
+
+        float aAnimRate = RandRangeFloat(10.0f, 15.0f);
+        PlayBodyReanim("anim_idle", ReanimLoopType::REANIM_LOOP, 30, aAnimRate);
+        if (mApp->IsIZombieLevel())
         {
-            mState = PlantState::STATE_READY;
+            Reanimation* aBodyReanim = mApp->ReanimationTryToGet(mBodyReanimID);
+            aBodyReanim->mAnimRate = 0.0f;
+        }
 
-            float aAnimRate = RandRangeFloat(10.0f, 15.0f);
-            PlayBodyReanim("anim_idle", ReanimLoopType::REANIM_LOOP, 30, aAnimRate);
-            if (mApp->IsIZombieLevel())
+        mMagnetItems[0].mItemType = MagnetItemType::MAGNET_ITEM_NONE;
+    }
+}
+
+void Plant::UpdateMagnetShroomSucking()
+{
+    Reanimation* aBodyReanim = mApp->ReanimationTryToGet(mBodyReanimID);
+    if (aBodyReanim->mLoopCount > 0)
+    {
+        PlayBodyReanim("anim_nonactive_idle2", ReanimLoopType::REANIM_LOOP, 20, 2.0f);
+        if (mApp->IsIZombieLevel())
+        {
+            aBodyReanim = mApp->ReanimationTryToGet(mBodyReanimID);
+            aBodyReanim->mAnimRate = 0.0f;
+        }
+
+        mState = PlantState::STATE_MAGNETSHROOM_CHARGING;
+    }
+}
+
+Zombie* Plant::FindClosestMagnetTarget()
+{
+    float aClosestDistance = 0.0f;
+    Zombie* aClosestZombie = nullptr;
+
+    Zombie* aZombie = nullptr;
+    while (mBoard->IterateZombies(aZombie))
+    {
+        int aDiffY = aZombie->mRow - mRow;
+        Rect aZombieRect = aZombie->GetZombieRect();
+
+        if (aZombie->mMindControlled)
+            continue;
+
+        if (!aZombie->mHasHead)
+            continue;
+
+        if (aZombie->mZombieHeight != ZombieHeight::HEIGHT_ZOMBIE_NORMAL || aZombie->mZombiePhase == ZombiePhase::PHASE_RISING_FROM_GRAVE)
+            continue;
+
+        if (aZombie->IsDeadOrDying())
+            continue;
+
+        if (aZombieRect.mX > BOARD_WIDTH || aDiffY > 2 || aDiffY < -2)
+            continue;
+
+        if (aZombie->mZombiePhase == ZombiePhase::PHASE_DIGGER_TUNNELING ||
+            aZombie->mZombiePhase == ZombiePhase::PHASE_DIGGER_STUNNED ||
+            aZombie->mZombiePhase == ZombiePhase::PHASE_DIGGER_WALKING ||
+            aZombie->mZombieType == ZombieType::ZOMBIE_POGO)
+        {
+            if (!aZombie->mHasObject)
+                continue;
+        }
+        else if (!(aZombie->mHelmType == HelmType::HELMTYPE_PAIL ||
+            aZombie->mHelmType == HelmType::HELMTYPE_FOOTBALL ||
+            aZombie->mShieldType == ShieldType::SHIELDTYPE_DOOR ||
+            aZombie->mShieldType == ShieldType::SHIELDTYPE_LADDER ||
+            aZombie->mZombiePhase == ZombiePhase::PHASE_JACK_IN_THE_BOX_RUNNING))
+            continue;
+
+        int aRadius = aZombie->mIsEating ? 320 : 270;
+        if (GetCircleRectOverlap(mX, mY + 20, aRadius, aZombieRect))
+        {
+            float aDistance = Distance2D(mX, mY, aZombieRect.mX, aZombieRect.mY);
+            aDistance += abs(aDiffY) * 80.0f;
+
+            if (aClosestZombie == nullptr || aDistance < aClosestDistance)
             {
-                Reanimation* aBodyReanim = mApp->ReanimationTryToGet(mBodyReanimID);
-                aBodyReanim->mAnimRate = 0.0f;
+                aClosestZombie = aZombie;
+                aClosestDistance = aDistance;
             }
-
-            mMagnetItems[0].mItemType = MagnetItemType::MAGNET_ITEM_NONE;
         }
     }
-    else if (mState == PlantState::STATE_MAGNETSHROOM_SUCKING)
+
+    return aClosestZombie;
+}
+
+GridItem* Plant::FindClosestMagnetLadder()
+{
+    float aClosestLadderDist = 0.0f;
+    GridItem* aClosestLadder = nullptr;
+
+    GridItem* aGridItem = nullptr;
+    while (mBoard->IterateGridItems(aGridItem))
     {
-        Reanimation* aBodyReanim = mApp->ReanimationTryToGet(mBodyReanimID);
-        if (aBodyReanim->mLoopCount > 0)
+        if (aGridItem->mGridItemType == GridItemType::GRIDITEM_LADDER)
         {
-            PlayBodyReanim("anim_nonactive_idle2", ReanimLoopType::REANIM_LOOP, 20, 2.0f);
-            if (mApp->IsIZombieLevel())
+            int aDiffX = abs(aGridItem->mGridX - mPlantCol);
+            int aDiffY = abs(aGridItem->mGridY - mRow);
+            int aSquareDistance = std::max(aDiffX, aDiffY);
+            if (aSquareDistance <= 2)
             {
-                aBodyReanim = mApp->ReanimationTryToGet(mBodyReanimID);
-                aBodyReanim->mAnimRate = 0.0f;
-            }
-
-            mState = PlantState::STATE_MAGNETSHROOM_CHARGING;
-        }
-    }
-    else
-    {
-        float aClosestDistance = 0.0f;
-        Zombie* aClosestZombie = nullptr;
-
-        Zombie* aZombie = nullptr;
-        while (mBoard->IterateZombies(aZombie))
-        {
-            int aDiffY = aZombie->mRow - mRow;
-            Rect aZombieRect = aZombie->GetZombieRect();
-
-            if (aZombie->mMindControlled)
-                continue;
-
-            if (!aZombie->mHasHead)
-                continue;
-
-            if (aZombie->mZombieHeight != ZombieHeight::HEIGHT_ZOMBIE_NORMAL || aZombie->mZombiePhase == ZombiePhase::PHASE_RISING_FROM_GRAVE)
-                continue;
-
-            if (aZombie->IsDeadOrDying())
-                continue;
-
-            if (aZombieRect.mX > BOARD_WIDTH || aDiffY > 2 || aDiffY < -2)
-                continue;
-
-            if (aZombie->mZombiePhase == ZombiePhase::PHASE_DIGGER_TUNNELING ||
-                aZombie->mZombiePhase == ZombiePhase::PHASE_DIGGER_STUNNED ||
-                aZombie->mZombiePhase == ZombiePhase::PHASE_DIGGER_WALKING ||
-                aZombie->mZombieType == ZombieType::ZOMBIE_POGO)
-            {
-                if (!aZombie->mHasObject)
-                    continue;
-            }
-            else if (!(aZombie->mHelmType == HelmType::HELMTYPE_PAIL ||
-                aZombie->mHelmType == HelmType::HELMTYPE_FOOTBALL ||
-                aZombie->mShieldType == ShieldType::SHIELDTYPE_DOOR ||
-                aZombie->mShieldType == ShieldType::SHIELDTYPE_LADDER ||
-                aZombie->mZombiePhase == ZombiePhase::PHASE_JACK_IN_THE_BOX_RUNNING))
-                continue;
-
-            int aRadius = aZombie->mIsEating ? 320 : 270;
-            if (GetCircleRectOverlap(mX, mY + 20, aRadius, aZombieRect))
-            {
-                float aDistance = Distance2D(mX, mY, aZombieRect.mX, aZombieRect.mY);
-                aDistance += abs(aDiffY) * 80.0f;
-
-                if (aClosestZombie == nullptr || aDistance < aClosestDistance)
+                float aDistance = aSquareDistance + aDiffY * 0.05f;
+                if (aClosestLadder == nullptr || aDistance < aClosestLadderDist)
                 {
-                    aClosestZombie = aZombie;
-                    aClosestDistance = aDistance;
+                    aClosestLadder = aGridItem;
+                    aClosestLadderDist = aDistance;
                 }
             }
         }
+    }
 
+    return aClosestLadder;
+}
+
+void Plant::UpdateMagnetShroom()
+{
+    UpdateMagnetItemPositions();
+
+    if (mState == PlantState::STATE_MAGNETSHROOM_CHARGING)
+    {
+        UpdateMagnetShroomCharging();
+    }
+    else if (mState == PlantState::STATE_MAGNETSHROOM_SUCKING)
+    {
+        UpdateMagnetShroomSucking();
+    }
+    else
+    {
+        Zombie* aClosestZombie = FindClosestMagnetTarget();
         if (aClosestZombie)
         {
             MagnetShroomAttactItem(aClosestZombie);
             return;
         }
 
-        ////////////////////
-
-        float aClosestLadderDist = 0.0f;
-        GridItem* aClosestLadder = nullptr;
-        
-        GridItem* aGridItem = nullptr;
-        while (mBoard->IterateGridItems(aGridItem))
-        {
-            if (aGridItem->mGridItemType == GridItemType::GRIDITEM_LADDER)
-            {
-                int aDiffX = abs(aGridItem->mGridX - mPlantCol);
-                int aDiffY = abs(aGridItem->mGridY - mRow);
-                int aSquareDistance = std::max(aDiffX, aDiffY);
-                if (aSquareDistance <= 2)
-                {
-                    float aDistance = aSquareDistance + aDiffY * 0.05f;
-                    if (aClosestLadder == nullptr || aDistance < aClosestLadderDist)
-                    {
-                        aClosestLadder = aGridItem;
-                        aClosestLadderDist = aDistance;
-                    }
-                }
-            }
-        }
-
+        GridItem* aClosestLadder = FindClosestMagnetLadder();
         if (aClosestLadder)
         {
             mState = PlantState::STATE_MAGNETSHROOM_SUCKING;
@@ -4984,6 +5014,126 @@ void Plant::SetupProjectileMotion(Projectile* aProjectile, Zombie* theTargetZomb
 
 // ===== 发射投射物相关小函数结束 =====
 
+// 检查僵尸是否为有效目标，返回 false 表示跳过
+// 提取自 FindTargetZombie
+bool Plant::FilterZombieTarget(Zombie* aZombie, int theRow, int aDamageRangeFlags, bool needPortalCheck, Rect& aAttackRect, int& aExtraRange)
+{
+    int aRowDeviation = aZombie->mRow - theRow;
+    if (aZombie->mZombieType == ZombieType::ZOMBIE_BOSS)
+    {
+        aRowDeviation = 0;
+    }
+
+    if (!aZombie->mHasHead || aZombie->IsTangleKelpTarget())
+    {
+        if (mSeedType == SeedType::SEED_POTATOMINE || mSeedType == SeedType::SEED_CHOMPER || mSeedType == SeedType::SEED_TANGLEKELP)
+        {
+            return false;
+        }
+    }
+
+    if (mSeedType != SeedType::SEED_CATTAIL)
+    {
+        if (mSeedType == SeedType::SEED_GLOOMSHROOM)
+        {
+            if (aRowDeviation < -1 || aRowDeviation > 1)
+            {
+                return false;
+            }
+        }
+        else if (needPortalCheck)
+        {
+            if (!mBoard->mChallenge->CanTargetZombieWithPortals(this, aZombie))
+            {
+                return false;
+            }
+        }
+        else if (aRowDeviation)
+        {
+            return false;
+        }
+    }
+
+    if (!aZombie->EffectedByDamage(aDamageRangeFlags))
+    {
+        return false;
+    }
+
+    if (mSeedType == SeedType::SEED_CHOMPER)
+    {
+        if (aZombie->mZombiePhase == ZombiePhase::PHASE_DIGGER_WALKING)
+        {
+            aAttackRect.mX += 20;
+            aAttackRect.mWidth -= 20;
+        }
+
+        if (aZombie->mZombiePhase == ZombiePhase::PHASE_POGO_BOUNCING || (aZombie->mZombieType == ZombieType::ZOMBIE_BUNGEE && aZombie->mTargetCol == mPlantCol))
+        {
+            return false;
+        }
+
+        if (aZombie->mIsEating || mState == PlantState::STATE_CHOMPER_BITING)
+        {
+            aExtraRange = 60;
+        }
+    }
+
+    if (mSeedType == SeedType::SEED_POTATOMINE)
+    {
+        if ((aZombie->mZombieType == ZombieType::ZOMBIE_POGO && aZombie->mHasObject) ||
+            aZombie->mZombiePhase == ZombiePhase::PHASE_POLEVAULTER_IN_VAULT || aZombie->mZombiePhase == ZombiePhase::PHASE_POLEVAULTER_PRE_VAULT)
+        {
+            return false;
+        }
+
+        if (aZombie->mZombieType == ZombieType::ZOMBIE_POLEVAULTER)
+        {
+            aAttackRect.mX += 40;
+            aAttackRect.mWidth -= 40;  // 原版经典土豆地雷 Bug 及“四撑杆引雷”的原理
+        }
+
+        if (aZombie->mZombieType == ZombieType::ZOMBIE_BUNGEE && aZombie->mTargetCol != mPlantCol)
+        {
+            return false;
+        }
+
+        if (aZombie->mIsEating)
+        {
+            aExtraRange = 30;
+        }
+    }
+
+    if ((mSeedType == SeedType::SEED_EXPLODE_O_NUT && aZombie->mZombiePhase == ZombiePhase::PHASE_POLEVAULTER_IN_VAULT) ||
+        (mSeedType == SeedType::SEED_TANGLEKELP && !aZombie->mInPool))
+    {
+        return false;
+    }
+
+    Rect aZombieRect = aZombie->GetZombieRect();
+    if (!needPortalCheck && GetRectOverlap(aAttackRect, aZombieRect) < -aExtraRange)
+    {
+        return false;
+    }
+
+    return true;
+}
+
+// 计算僵尸目标权重（越大越优先）
+// 提取自 FindTargetZombie
+int Plant::CalcZombieTargetWeight(Zombie* aZombie, const Rect& aZombieRect)
+{
+    int aWeight = -aZombieRect.mX;
+    if (mSeedType == SeedType::SEED_CATTAIL)
+    {
+        aWeight = -Distance2D(mX + 40.0f, mY + 40.0f, aZombieRect.mX + aZombieRect.mWidth / 2, aZombieRect.mY + aZombieRect.mHeight / 2);
+        if (aZombie->IsFlying())
+        {
+            aWeight += 10000;  // 优先攻击飞行单位
+        }
+    }
+    return aWeight;
+}
+
 Zombie* Plant::FindTargetZombie(int theRow, PlantWeapon thePlantWeapon)
 {
     int aDamageRangeFlags = GetDamageRangeFlags(thePlantWeapon);
@@ -4991,131 +5141,31 @@ Zombie* Plant::FindTargetZombie(int theRow, PlantWeapon thePlantWeapon)
     int aHighestWeight = 0;
     Zombie* aBestZombie = nullptr;
 
+    bool needPortalCheck = false;
+    if (mApp->mGameMode == GameMode::GAMEMODE_CHALLENGE_PORTAL_COMBAT)
+    {
+        if (mSeedType == SeedType::SEED_PEASHOOTER || mSeedType == SeedType::SEED_CACTUS || mSeedType == SeedType::SEED_REPEATER)
+        {
+            needPortalCheck = true;
+        }
+    }
+
     Zombie* aZombie = nullptr;
     while (mBoard->IterateZombies(aZombie))
     {
-        int aRowDeviation = aZombie->mRow - theRow;
-        if (aZombie->mZombieType == ZombieType::ZOMBIE_BOSS)
+        int aExtraRange = 0;
+        if (!FilterZombieTarget(aZombie, theRow, aDamageRangeFlags, needPortalCheck, aAttackRect, aExtraRange))
         {
-            aRowDeviation = 0;
+            continue;
         }
 
-        if (!aZombie->mHasHead || aZombie->IsTangleKelpTarget())
+        Rect aZombieRect = aZombie->GetZombieRect();
+        int aWeight = CalcZombieTargetWeight(aZombie, aZombieRect);
+
+        if (aBestZombie == nullptr || aWeight > aHighestWeight)
         {
-            if (mSeedType == SeedType::SEED_POTATOMINE || mSeedType == SeedType::SEED_CHOMPER || mSeedType == SeedType::SEED_TANGLEKELP)
-            {
-                continue;
-            }
-        }
-
-        bool needPortalCheck = false;
-        if (mApp->mGameMode == GameMode::GAMEMODE_CHALLENGE_PORTAL_COMBAT)
-        {
-            if (mSeedType == SeedType::SEED_PEASHOOTER || mSeedType == SeedType::SEED_CACTUS || mSeedType == SeedType::SEED_REPEATER)
-            {
-                needPortalCheck = true;
-            }
-        }
-
-        if (mSeedType != SeedType::SEED_CATTAIL)
-        {
-            if (mSeedType == SeedType::SEED_GLOOMSHROOM)
-            {
-                if (aRowDeviation < -1 || aRowDeviation > 1)
-                {
-                    continue;
-                }
-            }
-            else if (needPortalCheck)
-            {
-                if (!mBoard->mChallenge->CanTargetZombieWithPortals(this, aZombie))
-                {
-                    continue;
-                }
-            }
-            else if (aRowDeviation)
-            {
-                continue;
-            }
-        }
-
-        if (aZombie->EffectedByDamage(aDamageRangeFlags))
-        {
-            int aExtraRange = 0;
-
-            if (mSeedType == SeedType::SEED_CHOMPER)
-            {
-                if (aZombie->mZombiePhase == ZombiePhase::PHASE_DIGGER_WALKING)
-                {
-                    aAttackRect.mX += 20;
-                    aAttackRect.mWidth -= 20;
-                }
-
-                if (aZombie->mZombiePhase == ZombiePhase::PHASE_POGO_BOUNCING || (aZombie->mZombieType == ZombieType::ZOMBIE_BUNGEE && aZombie->mTargetCol == mPlantCol))
-                {
-                    continue;
-                }
-
-                if (aZombie->mIsEating || mState == PlantState::STATE_CHOMPER_BITING)
-                {
-                    aExtraRange = 60;
-                }
-            }
-
-            if (mSeedType == SeedType::SEED_POTATOMINE)
-            {
-                if ((aZombie->mZombieType == ZombieType::ZOMBIE_POGO && aZombie->mHasObject) ||
-                    aZombie->mZombiePhase == ZombiePhase::PHASE_POLEVAULTER_IN_VAULT || aZombie->mZombiePhase == ZombiePhase::PHASE_POLEVAULTER_PRE_VAULT)
-                {
-                    continue;
-                }
-
-                if (aZombie->mZombieType == ZombieType::ZOMBIE_POLEVAULTER)
-                {
-                    aAttackRect.mX += 40;
-                    aAttackRect.mWidth -= 40;  // 原版经典土豆地雷 Bug 及“四撑杆引雷”的原理
-                }
-
-                if (aZombie->mZombieType == ZombieType::ZOMBIE_BUNGEE && aZombie->mTargetCol != mPlantCol)
-                {
-                    continue;
-                }
-
-                if (aZombie->mIsEating)
-                {
-                    aExtraRange = 30;
-                }
-            }
-
-            if ((mSeedType == SeedType::SEED_EXPLODE_O_NUT && aZombie->mZombiePhase == ZombiePhase::PHASE_POLEVAULTER_IN_VAULT) ||
-                (mSeedType == SeedType::SEED_TANGLEKELP && !aZombie->mInPool))
-            {
-                continue;
-            }
-
-            Rect aZombieRect = aZombie->GetZombieRect();
-            if (!needPortalCheck && GetRectOverlap(aAttackRect, aZombieRect) < -aExtraRange)
-            {
-                continue;
-            }
-
-            ////////////////////
-
-            int aWeight = -aZombieRect.mX;
-            if (mSeedType == SeedType::SEED_CATTAIL)
-            {
-                aWeight = -Distance2D(mX + 40.0f, mY + 40.0f, aZombieRect.mX + aZombieRect.mWidth / 2, aZombieRect.mY + aZombieRect.mHeight / 2);
-                if (aZombie->IsFlying())
-                {
-                    aWeight += 10000;  // 优先攻击飞行单位
-                }
-            }
-
-            if (aBestZombie == nullptr || aWeight > aHighestWeight)
-            {
-                aHighestWeight = aWeight;
-                aBestZombie = aZombie;
-            }
+            aHighestWeight = aWeight;
+            aBestZombie = aZombie;
         }
     }
 

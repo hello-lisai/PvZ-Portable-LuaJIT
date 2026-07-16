@@ -6680,6 +6680,48 @@ void Zombie::Draw(Graphics* g)
     g->ClearClipRect();
 }
 
+// 常规攻击目标检查（非 chew 路径：drive_over/vault 等）
+// 提取自 CanTargetPlant
+bool Zombie::CanTargetPlantNormal(Plant* thePlant, ZombieAttackType theAttackType)
+{
+    if (theAttackType == ZombieAttackType::ATTACKTYPE_DRIVE_OVER)
+    {
+        if (thePlant->mSeedType == SeedType::SEED_CHERRYBOMB || thePlant->mSeedType == SeedType::SEED_JALAPENO ||
+            thePlant->mSeedType == SeedType::SEED_BLOVER || thePlant->mSeedType == SeedType::SEED_SQUASH)
+        {
+            return false;
+        }
+        if (thePlant->mSeedType == SeedType::SEED_DOOMSHROOM || thePlant->mSeedType == SeedType::SEED_ICESHROOM)
+        {
+            return thePlant->mIsAsleep;
+        }
+    }
+
+    if (theAttackType == ZombieAttackType::ATTACKTYPE_VAULT)
+    {
+        Plant* aTopPlant = mBoard->GetTopPlantAt(thePlant->mPlantCol, thePlant->mRow, PlantPriority::TOPPLANT_ONLY_NORMAL_POSITION);
+        if (aTopPlant != thePlant && aTopPlant && CanTargetPlant(aTopPlant, theAttackType))
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+// 检查植物是否可被啃食
+// 提取自 CanTargetPlant
+bool Zombie::CanChewPlant(Plant* thePlant)
+{
+    Plant* aTopPlant = mBoard->GetTopPlantAt(thePlant->mPlantCol, thePlant->mRow, PlantPriority::TOPPLANT_EATING_ORDER);
+    if (aTopPlant != thePlant && aTopPlant && CanTargetPlant(aTopPlant, ZombieAttackType::ATTACKTYPE_CHEW))
+    {
+        return false;
+    }
+
+    return true;
+}
+
 bool Zombie::CanTargetPlant(Plant* thePlant, ZombieAttackType theAttackType)
 {
     if (mApp->IsWallnutBowlingLevel() && theAttackType != ZombieAttackType::ATTACKTYPE_VAULT)
@@ -6706,19 +6748,6 @@ bool Zombie::CanTargetPlant(Plant* thePlant, ZombieAttackType theAttackType)
             mBoard->GetFlowerPotAt(thePlant->mPlantCol, thePlant->mRow);  // 扶梯僵尸给花盆上的地刺/地刺王搭梯的原理
     }
 
-    if (theAttackType == ZombieAttackType::ATTACKTYPE_DRIVE_OVER)
-    {
-        if (thePlant->mSeedType == SeedType::SEED_CHERRYBOMB || thePlant->mSeedType == SeedType::SEED_JALAPENO || 
-            thePlant->mSeedType == SeedType::SEED_BLOVER || thePlant->mSeedType == SeedType::SEED_SQUASH)
-        {
-            return false;
-        }
-        if (thePlant->mSeedType == SeedType::SEED_DOOMSHROOM || thePlant->mSeedType == SeedType::SEED_ICESHROOM)
-        {
-            return thePlant->mIsAsleep;
-        }
-    }
-
     if (mZombiePhase == ZombiePhase::PHASE_LADDER_CARRYING || mZombiePhase == ZombiePhase::PHASE_LADDER_PLACING)
     {
         bool aPlaceLadder = false;
@@ -6740,23 +6769,10 @@ bool Zombie::CanTargetPlant(Plant* thePlant, ZombieAttackType theAttackType)
 
     if (theAttackType == ZombieAttackType::ATTACKTYPE_CHEW)
     {
-        Plant* aTopPlant = mBoard->GetTopPlantAt(thePlant->mPlantCol, thePlant->mRow, PlantPriority::TOPPLANT_EATING_ORDER);
-        if (aTopPlant != thePlant && aTopPlant && CanTargetPlant(aTopPlant, theAttackType))
-        {
-            return false;
-        }
+        return CanChewPlant(thePlant);
     }
 
-    if (theAttackType == ZombieAttackType::ATTACKTYPE_VAULT)
-    {
-        Plant* aTopPlant = mBoard->GetTopPlantAt(thePlant->mPlantCol, thePlant->mRow, PlantPriority::TOPPLANT_ONLY_NORMAL_POSITION);
-        if (aTopPlant != thePlant && aTopPlant && CanTargetPlant(aTopPlant, theAttackType))
-        {
-            return false;
-        }
-    }
-
-    return true;
+    return CanTargetPlantNormal(thePlant, theAttackType);
 }
 
 Plant* Zombie::FindPlantTarget(ZombieAttackType theAttackType)

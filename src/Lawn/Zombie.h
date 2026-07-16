@@ -423,6 +423,10 @@ public:
     void                            DropHeadPinata(float aPosX, float aPosY, int aRenderOrder);    // 皮纳塔模式掉落
     // ===== 掉头小函数结束 =====
     bool                            CanTargetPlant(Plant* thePlant, ZombieAttackType theAttackType);
+    // ===== 攻击目标判定小函数（提取自 CanTargetPlant）=====
+    bool                            CanTargetPlantNormal(Plant* thePlant, ZombieAttackType theAttackType);  // 常规攻击目标检查（含 drive_over/vault，非 chew/ladder）
+    bool                            CanChewPlant(Plant* thePlant);  // 检查植物是否可被啃食
+    // ===== 攻击目标判定小函数结束 =====
     void                            UpdateZombieCatapult();
     Plant*                          FindCatapultTarget();
     void                            ZombieCatapultFire(Plant* thePlant);

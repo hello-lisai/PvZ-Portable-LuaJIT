@@ -261,6 +261,8 @@ static void BindSol2Zombie(sol::state_view& lua) {
         "drop_head_future", &Zombie::DropHeadFuture,
         "drop_head_pinata", &Zombie::DropHeadPinata,
         "can_target_plant", &Zombie::CanTargetPlant,
+        "can_target_plant_normal", &Zombie::CanTargetPlantNormal,
+        "can_chew_plant", &Zombie::CanChewPlant,
         "update_zombie_catapult", &Zombie::UpdateZombieCatapult,
         "find_catapult_target", &Zombie::FindCatapultTarget,
         "zombie_catapult_fire", &Zombie::ZombieCatapultFire,
@@ -540,6 +542,8 @@ static void BindSol2Plant(sol::state_view& lua) {
         "play_fire_muzzle_particle", &Plant::PlayFireMuzzleParticle,
         "setup_projectile_motion", &Plant::SetupProjectileMotion,
         "find_target_zombie", [](Plant* self, int theRow) -> Zombie* { return self->FindTargetZombie(theRow, PlantWeapon::WEAPON_PRIMARY); },
+        // filter_zombie_target: 跳过 (has reference param) — bool                    FilterZombieTarget(Zombie* aZombie, int theRow, int aDamageRangeFlags, bool needPortalCheck, Rect& aAttackRect, int& aExtraRange);  // 检查僵尸是否为有效目标，返回 false 表示跳过
+        // calc_zombie_target_weight: 跳过 (has reference param) — int                     CalcZombieTargetWeight(Zombie* aZombie, const Rect& aZombieRect);  // 计算僵尸目标权重（越大越优先）
         "die", &Plant::Die,
         "update_production_plant", &Plant::UpdateProductionPlant,
         "update_shooter", &Plant::UpdateShooter,
@@ -556,6 +560,7 @@ static void BindSol2Plant(sol::state_view& lua) {
         // is_flying: 跳过 (static method) — static  bool  IsFlying(SeedType theSeedtype);
         // is_upgrade: 跳过 (static method) — static  bool  IsUpgrade(SeedType theSeedtype);
         "update_abilities", &Plant::UpdateAbilities,
+        "update_plant_ability_by_type", &Plant::UpdatePlantAbilityByType,
         "squish", &Plant::Squish,
         "do_row_area_damage", &Plant::DoRowAreaDamage,
         "get_damage_range_flags", [](Plant* self) -> int { return self->GetDamageRangeFlags(PlantWeapon::WEAPON_PRIMARY); },
@@ -579,10 +584,16 @@ static void BindSol2Plant(sol::state_view& lua) {
         "launch_star_fruit", &Plant::LaunchStarFruit,
         "find_star_fruit_target", &Plant::FindStarFruitTarget,
         "update_chomper", &Plant::UpdateChomper,
+        "update_chomper_biting", &Plant::UpdateChomperBiting,
         "do_blink", &Plant::DoBlink,
         "update_blink", &Plant::UpdateBlink,
         "play_body_reanim", &Plant::PlayBodyReanim,
         "update_magnet_shroom", &Plant::UpdateMagnetShroom,
+        "update_magnet_item_positions", &Plant::UpdateMagnetItemPositions,
+        "update_magnet_shroom_charging", &Plant::UpdateMagnetShroomCharging,
+        "update_magnet_shroom_sucking", &Plant::UpdateMagnetShroomSucking,
+        "find_closest_magnet_target", &Plant::FindClosestMagnetTarget,
+        "find_closest_magnet_ladder", &Plant::FindClosestMagnetLadder,
         // get_free_magnet_item: 跳过 (returns unregistered pointer type (MagnetItem*)) — MagnetItem*             GetFreeMagnetItem();
         // draw_magnet_items: 跳过 (has unregistered pointer param (Graphics*)) — void                    DrawMagnetItems(Graphics* g);
         "update_doom_shroom", &Plant::UpdateDoomShroom,

@@ -163,6 +163,7 @@ class Reanimation;
 class TodParticleSystem;
 class PlantDefinition;
 class Projectile;
+class GridItem;
 
 class Plant : public GameObject
 {
@@ -258,6 +259,10 @@ public:
     void                    SetupProjectileMotion(Projectile* aProjectile, Zombie* theTargetZombie, int theRow, PlantWeapon thePlantWeapon, int aOriginX, int aOriginY);  // 设置投射物运动类型
     // ===== 发射投射物相关小函数结束 =====
     Zombie*                 FindTargetZombie(int theRow, PlantWeapon thePlantWeapon = PlantWeapon::WEAPON_PRIMARY);
+    // ===== 目标查找小函数（提取自 FindTargetZombie）=====
+    bool                    FilterZombieTarget(Zombie* aZombie, int theRow, int aDamageRangeFlags, bool needPortalCheck, Rect& aAttackRect, int& aExtraRange);  // 检查僵尸是否为有效目标，返回 false 表示跳过
+    int                     CalcZombieTargetWeight(Zombie* aZombie, const Rect& aZombieRect);  // 计算僵尸目标权重（越大越优先）
+    // ===== 目标查找小函数结束 =====
     void                    Die();
     void                    UpdateProductionPlant();
     void                    UpdateShooter();
@@ -298,10 +303,20 @@ public:
     void                    LaunchStarFruit();
     bool                    FindStarFruitTarget();
     void                    UpdateChomper();
+    // ===== 食人花小函数（提取自 UpdateChomper）=====
+    void                    UpdateChomperBiting();       // 咬合阶段：查找目标、判定命中/未命中
+    // ===== 食人花小函数结束 =====
     void                    DoBlink();
     void                    UpdateBlink();
     void                    PlayBodyReanim(const char* theTrackName, ReanimLoopType theLoopType, int theBlendTime, float theAnimRate);
     void                    UpdateMagnetShroom();
+    // ===== 磁力菇小函数（提取自 UpdateMagnetShroom）=====
+    void                    UpdateMagnetItemPositions();  // 更新磁铁物品位置（移动到植物）
+    void                    UpdateMagnetShroomCharging(); // 充能状态：恢复准备
+    void                    UpdateMagnetShroomSucking();  // 吸引状态：等待动画完成
+    Zombie*                 FindClosestMagnetTarget();    // 查找最近的磁铁目标僵尸
+    GridItem*               FindClosestMagnetLadder();    // 查找最近的梯子
+    // ===== 磁力菇小函数结束 =====
     MagnetItem*             GetFreeMagnetItem();
     void                    DrawMagnetItems(Graphics* g);
     void                    UpdateDoomShroom();
