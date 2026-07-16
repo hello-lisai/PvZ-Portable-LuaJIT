@@ -120,6 +120,7 @@ const char* EventToLuaName(ModEvent e) {
     case ModEvent::ON_PICK_ZOMBIE_WAVES_PRE:   return "on_pick_zombie_waves";
     case ModEvent::ON_PICK_ZOMBIE_TYPE_PRE:    return "on_pick_zombie_type";
     case ModEvent::ON_PLANT_DIE_PRE:           return "on_plant_die";
+    case ModEvent::ON_PLANT_TAKE_DAMAGE_PRE:   return "on_plant_take_damage";
     case ModEvent::ON_LEVEL_INIT_POST:         return "on_level_init";
     case ModEvent::ON_LEVEL_START_POST:        return "on_level_start";
     case ModEvent::ON_LEVEL_END:               return "on_level_end";
@@ -1433,6 +1434,12 @@ void DispatchEvent(ModCtx& ctx) {
             PushZombie(g_L, ctx.zombie);
             lua_pushinteger(g_L, ctx.damage);
             lua_pushinteger(g_L, ctx.damageFlags);
+            nargs = 3;
+            break;
+        case ModEvent::ON_PLANT_TAKE_DAMAGE_PRE:
+            PushPlant(g_L, ctx.plant);
+            PushZombie(g_L, ctx.zombie);
+            lua_pushinteger(g_L, ctx.damage);
             nargs = 3;
             break;
         case ModEvent::ON_PROJECTILE_IMPACT_PRE:

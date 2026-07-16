@@ -7656,7 +7656,20 @@ void Zombie::EatPlant(Plant* thePlant)
 
     HandleIZombieSunflowerDrop(thePlant);
 
-    thePlant->mPlantHealth -= DAMAGE_PER_EAT;
+    // Mod API: ON_PLANT_TAKE_DAMAGE_PRE，mod 可改伤害值或取消
+    // 注意：不能直接用 MOD_HOOK 宏，因为宏的 _ctx 是局部的，无法在宏外读取 cancel/newDamage
+    int aEatDamage = DAMAGE_PER_EAT;
+    if (ModBus::HasListenersFor(ModEvent::ON_PLANT_TAKE_DAMAGE_PRE)) {
+        ModCtx _ctx = MakeCtx(ModEvent::ON_PLANT_TAKE_DAMAGE_PRE);
+        _ctx.app = gLawnApp;
+        _ctx.plant = thePlant;
+        _ctx.zombie = this;
+        _ctx.damage = DAMAGE_PER_EAT;
+        ModBus::Fire(ModEvent::ON_PLANT_TAKE_DAMAGE_PRE, _ctx);
+        if (_ctx.cancel) return;
+        if (_ctx.newDamage >= 0) aEatDamage = _ctx.newDamage;
+    }
+    thePlant->mPlantHealth -= aEatDamage;
     thePlant->mRecentlyEatenCountdown = 50;
     if (mApp->IsIZombieLevel() && mJustGotShotCounter < -500)
     {
