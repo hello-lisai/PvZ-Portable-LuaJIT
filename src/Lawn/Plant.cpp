@@ -2591,6 +2591,42 @@ void Plant::UpdateBowling()
     }
 }
 
+void Plant::UpdatePlantAbilityByType()
+{
+    if (mApp->IsWallnutBowlingLevel())
+    {
+        UpdateBowling();
+        return;
+    }
+
+    if (mSeedType == SeedType::SEED_SQUASH)                                                     UpdateSquash();
+    else if (mSeedType == SeedType::SEED_DOOMSHROOM)                                            UpdateDoomShroom();
+    else if (mSeedType == SeedType::SEED_ICESHROOM)                                             UpdateIceShroom();
+    else if (mSeedType == SeedType::SEED_CHOMPER)                                               UpdateChomper();
+    else if (mSeedType == SeedType::SEED_BLOVER)                                                UpdateBlover();
+    else if (mSeedType == SeedType::SEED_FLOWERPOT)                                             UpdateFlowerPot();
+    else if (mSeedType == SeedType::SEED_LILYPAD)                                               UpdateLilypad();
+    else if (mSeedType == SeedType::SEED_IMITATER)                                              UpdateImitater();
+    else if (mSeedType == SeedType::SEED_INSTANT_COFFEE)                                        UpdateCoffeeBean();
+    else if (mSeedType == SeedType::SEED_UMBRELLA)                                              UpdateUmbrella();
+    else if (mSeedType == SeedType::SEED_COBCANNON)                                             UpdateCobCannon();
+    else if (mSeedType == SeedType::SEED_CACTUS)                                                UpdateCactus();
+    else if (mSeedType == SeedType::SEED_MAGNETSHROOM)                                          UpdateMagnetShroom();
+    else if (mSeedType == SeedType::SEED_GOLD_MAGNET)                                           UpdateGoldMagnetShroom();
+    else if (mSeedType == SeedType::SEED_SUNSHROOM)                                             UpdateSunShroom();
+    else if (MakesSun() || mSeedType == SeedType::SEED_MARIGOLD)                                UpdateProductionPlant();
+    else if (mSeedType == SeedType::SEED_GRAVEBUSTER)                                           UpdateGraveBuster();
+    else if (mSeedType == SeedType::SEED_TORCHWOOD)                                             UpdateTorchwood();
+    else if (mSeedType == SeedType::SEED_POTATOMINE)                                            UpdatePotato();
+    else if (mSeedType == SeedType::SEED_SPIKEWEED || mSeedType == SeedType::SEED_SPIKEROCK)    UpdateSpikeweed();
+    else if (mSeedType == SeedType::SEED_TANGLEKELP)                                            UpdateTanglekelp();
+    else if (mSeedType == SeedType::SEED_SCAREDYSHROOM)                                         UpdateScaredyShroom();
+    else if (mSeedType >= SeedType::NUM_SEED_TYPES)
+    {
+        ModLua::CallLuaPlantUpdate(this);
+    }
+}
+
 void Plant::UpdateAbilities()
 {
     if (!IsInPlay())
@@ -2634,39 +2670,7 @@ void Plant::UpdateAbilities()
     if (mStateCountdown > 0)
         mStateCountdown--;
 
-    if (mApp->IsWallnutBowlingLevel())
-    {
-        UpdateBowling();
-        return;
-    }
-
-    if (mSeedType == SeedType::SEED_SQUASH)                                                     UpdateSquash();
-    else if (mSeedType == SeedType::SEED_DOOMSHROOM)                                            UpdateDoomShroom();
-    else if (mSeedType == SeedType::SEED_ICESHROOM)                                             UpdateIceShroom();
-    else if (mSeedType == SeedType::SEED_CHOMPER)                                               UpdateChomper();
-    else if (mSeedType == SeedType::SEED_BLOVER)                                                UpdateBlover();
-    else if (mSeedType == SeedType::SEED_FLOWERPOT)                                             UpdateFlowerPot();
-    else if (mSeedType == SeedType::SEED_LILYPAD)                                               UpdateLilypad();
-    else if (mSeedType == SeedType::SEED_IMITATER)                                              UpdateImitater();
-    else if (mSeedType == SeedType::SEED_INSTANT_COFFEE)                                        UpdateCoffeeBean();
-    else if (mSeedType == SeedType::SEED_UMBRELLA)                                              UpdateUmbrella();
-    else if (mSeedType == SeedType::SEED_COBCANNON)                                             UpdateCobCannon();
-    else if (mSeedType == SeedType::SEED_CACTUS)                                                UpdateCactus();
-    else if (mSeedType == SeedType::SEED_MAGNETSHROOM)                                          UpdateMagnetShroom();
-    else if (mSeedType == SeedType::SEED_GOLD_MAGNET)                                           UpdateGoldMagnetShroom();
-    else if (mSeedType == SeedType::SEED_SUNSHROOM)                                             UpdateSunShroom();
-    else if (MakesSun() || mSeedType == SeedType::SEED_MARIGOLD)                                UpdateProductionPlant();
-    else if (mSeedType == SeedType::SEED_GRAVEBUSTER)                                           UpdateGraveBuster();
-    else if (mSeedType == SeedType::SEED_TORCHWOOD)                                             UpdateTorchwood();
-    else if (mSeedType == SeedType::SEED_POTATOMINE)                                            UpdatePotato();
-    else if (mSeedType == SeedType::SEED_SPIKEWEED || mSeedType == SeedType::SEED_SPIKEROCK)    UpdateSpikeweed();
-    else if (mSeedType == SeedType::SEED_TANGLEKELP)                                            UpdateTanglekelp();
-    else if (mSeedType == SeedType::SEED_SCAREDYSHROOM)                                         UpdateScaredyShroom();
-    else if (mSeedType >= SeedType::NUM_SEED_TYPES)
-    {
-        // Mod API: 自定义植物类型 → 调用 Lua 回调
-        ModLua::CallLuaPlantUpdate(this);
-    }
+    UpdatePlantAbilityByType();
 
     if (mSubclass == PlantSubClass::SUBCLASS_SHOOTER)
     {

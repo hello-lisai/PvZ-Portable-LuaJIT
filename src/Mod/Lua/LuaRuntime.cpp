@@ -596,6 +596,8 @@ int l_zombies_register(lua_State* L) {
 // ===== 自定义类型 Lua Update 回调派发 =====
 // 在 UpdateActionsByType 中被调用（自定义僵尸类型不会走 C++ switch）
 
+} // namespace
+
 namespace ModLua {
 
 void CallLuaZombieUpdate(Zombie* z) {
@@ -622,9 +624,9 @@ void CallLuaPlantUpdate(Plant* p) {
 
 } // namespace ModLua
 
-// ===== Widget 绑定 =====
-
 namespace {
+
+// ===== Widget 绑定 =====
 
 // LuaWidget：把 Sexy::Widget 的子类暴露给 Lua，允许 Mod 创建自定义 UI
 // Widget 的 Draw/Update/MouseDown/KeyDown 等方法由 Lua 回调实现
@@ -856,6 +858,8 @@ void BindWidget(lua_State* L) {
 }
 
 } // namespace ModLua
+
+namespace {
 
 // 解析 mod.lua 清单（返回 table）
 // 期望 mod.lua 返回一个 table，包含 name/version/author/description/main

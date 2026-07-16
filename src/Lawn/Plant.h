@@ -274,6 +274,7 @@ public:
     static /*inline*/ bool  IsFlying(SeedType theSeedtype);
     static /*inline*/ bool  IsUpgrade(SeedType theSeedtype);
     void                    UpdateAbilities();
+    void                    UpdatePlantAbilityByType();
     void                    Squish();
     void                    DoRowAreaDamage(int theDamage, unsigned int theDamageFlags);
     int                     GetDamageRangeFlags(PlantWeapon thePlantWeapon = PlantWeapon::WEAPON_PRIMARY);
