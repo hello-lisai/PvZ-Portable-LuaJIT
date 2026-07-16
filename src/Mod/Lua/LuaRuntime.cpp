@@ -673,6 +673,9 @@ public:
     int     mOnKeyDownRef   = LUA_NOREF;
     int     mOnMouseDownRef = LUA_NOREF;
     int     mOnMouseUpRef   = LUA_NOREF;
+    int     mOnMouseMoveRef = LUA_NOREF;
+    int     mOnMouseDragRef = LUA_NOREF;
+    int     mOnKeyCharRef   = LUA_NOREF;
 
     void Draw(Sexy::Graphics* g) override {
         Sexy::Widget::Draw(g);
@@ -721,6 +724,43 @@ public:
         }
         Sexy::Widget::MouseUp(x, y, btn, clickCount);
     }
+
+    // Mod API: MouseMove — 鼠标在 widget 内移动（未按下）
+    void MouseMove(int x, int y) override {
+        if (!g_L || mOnMouseMoveRef == LUA_NOREF) { Sexy::Widget::MouseMove(x, y); return; }
+        lua_rawgeti(g_L, LUA_REGISTRYINDEX, mOnMouseMoveRef);
+        lua_pushinteger(g_L, x); lua_pushinteger(g_L, y);
+        if (SafePCall(g_L, 2, 1)) {
+            if (lua_toboolean(g_L, -1)) return;
+            lua_pop(g_L, 1);
+        }
+        Sexy::Widget::MouseMove(x, y);
+    }
+
+    // Mod API: MouseDrag — 鼠标按住拖动
+    void MouseDrag(int x, int y) override {
+        if (!g_L || mOnMouseDragRef == LUA_NOREF) { Sexy::Widget::MouseDrag(x, y); return; }
+        lua_rawgeti(g_L, LUA_REGISTRYINDEX, mOnMouseDragRef);
+        lua_pushinteger(g_L, x); lua_pushinteger(g_L, y);
+        if (SafePCall(g_L, 2, 1)) {
+            if (lua_toboolean(g_L, -1)) return;
+            lua_pop(g_L, 1);
+        }
+        Sexy::Widget::MouseDrag(x, y);
+    }
+
+    // Mod API: KeyChar — 字符输入（文本编辑用）
+    void KeyChar(char theChar) override {
+        if (!g_L || mOnKeyCharRef == LUA_NOREF) { Sexy::Widget::KeyChar(theChar); return; }
+        lua_rawgeti(g_L, LUA_REGISTRYINDEX, mOnKeyCharRef);
+        char buf[2] = { theChar, 0 };
+        lua_pushstring(g_L, buf);
+        if (SafePCall(g_L, 1, 1)) {
+            if (lua_toboolean(g_L, -1)) return;
+            lua_pop(g_L, 1);
+        }
+        Sexy::Widget::KeyChar(theChar);
+    }
 };
 
 // 从 Lua userdata 获取 LuaWidget*
@@ -752,6 +792,9 @@ int l_widget_gc(lua_State* L) {
         if (w->mOnKeyDownRef != LUA_NOREF) luaL_unref(L, LUA_REGISTRYINDEX, w->mOnKeyDownRef);
         if (w->mOnMouseDownRef != LUA_NOREF) luaL_unref(L, LUA_REGISTRYINDEX, w->mOnMouseDownRef);
         if (w->mOnMouseUpRef != LUA_NOREF) luaL_unref(L, LUA_REGISTRYINDEX, w->mOnMouseUpRef);
+        if (w->mOnMouseMoveRef != LUA_NOREF) luaL_unref(L, LUA_REGISTRYINDEX, w->mOnMouseMoveRef);
+        if (w->mOnMouseDragRef != LUA_NOREF) luaL_unref(L, LUA_REGISTRYINDEX, w->mOnMouseDragRef);
+        if (w->mOnKeyCharRef != LUA_NOREF) luaL_unref(L, LUA_REGISTRYINDEX, w->mOnKeyCharRef);
         if (w->mWidgetManager) w->mWidgetManager->RemoveWidget(w);
         delete w;
     }
@@ -795,6 +838,33 @@ int l_widget_set_on_mouse_up(lua_State* L) {
     if (!w) return 0;
     if (w->mOnMouseUpRef != LUA_NOREF) luaL_unref(L, LUA_REGISTRYINDEX, w->mOnMouseUpRef);
     w->mOnMouseUpRef = luaL_ref(L, LUA_REGISTRYINDEX);
+    return 0;
+}
+
+// Mod API: set_on_mouse_move(x, y) — 鼠标在 widget 内移动（未按下时）
+int l_widget_set_on_mouse_move(lua_State* L) {
+    LuaWidget* w = CheckLuaWidget(L, 1);
+    if (!w) return 0;
+    if (w->mOnMouseMoveRef != LUA_NOREF) luaL_unref(L, LUA_REGISTRYINDEX, w->mOnMouseMoveRef);
+    w->mOnMouseMoveRef = luaL_ref(L, LUA_REGISTRYINDEX);
+    return 0;
+}
+
+// Mod API: set_on_mouse_drag(x, y) — 鼠标按住拖动
+int l_widget_set_on_mouse_drag(lua_State* L) {
+    LuaWidget* w = CheckLuaWidget(L, 1);
+    if (!w) return 0;
+    if (w->mOnMouseDragRef != LUA_NOREF) luaL_unref(L, LUA_REGISTRYINDEX, w->mOnMouseDragRef);
+    w->mOnMouseDragRef = luaL_ref(L, LUA_REGISTRYINDEX);
+    return 0;
+}
+
+// Mod API: set_on_key_char(char) — 字符输入（文本编辑用）
+int l_widget_set_on_key_char(lua_State* L) {
+    LuaWidget* w = CheckLuaWidget(L, 1);
+    if (!w) return 0;
+    if (w->mOnKeyCharRef != LUA_NOREF) luaL_unref(L, LUA_REGISTRYINDEX, w->mOnKeyCharRef);
+    w->mOnKeyCharRef = luaL_ref(L, LUA_REGISTRYINDEX);
     return 0;
 }
 
@@ -870,6 +940,9 @@ void BindWidget(lua_State* L) {
         {"set_on_key_down",     l_widget_set_on_key_down},
         {"set_on_mouse_down",   l_widget_set_on_mouse_down},
         {"set_on_mouse_up",     l_widget_set_on_mouse_up},
+        {"set_on_mouse_move",   l_widget_set_on_mouse_move},
+        {"set_on_mouse_drag",   l_widget_set_on_mouse_drag},
+        {"set_on_key_char",     l_widget_set_on_key_char},
         {"add_to_manager",      l_widget_add_to_manager},
         {"remove_from_manager", l_widget_remove_from_manager},
         {"set_visible",         l_widget_set_visible},
