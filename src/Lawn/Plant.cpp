@@ -24,6 +24,7 @@
 #include "Board.h"
 
 #include <vector>  // Mod API: gCustomPlantDefs
+#include <algorithm>  // Mod API: std::stable_sort for seed display order
 #include "Zombie.h"
 #include "Cutscene.h"
 #include "GridItem.h"
@@ -5364,8 +5365,86 @@ SeedType RegisterPlantDefinition(const PlantDefinition& theDef)
     PlantDefinition def = theDef;
     def.mSeedType = static_cast<SeedType>(gNextCustomSeedType);
     gCustomPlantDefs.push_back(def);
+    MarkSeedDisplayOrderDirty();  // Mod API: 注册新植物后需要重建显示顺序
     return static_cast<SeedType>(gNextCustomSeedType++);
 }
+
+// ===== Mod API: 显示顺序表实现 =====
+namespace {
+    std::vector<SeedType> gSeedDisplayOrder;
+    bool gSeedDisplayOrderDirty = true;
+}
+
+void MarkSeedDisplayOrderDirty()
+{
+    gSeedDisplayOrderDirty = true;
+}
+
+const std::vector<SeedType>& GetSeedDisplayOrder()
+{
+    if (gSeedDisplayOrderDirty)
+    {
+        gSeedDisplayOrder.clear();
+        // 1. 原版可见植物按 0-48 顺序排列
+        for (int i = 0; i < static_cast<int>(SeedType::NUM_SEED_TYPES); i++)
+        {
+            SeedType s = static_cast<SeedType>(i);
+            if (!IsHiddenSeed(s))
+                gSeedDisplayOrder.push_back(s);
+        }
+        // 2. 自定义植物：按 mSeedSortOrder 排序
+        //    - mSeedSortOrder >= 0 的按值升序排列
+        //    - mSeedSortOrder == -1 的按注册顺序追加到末尾
+        std::vector<const PlantDefinition*> sortedCustoms;
+        std::vector<const PlantDefinition*> autoCustoms;
+        for (const auto& def : gCustomPlantDefs)
+        {
+            if (def.mSeedSortOrder >= 0)
+                sortedCustoms.push_back(&def);
+            else
+                autoCustoms.push_back(&def);
+        }
+        // 按 mSeedSortOrder 升序（稳定排序）
+        std::stable_sort(sortedCustoms.begin(), sortedCustoms.end(),
+            [](const PlantDefinition* a, const PlantDefinition* b) {
+                return a->mSeedSortOrder < b->mSeedSortOrder;
+            });
+        // 如果 sortedCustoms 的 sort_order 值落在原版范围内（0-48），跳过（不应覆盖原版位置）
+        // 直接追加：sort_order 仅决定自定义植物之间的相对顺序
+        for (const auto* def : sortedCustoms)
+            gSeedDisplayOrder.push_back(def->mSeedType);
+        for (const auto* def : autoCustoms)
+            gSeedDisplayOrder.push_back(def->mSeedType);
+
+        gSeedDisplayOrderDirty = false;
+    }
+    return gSeedDisplayOrder;
+}
+
+int GetSeedDisplayCount()
+{
+    return static_cast<int>(GetSeedDisplayOrder().size());
+}
+
+int SeedTypeToDisplayIndex(SeedType s)
+{
+    const auto& order = GetSeedDisplayOrder();
+    for (int i = 0; i < static_cast<int>(order.size()); i++)
+    {
+        if (order[i] == s)
+            return i;
+    }
+    return -1;  // 未找到（隐藏植物或无效类型）
+}
+
+SeedType DisplayIndexToSeedType(int displayIdx)
+{
+    const auto& order = GetSeedDisplayOrder();
+    if (displayIdx >= 0 && displayIdx < static_cast<int>(order.size()))
+        return order[displayIdx];
+    return SeedType::SEED_NONE;
+}
+// ===== Mod API: 显示顺序表实现结束 =====
 
 int Plant::GetCost(SeedType theSeedType, SeedType theImitaterType)
 {

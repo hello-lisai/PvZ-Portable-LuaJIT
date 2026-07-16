@@ -919,18 +919,16 @@ bool AlmanacDialog::IsAlmanacHiddenSeed(SeedType theSeedType)
 	return IsHiddenSeed(theSeedType);
 }
 
-// Mod API: 图鉴可见植物总数（排除隐藏植物 49-52）
+// Mod API: 图鉴可见植物总数（使用显示顺序表大小）
 int AlmanacDialog::GetAlmanacVisibleSeedCount() const
 {
-	return GetVisiblePlantCount();
+	return GetSeedDisplayCount();
 }
 
-// Mod API: 可见索引 → SeedType（跳过隐藏植物）
-// 例如：visibleIdx 0-48 → SeedType 0-48
-//       visibleIdx 49 → SeedType 53（第一个自定义植物，跳过 49-52）
+// Mod API: 显示索引 → SeedType（使用全局显示顺序表，支持 mod 排序）
 SeedType AlmanacDialog::GetAlmanacSeedByVisibleIndex(int visibleIdx) const
 {
-	return VisibleIndexToSeed(visibleIdx);
+	return DisplayIndexToSeedType(visibleIdx);
 }
 
 int AlmanacDialog::GetPlantPageCount() const

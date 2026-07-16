@@ -148,9 +148,9 @@ public:
     void                    PrevSeedPage();       // 上一页
     void                    NextSeedPage();       // 下一页
     void                    UpdatePageButtons();  // 更新翻页按钮可见性/可用状态
-    // Mod API: SeedType → 可见索引（跳过隐藏植物 49-52），用于页内位置计算
-    static int              SeedToVisIdx(SeedType s) { return SeedToVisibleIndex(s); }
-    static SeedType         VisIdxToSeed(int visIdx) { return VisibleIndexToSeed(visIdx); }
+    // Mod API: SeedType ↔ 显示索引（使用全局显示顺序表，支持 mod 排序）
+    static int              SeedToVisIdx(SeedType s) { return SeedTypeToDisplayIndex(s); }
+    static SeedType         VisIdxToSeed(int visIdx) { return DisplayIndexToSeedType(visIdx); }
 };
 
 #endif

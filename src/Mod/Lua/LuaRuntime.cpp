@@ -524,6 +524,12 @@ int l_plants_register(lua_State* L) {
     if (lua_isboolean(L, -1)) def.mMakesSun = lua_toboolean(L, -1) != 0;
     lua_pop(L, 1);
 
+    // Mod API: 选种界面/图鉴显示排序权重（-1 = 自动追加，>=0 = 按值排序）
+    // 例如 seed_sort_order = 49 表示排在第二页首位
+    lua_getfield(L, tblIdx, "seed_sort_order");
+    if (lua_isinteger(L, -1)) def.mSeedSortOrder = static_cast<int>(lua_tointeger(L, -1));
+    lua_pop(L, 1);
+
     lua_getfield(L, tblIdx, "on_update");
     if (lua_isfunction(L, -1)) {
         int ref = luaL_ref(L, LUA_REGISTRYINDEX);

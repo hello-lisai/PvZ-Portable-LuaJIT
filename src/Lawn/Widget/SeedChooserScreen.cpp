@@ -410,7 +410,7 @@ void SeedChooserScreen::Draw(Graphics* g)
 	// pageStart/pageEnd 为可见索引范围；pageOffset 为页内偏移（0~SEEDS_PER_PAGE-1）
 	int aPageStart = GetSeedPageStart();
 	int aPageEnd = aPageStart + SEEDS_PER_PAGE;
-	int aTotalVisible = GetVisiblePlantCount();
+	int aTotalVisible = GetSeedDisplayCount();
 	if (aPageEnd > aTotalVisible) aPageEnd = aTotalVisible;
 
 	// Mod API: 槽位背景/剪影（仅当前页；用 pageOffset 计算位置）
@@ -866,7 +866,7 @@ SeedType SeedChooserScreen::SeedHitTest(int x, int y)
 		// Mod API: 翻页模式——IN_CHOOSER 只检测当前页的可见种子
 		int aPageStart = GetSeedPageStart();
 		int aPageEnd = aPageStart + SEEDS_PER_PAGE;
-		int aTotalVisible = GetVisiblePlantCount();
+		int aTotalVisible = GetSeedDisplayCount();
 		if (aPageEnd > aTotalVisible) aPageEnd = aTotalVisible;
 		int aTotalPlants = GetTotalPlantCount();
 
@@ -1304,10 +1304,10 @@ void SeedChooserScreen::UpdateAfterPurchase()
 // Mod API: 翻页相关方法实现
 // ============================================================
 
-// 总页数（基于可见植物数，排除隐藏植物 49-52）
+// 总页数（基于显示顺序表大小，支持 mod 排序）
 int SeedChooserScreen::GetSeedPageCount()
 {
-	int aTotal = GetVisiblePlantCount();
+	int aTotal = GetSeedDisplayCount();
 	if (aTotal <= 0) return 1;
 	return (aTotal + SEEDS_PER_PAGE - 1) / SEEDS_PER_PAGE;
 }

@@ -420,6 +420,9 @@ public:
     std::string             mAlmanacDescription; // 图鉴描述正文
     // Mod API: 自定义植物是否产阳光（MakesSun/UpdateProductionPlant 读取）
     bool                    mMakesSun = false;
+    // Mod API: 选种界面/图鉴显示排序权重（-1 = 自动追加到末尾，>=0 = 按此值排序）
+    // 原版植物 sort_order = 0~48，自定义植物默认 -1（追加），mod 可指定如 49 表示第二页首位
+    int                     mSeedSortOrder = -1;
 };
 extern PlantDefinition gPlantDefs[SeedType::NUM_SEED_TYPES];  // Mod API: 移除 const
 
@@ -449,17 +452,11 @@ inline int GetVisiblePlantCount()
 {
     return GetTotalPlantCount() - 4; // 恰好 4 个隐藏植物（49-52）
 }
-// Mod API: SeedType → 可见索引（跳过隐藏植物 49-52）
-// 可见索引 0-48 对应 SeedType 0-48，可见索引 49+ 对应 SeedType 53+
-inline int SeedToVisibleIndex(SeedType s)
-{
-    int idx = static_cast<int>(s);
-    if (idx <= 48) return idx;            // 0-48（含 Imitater）直接映射
-    return idx - 4;                       // 跳过 49-52
-}
-// Mod API: 可见索引 → SeedType（逆向映射）
-inline SeedType VisibleIndexToSeed(int visIdx)
-{
-    if (visIdx <= 48) return static_cast<SeedType>(visIdx);
-    return static_cast<SeedType>(visIdx + 4); // 跳回 53+
-}
+// Mod API: 显示顺序表（支持 mod 通过 seed_sort_order 控制位置）
+// 原版植物按 0-48 排列，自定义植物按 mSeedSortOrder 排序（-1 追加到末尾）
+// 在所有 mod 加载后构建，RegisterPlantDefinition 时标记为脏需重建
+void                        MarkSeedDisplayOrderDirty();
+const std::vector<SeedType>& GetSeedDisplayOrder();
+int                         GetSeedDisplayCount();  // 显示顺序表大小 = 可见植物数
+int                         SeedTypeToDisplayIndex(SeedType s);   // SeedType → 显示索引
+SeedType                    DisplayIndexToSeedType(int displayIdx); // 显示索引 → SeedType
