@@ -24,6 +24,7 @@
 
 #include "../../ConstEnums.h"
 #include "../../Sexy.TodLib/TodList.h"
+#include <map>
 namespace Sexy
 {
     class Graphics;
@@ -49,6 +50,9 @@ public:
     ImageVariationList      mImageVariationList;
     MemoryImage*            mLawnMowers[LawnMowerType::NUM_MOWER_TYPES];
     MemoryImage*            mZombieImages[ZombieType::NUM_CACHED_ZOMBIE_TYPES];
+    // Mod API: 自定义植物/僵尸的缓存帧（固定数组无法容纳 >= NUM_*_TYPES 的类型）
+    std::map<int, MemoryImage*> mCustomPlantImages;
+    std::map<int, MemoryImage*> mCustomZombieImages;
     LawnApp*                mApp;
 
 public:

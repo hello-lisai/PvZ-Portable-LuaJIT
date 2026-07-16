@@ -371,6 +371,13 @@ void ReanimatorCache::ReanimatorCacheDispose()
 		delete mZombieImages[i];
 		mZombieImages[i] = nullptr;
 	}
+	// Mod API: 清理自定义植物/僵尸缓存帧
+	for (auto& pair : mCustomPlantImages)
+		delete pair.second;
+	mCustomPlantImages.clear();
+	for (auto& pair : mCustomZombieImages)
+		delete pair.second;
+	mCustomZombieImages.clear();
 }
 
 
@@ -379,6 +386,26 @@ void ReanimatorCache::DrawCachedPlant(Graphics* g, float thePosX, float thePosY,
 	TOD_ASSERT(theSeedType >= 0 && theSeedType < SeedType::NUM_SEED_TYPES);
 
 	MemoryImage* aImage = nullptr;
+	// Mod API: 自定义植物（SeedType >= NUM_SEED_TYPES）使用 map 缓存，不访问固定数组
+	if (theSeedType >= SeedType::NUM_SEED_TYPES)
+	{
+		int key = static_cast<int>(theSeedType);
+		auto it = mCustomPlantImages.find(key);
+		if (it != mCustomPlantImages.end())
+			aImage = it->second;
+		else
+		{
+			aImage = MakeCachedPlantFrame(theSeedType, theDrawVariation);
+			mCustomPlantImages[key] = aImage;
+		}
+		int aOffsetX, aOffsetY, aWidth, aHeight;
+		GetPlantImageSize(theSeedType, aOffsetX, aOffsetY, aWidth, aHeight);
+		if (!mApp->Is3DAccelerated() && g->mScaleX == 1.0f && g->mScaleY == 1.0f)
+			g->DrawImage(aImage, thePosX + aOffsetX, thePosY + aOffsetY);
+		else
+			TodDrawImageScaledF(g, aImage, thePosX + (aOffsetX * g->mScaleX), thePosY + (aOffsetY * g->mScaleY), g->mScaleX, g->mScaleY);
+		return;
+	}
 	if (theDrawVariation != DrawVariation::VARIATION_NORMAL)
 	{
 		for (TodListNode<ReanimCacheImageVariation>* aNode = mImageVariationList.mHead; aNode != nullptr; aNode = aNode->mNext)
@@ -431,7 +458,23 @@ void ReanimatorCache::DrawCachedMower(Graphics* g, float thePosX, float thePosY,
 void ReanimatorCache::DrawCachedZombie(Graphics* g, float thePosX, float thePosY, ZombieType theZombieType)
 {
 	TOD_ASSERT(theZombieType >= 0 && theZombieType < ZombieType::NUM_CACHED_ZOMBIE_TYPES);
-	
+
+	// Mod API: 自定义僵尸（ZombieType >= NUM_CACHED_ZOMBIE_TYPES）使用 map 缓存
+	if (theZombieType >= ZombieType::NUM_CACHED_ZOMBIE_TYPES)
+	{
+		int key = static_cast<int>(theZombieType);
+		auto it = mCustomZombieImages.find(key);
+		MemoryImage* aImage;
+		if (it != mCustomZombieImages.end())
+			aImage = it->second;
+		else
+		{
+			aImage = MakeCachedZombieFrame(theZombieType);
+			mCustomZombieImages[key] = aImage;
+		}
+		TodDrawImageScaledF(g, aImage, thePosX, thePosY, g->mScaleX, g->mScaleY);
+		return;
+	}
 	if (mZombieImages[theZombieType] == nullptr)
 		mZombieImages[theZombieType] = MakeCachedZombieFrame(theZombieType);
 	TodDrawImageScaledF(g, mZombieImages[theZombieType], thePosX, thePosY, g->mScaleX, g->mScaleY);

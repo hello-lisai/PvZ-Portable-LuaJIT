@@ -44,6 +44,8 @@ constexpr const int SEED_BANK_OFFSET_X_END = 10;
 constexpr const int SEED_CHOOSER_OFFSET_Y = 516;
 constexpr const int SEED_PACKET_WIDTH = 50;
 constexpr const int SEED_PACKET_HEIGHT = 70;
+// Mod API: 选种界面翻页模式，每页可容纳的植物数（8列 × 7行）
+constexpr const int SEEDS_PER_PAGE = 56;
 constexpr const int IMITATER_DIALOG_WIDTH = 500;
 constexpr const int IMITATER_DIALOG_HEIGHT = 600;
 

@@ -40,8 +40,6 @@
 #include "misc/MTRand.h"
 #include "../../Sexy.TodLib/TodStringFile.h"
 #include "widget/WidgetManager.h"
-#include "widget/ScrollbarWidget.h"
-#include "widget/ScrollbuttonWidget.h"
 
 // GOTY @Patoke: 0x48E020
 SeedChooserScreen::SeedChooserScreen()
@@ -205,17 +203,37 @@ SeedChooserScreen::SeedChooserScreen()
 		CrazyDavePickSeeds();
 	UpdateImitaterButton();
 
-	// Mod API: 滚动条初始化
-	// 滚动区域：y 87（背景图顶部）到 y 510（按钮区上方），宽度内 x 0~770
-	mScrollAreaTop = 87;
-	mScrollAreaBottom = 510;
-	mScrollOffset = 0;
-	mScrollbar = new ScrollbarWidget(0, this);
-	mScrollbar->SetHorizontal(false);
-	mScrollbar->SetInvisIfNoScroll(true);
-	// 滚动条放在右侧 x=778，高度与滚动区域一致
-	mScrollbar->ResizeScrollbar(778, mScrollAreaTop, 20, mScrollAreaBottom - mScrollAreaTop);
-	UpdateScrollbar();
+	// Mod API: 翻页按钮初始化（仅当有自定义植物且总页数 > 1 时可见）
+	mSeedPage = 0;
+	mPrevButton = new GameButton(SeedChooserScreen::SeedChooserScreen_PrevPage);
+	mPrevButton->SetLabel("<");
+	mPrevButton->mButtonImage = Sexy::IMAGE_SEEDCHOOSER_BUTTON2;
+	mPrevButton->mOverImage = Sexy::IMAGE_SEEDCHOOSER_BUTTON2_GLOW;
+	mPrevButton->mDownImage = nullptr;
+	mPrevButton->SetFont(Sexy::FONT_BRIANNETOD12);
+	mPrevButton->mColors[0] = aBtnColor;
+	mPrevButton->mColors[1] = aBtnColor;
+	mPrevButton->Resize(350, 550, 50, 30);
+	mPrevButton->mParentWidget = this;
+	mPrevButton->mTextOffsetY = 1;
+	mPrevButton->mBtnNoDraw = true;
+	mPrevButton->mDisabled = true;
+
+	mNextButton = new GameButton(SeedChooserScreen::SeedChooserScreen_NextPage);
+	mNextButton->SetLabel(">");
+	mNextButton->mButtonImage = Sexy::IMAGE_SEEDCHOOSER_BUTTON2;
+	mNextButton->mOverImage = Sexy::IMAGE_SEEDCHOOSER_BUTTON2_GLOW;
+	mNextButton->mDownImage = nullptr;
+	mNextButton->SetFont(Sexy::FONT_BRIANNETOD12);
+	mNextButton->mColors[0] = aBtnColor;
+	mNextButton->mColors[1] = aBtnColor;
+	mNextButton->Resize(410, 550, 50, 30);
+	mNextButton->mParentWidget = this;
+	mNextButton->mTextOffsetY = 1;
+	mNextButton->mBtnNoDraw = true;
+	mNextButton->mDisabled = true;
+
+	UpdatePageButtons();
 }
 
 int SeedChooserScreen::PickFromWeightedArrayUsingSpecialRandSeed(TodWeightedArray* theArray, int theCount, MTRand& theLevelRNG)
@@ -334,7 +352,8 @@ SeedChooserScreen::~SeedChooserScreen()
 	if (mStoreButton) delete mStoreButton;
 	if (mToolTip) delete mToolTip;
 	if (mMenuButton) delete mMenuButton;
-	if (mScrollbar) delete mScrollbar;
+	if (mPrevButton) delete mPrevButton;
+	if (mNextButton) delete mNextButton;
 }
 
 unsigned int SeedChooserScreen::SeedNotRecommendedToPick(SeedType theSeedType)
@@ -373,7 +392,7 @@ void SeedChooserScreen::Draw(Graphics* g)
 	// @Patoke: wrong local name
 	TodDrawString(g, "[CHOOSE_YOUR_PLANTS]", 229, 110, Sexy::FONT_DWARVENTODCRAFT18YELLOW, Color::White, DS_ALIGN_CENTER);
 
-	// Mod API: 银行槽位剪影（不在滚动区内，不随滚动偏移）
+	// Mod API: 银行槽位剪影（不在翻页区域内，固定位置）
 	int aNumSeedsInBank = mBoard->mSeedBank->mNumPackets;
 	for (int anIndex = 0; anIndex < aNumSeedsInBank; anIndex++)
 	{
@@ -385,22 +404,23 @@ void SeedChooserScreen::Draw(Graphics* g)
 		}
 	}
 
-	// Mod API: 仅当需要滚动时才建立裁剪视口（无自定义植物时保持原版无裁剪行为）
-	bool aNeedScroll = NeedsScrollbar();
-	if (aNeedScroll)
-	{
-		g->PushState();
-		g->SetClipRect(0, mScrollAreaTop, 778, mScrollAreaBottom - mScrollAreaTop);
-		g->Translate(0, -mScrollOffset);
-	}
+	// Mod API: 翻页模式——只绘制当前页的植物
+	// pageStart/pageEnd 为绝对索引范围；pageOffset 为页内偏移（0~SEEDS_PER_PAGE-1），
+	// 用 pageOffset 调用 GetSeedPositionInChooser 计算页内位置（row 0~6）
+	int aPageStart = GetSeedPageStart();
+	int aPageEnd = aPageStart + SEEDS_PER_PAGE;
+	int aTotalPlants = GetTotalPlantCount();
+	if (aPageEnd > aTotalPlants) aPageEnd = aTotalPlants;
 
-	// Mod API: 槽位背景/剪影（随滚动偏移；已扩展到自定义植物）
-	for (SeedType aSeedShadow = SEED_PEASHOOTER; aSeedShadow < GetTotalPlantCount(); aSeedShadow = (SeedType)(aSeedShadow + 1))
+	// Mod API: 槽位背景/剪影（仅当前页；用 pageOffset 计算位置）
+	for (int i = aPageStart; i < aPageEnd; i++)
 	{
+		SeedType aSeedShadow = (SeedType)i;
 		if (aSeedShadow == SEED_IMITATER)
 			continue;
+		int aPageOffset = i - aPageStart;
 		int x, y;
-		GetSeedPositionInChooser(aSeedShadow, x, y);
+		GetSeedPositionInChooser(aPageOffset, x, y);
 		if (mApp->HasSeedType(aSeedShadow))
 		{
 			ChosenSeed& aChosenSeed = mChosenSeeds[aSeedShadow];
@@ -415,31 +435,53 @@ void SeedChooserScreen::Draw(Graphics* g)
 		}
 	}
 
-	for (SeedType aSeedType = SEED_PEASHOOTER; aSeedType < GetTotalPlantCount(); aSeedType = (SeedType)(aSeedType + 1))
+	// Mod API: 绘制选种器/种子库中的种子
+	// IN_CHOOSER 只绘制当前页（用 pageOffset 位置）；IN_BANK 始终绘制（用 mX/mY）
+	for (int i = 0; i < aTotalPlants; i++)
 	{
+		SeedType aSeedType = (SeedType)i;
 		ChosenSeed& aChosenSeed = mChosenSeeds[aSeedType];
 		ChosenSeedState aSeedState = aChosenSeed.mSeedState;
 		if (mApp->HasSeedType(aSeedType) && aSeedState != SEED_FLYING_TO_BANK && aSeedState != SEED_FLYING_TO_CHOOSER &&
 			aSeedState != SEED_PACKET_HIDDEN && (aSeedState == SEED_IN_CHOOSER || mBoard->mCutScene->mSeedChoosing))
 		{
+			// IN_CHOOSER 状态：只绘制当前页的种子
+			if (aSeedState == SEED_IN_CHOOSER)
+			{
+				if (i < aPageStart || i >= aPageEnd)
+					continue;
+			}
+
 			bool aGrayed = false;
 			if (((SeedNotRecommendedToPick(aSeedType) || SeedNotAllowedToPick(aSeedType)) && aSeedState == SEED_IN_CHOOSER) ||
 				SeedNotAllowedDuringTrial(aSeedType))
 				aGrayed = true;
 
-			int aPosX = aChosenSeed.mX;
-			int aPosY = aChosenSeed.mY;
-			if (aSeedState == SEED_IN_BANK)
+			int aPosX, aPosY;
+			if (aSeedState == SEED_IN_CHOOSER)
 			{
-				aPosX -= mX;
-				aPosY -= mY;
+				// 用 pageOffset 计算页内位置
+				GetSeedPositionInChooser(i - aPageStart, aPosX, aPosY);
+			}
+			else
+			{
+				// IN_BANK 等状态：用 mX/mY（种子库位置）
+				aPosX = aChosenSeed.mX;
+				aPosY = aChosenSeed.mY;
+				if (aSeedState == SEED_IN_BANK)
+				{
+					aPosX -= mX;
+					aPosY -= mY;
+				}
 			}
 			DrawSeedPacket(g, aPosX, aPosY, aChosenSeed.mSeedType, aChosenSeed.mImitaterType, 0, aGrayed ? 115 : 255, true, false);
 		}
 	}
 
-	for (SeedType aSeedType = SEED_PEASHOOTER; aSeedType < GetTotalPlantCount(); aSeedType = (SeedType)(aSeedType + 1))
+	// Mod API: 绘制飞行中的种子（所有页，用 mX/mY 动画位置）
+	for (int i = 0; i < aTotalPlants; i++)
 	{
+		SeedType aSeedType = (SeedType)i;
 		ChosenSeed& aChosenSeed = mChosenSeeds[aSeedType];
 		ChosenSeedState aSeedState = aChosenSeed.mSeedState;
 		if (mApp->HasSeedType(aSeedType) && (aSeedState == SEED_FLYING_TO_BANK || aSeedState == SEED_FLYING_TO_CHOOSER))
@@ -448,47 +490,20 @@ void SeedChooserScreen::Draw(Graphics* g)
 		}
 	}
 
-	if (aNeedScroll)
-	{
-		g->PopState();
-	}
-
-	// Mod API: imitater 按钮+其他按钮（固定位置，不受滚动影响）
+	// Mod API: imitater 按钮+其他按钮+翻页按钮（固定位置，不受翻页影响）
 	mImitaterButton->Draw(g);
 	mStartButton->Draw(g);
 	mRandomButton->Draw(g);
 	mViewLawnButton->Draw(g);
 	mAlmanacButton->Draw(g);
 	mStoreButton->Draw(g);
+	mPrevButton->Draw(g);
+	mNextButton->Draw(g);
 	Graphics aBoardFrameG = Graphics(*g);
 	aBoardFrameG.mTransX -= mX;
 	aBoardFrameG.mTransY -= mY;
 	mMenuButton->Draw(&aBoardFrameG);
 	mToolTip->Draw(g);
-
-	// Mod API: 绘制滚动条（固定位置，不在滚动视口内）
-	if (mScrollbar && mScrollbar->mVisible)
-	{
-		Graphics aScrollbarG = Graphics(*g);
-		aScrollbarG.mTransX += mScrollbar->mX;
-		aScrollbarG.mTransY += mScrollbar->mY;
-		mScrollbar->Draw(&aScrollbarG);
-		// 绘制上/下箭头按钮
-		if (mScrollbar->mUpButton && mScrollbar->mUpButton->mVisible)
-		{
-			Graphics aUpG = Graphics(aScrollbarG);
-			aUpG.mTransX += mScrollbar->mUpButton->mX;
-			aUpG.mTransY += mScrollbar->mUpButton->mY;
-			mScrollbar->mUpButton->Draw(&aUpG);
-		}
-		if (mScrollbar->mDownButton && mScrollbar->mDownButton->mVisible)
-		{
-			Graphics aDownG = Graphics(aScrollbarG);
-			aDownG.mTransX += mScrollbar->mDownButton->mX;
-			aDownG.mTransY += mScrollbar->mDownButton->mY;
-			mScrollbar->mDownButton->Draw(&aDownG);
-		}
-	}
 }
 
 void SeedChooserScreen::UpdateViewLawn()
@@ -565,7 +580,8 @@ void SeedChooserScreen::UpdateCursor()
 
 	if (mMouseVisible && mChooseState != CHOOSE_VIEW_LAWN && ((aMouseSeedType != SEED_NONE && !SeedNotAllowedToPick(aMouseSeedType)) ||
 		mRandomButton->IsMouseOver() || mViewLawnButton->IsMouseOver() || mAlmanacButton->IsMouseOver() || mImitaterButton->IsMouseOver() ||
-		mStoreButton->IsMouseOver() || mMenuButton->IsMouseOver() || mStartButton->IsMouseOver()))
+		mStoreButton->IsMouseOver() || mMenuButton->IsMouseOver() || mStartButton->IsMouseOver() ||
+		mPrevButton->IsMouseOver() || mNextButton->IsMouseOver()))
 		mApp->SetCursor(CURSOR_HAND);
 	else
 		mApp->SetCursor(CURSOR_POINTER);
@@ -608,13 +624,9 @@ void SeedChooserScreen::Update()
 	mImitaterButton->Update();
 	mStoreButton->Update();
 	mMenuButton->Update();
-	// Mod API: 滚动条及其上下箭头按钮更新
-	if (mScrollbar)
-	{
-		mScrollbar->Update();
-		if (mScrollbar->mUpButton) mScrollbar->mUpButton->Update();
-		if (mScrollbar->mDownButton) mScrollbar->mDownButton->Update();
-	}
+	// Mod API: 翻页按钮更新
+	mPrevButton->Update();
+	mNextButton->Update();
 	UpdateViewLawn();
 	UpdateCursor();
 	MarkDirty();
@@ -822,6 +834,16 @@ void SeedChooserScreen::ButtonDepress(int theId)
 		UpdateCursor();
 		mApp->DoNewOptions(false);
 	}
+	else if (theId == SeedChooserScreen::SeedChooserScreen_PrevPage)
+	{
+		// Mod API: 翻页——上一页
+		PrevSeedPage();
+	}
+	else if (theId == SeedChooserScreen::SeedChooserScreen_NextPage)
+	{
+		// Mod API: 翻页——下一页
+		NextSeedPage();
+	}
 	else if (mApp->GetSeedsAvailable() >= mBoard->mSeedBank->mNumPackets)
 	{
 		if (theId == SeedChooserScreen::SeedChooserScreen_Start)
@@ -835,14 +857,31 @@ SeedType SeedChooserScreen::SeedHitTest(int x, int y)
 {
 	if (mMouseVisible)
 	{
-		for (SeedType aSeedType = SEED_PEASHOOTER; aSeedType < GetTotalPlantCount(); aSeedType = (SeedType)(aSeedType + 1))
+		// Mod API: 翻页模式——IN_CHOOSER 只检测当前页的种子
+		int aPageStart = GetSeedPageStart();
+		int aPageEnd = aPageStart + SEEDS_PER_PAGE;
+		int aTotalPlants = GetTotalPlantCount();
+		if (aPageEnd > aTotalPlants) aPageEnd = aTotalPlants;
+
+		for (int i = 0; i < aTotalPlants; i++)
 		{
+			SeedType aSeedType = (SeedType)i;
 			ChosenSeed& aChosenSeed = mChosenSeeds[aSeedType];
 			if (!mApp->HasSeedType(aSeedType) || aChosenSeed.mSeedState == SEED_PACKET_HIDDEN) continue;
-			// Mod API: 选择器中的种子在滚动视口内绘制时 y 减去了 mScrollOffset
-			// 命中测试需将鼠标 y 加回 mScrollOffset 以匹配基础坐标
-			int aHitY = (aChosenSeed.mSeedState == SEED_IN_CHOOSER) ? (y + mScrollOffset) : y;
-			if (Rect(aChosenSeed.mX, aChosenSeed.mY, SEED_PACKET_WIDTH, SEED_PACKET_HEIGHT).Contains(x, aHitY)) return aSeedType;
+			// IN_CHOOSER 状态：只检测当前页，用 pageOffset 计算位置
+			if (aChosenSeed.mSeedState == SEED_IN_CHOOSER)
+			{
+				if (i < aPageStart || i >= aPageEnd) continue;
+				int aPageOffset = i - aPageStart;
+				int aSeedX, aSeedY;
+				GetSeedPositionInChooser(aPageOffset, aSeedX, aSeedY);
+				if (Rect(aSeedX, aSeedY, SEED_PACKET_WIDTH, SEED_PACKET_HEIGHT).Contains(x, y)) return aSeedType;
+			}
+			else
+			{
+				// IN_BANK 等状态：用 mX/mY
+				if (Rect(aChosenSeed.mX, aChosenSeed.mY, SEED_PACKET_WIDTH, SEED_PACKET_HEIGHT).Contains(x, y)) return aSeedType;
+			}
 		}
 	}
 	return SEED_NONE;
@@ -890,7 +929,16 @@ void SeedChooserScreen::ClickedSeedInBank(ChosenSeed& theChosenSeed)
 	theChosenSeed.mTimeEndMotion = mSeedChooserAge + 25;
 	theChosenSeed.mStartX = theChosenSeed.mX;
 	theChosenSeed.mStartY = theChosenSeed.mY;
-	GetSeedPositionInChooser(theChosenSeed.mSeedType, theChosenSeed.mEndX, theChosenSeed.mEndY);
+	// Mod API: 翻页模式——返回选种器时飞回当前页的页内位置
+	{
+		int aIdx = static_cast<int>(theChosenSeed.mSeedType);
+		int aPageStart = GetSeedPageStart();
+		int aPageOffset = aIdx - aPageStart;
+		if (aPageOffset >= 0 && aPageOffset < SEEDS_PER_PAGE)
+			GetSeedPositionInChooser(aPageOffset, theChosenSeed.mEndX, theChosenSeed.mEndY);
+		else
+			GetSeedPositionInChooser(aIdx, theChosenSeed.mEndX, theChosenSeed.mEndY);
+	}
 	theChosenSeed.mSeedState = SEED_FLYING_TO_CHOOSER;
 	theChosenSeed.mSeedIndexInBank = 0;
 	mSeedsInBank--;
@@ -907,8 +955,13 @@ void SeedChooserScreen::ClickedSeedInChooser(ChosenSeed& theChosenSeed)
 
 	theChosenSeed.mTimeStartMotion = mSeedChooserAge;
 	theChosenSeed.mTimeEndMotion = mSeedChooserAge + 25;
-	theChosenSeed.mStartX = theChosenSeed.mX;
-	theChosenSeed.mStartY = theChosenSeed.mY;
+	// Mod API: 翻页模式——从选种器飞向种子库时，起点用当前页的页内位置
+	{
+		int aIdx = static_cast<int>(theChosenSeed.mSeedType);
+		int aPageStart = GetSeedPageStart();
+		int aPageOffset = aIdx - aPageStart;
+		GetSeedPositionInChooser(aPageOffset, theChosenSeed.mStartX, theChosenSeed.mStartY);
+	}
 	GetSeedPositionInBank(mSeedsInBank, theChosenSeed.mEndX, theChosenSeed.mEndY);
 	theChosenSeed.mSeedState = SEED_FLYING_TO_BANK;
 	theChosenSeed.mSeedIndexInBank = mSeedsInBank;
@@ -991,14 +1044,17 @@ void SeedChooserScreen::ShowToolTip()
 				}
 
 				int aSeedX, aSeedY;
-				if (aChosenSeed.mSeedState == SEED_IN_BANK)
-				{
-					GetSeedPositionInBank(aChosenSeed.mSeedIndexInBank, aSeedX, aSeedY);
-				}
-				else
-				{
-					GetSeedPositionInChooser(aSeedType, aSeedX, aSeedY);
-				}
+			if (aChosenSeed.mSeedState == SEED_IN_BANK)
+			{
+				GetSeedPositionInBank(aChosenSeed.mSeedIndexInBank, aSeedX, aSeedY);
+			}
+			else
+			{
+				// Mod API: 翻页模式——用页内偏移计算位置
+				int aPageStart = GetSeedPageStart();
+				int aPageOffset = static_cast<int>(aSeedType) - aPageStart;
+				GetSeedPositionInChooser(aPageOffset, aSeedX, aSeedY);
+			}
 
 				mToolTip->mX = ClampInt((SEED_PACKET_WIDTH - mToolTip->mWidth) / 2 + aSeedX, 0, BOARD_WIDTH - mToolTip->mWidth);
 				mToolTip->mY = aSeedY + 70;
@@ -1022,38 +1078,12 @@ void SeedChooserScreen::CancelLawnView()
 
 void SeedChooserScreen::MouseUp(int x, int y, int theClickCount)
 {
-	// Mod API: 释放滚动条交互状态
-	if (mScrollbar)
-	{
-		if (mScrollbar->mUpButton) mScrollbar->mUpButton->mIsDown = false;
-		if (mScrollbar->mDownButton) mScrollbar->mDownButton->mIsDown = false;
-		if (mScrollbar->mPressedOnThumb)
-		{
-			int sbX = x - mScrollbar->mX;
-			int sbY = y - mScrollbar->mY;
-			mScrollbar->MouseUp(sbX, sbY, 0, theClickCount);
-		}
-	}
-
 	if (theClickCount == 1)
 	{
 		if (mMenuButton->IsMouseOver()) ButtonDepress(SeedChooserScreen::SeedChooserScreen_Menu);
 		else if (mStartButton->IsMouseOver()) ButtonDepress(SeedChooserScreen::SeedChooserScreen_Start);
 		else if (mAlmanacButton->IsMouseOver()) ButtonDepress(SeedChooserScreen::SeedChooserScreen_Almanac);
 		else if (mStoreButton->IsMouseOver()) ButtonDepress(SeedChooserScreen::SeedChooserScreen_Store);
-	}
-}
-
-void SeedChooserScreen::MouseDrag(int x, int y)
-{
-	Widget::MouseDrag(x, y);
-
-	// Mod API: 拖动滚动条滑块
-	if (mScrollbar && mScrollbar->mPressedOnThumb)
-	{
-		int sbX = x - mScrollbar->mX;
-		int sbY = y - mScrollbar->mY;
-		mScrollbar->MouseDrag(sbX, sbY);
 	}
 }
 
@@ -1074,39 +1104,6 @@ void SeedChooserScreen::UpdateImitaterButton()
 void SeedChooserScreen::MouseDown(int x, int y, int theClickCount)
 {
 	Widget::MouseDown(x, y, theClickCount);
-
-	// Mod API: 滚动条鼠标交互
-	if (mScrollbar && mScrollbar->mVisible && !mScrollbar->mDisabled)
-	{
-		int sbX = x - mScrollbar->mX;
-		int sbY = y - mScrollbar->mY;
-		if (sbX >= 0 && sbX < mScrollbar->mWidth && sbY >= 0 && sbY < mScrollbar->mHeight)
-		{
-			// 检查是否点击上/下箭头按钮
-			auto& upBtn = mScrollbar->mUpButton;
-			auto& dnBtn = mScrollbar->mDownButton;
-			if (upBtn && sbX >= upBtn->mX && sbX < upBtn->mX + upBtn->mWidth &&
-				sbY >= upBtn->mY && sbY < upBtn->mY + upBtn->mHeight)
-			{
-				upBtn->mIsDown = true;
-				upBtn->mIsOver = true;
-				mScrollbar->ButtonPress(0);
-			}
-			else if (dnBtn && sbX >= dnBtn->mX && sbX < dnBtn->mX + dnBtn->mWidth &&
-					 sbY >= dnBtn->mY && sbY < dnBtn->mY + dnBtn->mHeight)
-			{
-				dnBtn->mIsDown = true;
-				dnBtn->mIsOver = true;
-				mScrollbar->ButtonPress(1);
-			}
-			else
-			{
-				// 滑块或轨道——转发给 ScrollbarWidget 自身处理
-				mScrollbar->MouseDown(sbX, sbY, 0, theClickCount);
-			}
-			return;
-		}
-	}
 
 	if (mSeedsInFlight > 0)
 	{
@@ -1138,6 +1135,18 @@ void SeedChooserScreen::MouseDown(int x, int y, int theClickCount)
 	{
 		mApp->PlaySample(Sexy::SOUND_TAP);
 	}
+	else if (mPrevButton->IsMouseOver() && !mPrevButton->mDisabled)
+	{
+		// Mod API: 翻页按钮
+		mApp->PlaySample(Sexy::SOUND_TAP);
+		ButtonDepress(SeedChooserScreen::SeedChooserScreen_PrevPage);
+	}
+	else if (mNextButton->IsMouseOver() && !mNextButton->mDisabled)
+	{
+		// Mod API: 翻页按钮
+		mApp->PlaySample(Sexy::SOUND_TAP);
+		ButtonDepress(SeedChooserScreen::SeedChooserScreen_NextPage);
+	}
 	else if (mImitaterButton->IsMouseOver())
 	{
 		if (mSeedsInBank != mBoard->mSeedBank->mNumPackets)
@@ -1162,7 +1171,7 @@ void SeedChooserScreen::MouseDown(int x, int y, int theClickCount)
 				return;
 			}
 		}
-		
+
 		SeedType aSeedType = SeedHitTest(x, y);
 		if (aSeedType != SEED_NONE && !SeedNotAllowedToPick(aSeedType))
 		{
@@ -1170,11 +1179,11 @@ void SeedChooserScreen::MouseDown(int x, int y, int theClickCount)
 			{
 				mApp->PlaySample(Sexy::SOUND_TAP);
 				if (mApp->LawnMessageBox(
-					DIALOG_MESSAGE, 
-					"[GET_FULL_VERSION_TITLE]", 
-					"[GET_FULL_VERSION_BODY]", 
+					DIALOG_MESSAGE,
+					"[GET_FULL_VERSION_TITLE]",
+					"[GET_FULL_VERSION_BODY]",
 					"[GET_FULL_VERSION_YES_BUTTON]",
-					"[GET_FULL_VERSION_NO_BUTTON]", 
+					"[GET_FULL_VERSION_NO_BUTTON]",
 					Dialog::BUTTONS_YES_NO
 				) == Dialog::ID_YES)
 				{
@@ -1257,13 +1266,19 @@ void SeedChooserScreen::KeyChar(char theChar)
 
 void SeedChooserScreen::UpdateAfterPurchase()
 {
+	// Mod API: 翻页模式——IN_CHOOSER 用页内偏移计算位置
+	int aPageStart = GetSeedPageStart();
 	for (SeedType aSeedType = SEED_PEASHOOTER; aSeedType < GetTotalPlantCount(); aSeedType = (SeedType)(aSeedType + 1))
 	{
 		ChosenSeed& aChosenSeed = mChosenSeeds[aSeedType];
 		if (aChosenSeed.mSeedState == SEED_IN_BANK)
 			GetSeedPositionInBank(aChosenSeed.mSeedIndexInBank, aChosenSeed.mX, aChosenSeed.mY);
 		else if (aChosenSeed.mSeedState == SEED_IN_CHOOSER)
-			GetSeedPositionInChooser(aSeedType, aChosenSeed.mX, aChosenSeed.mY);
+		{
+			int aIdx = static_cast<int>(aSeedType);
+			int aPageOffset = aIdx - aPageStart;
+			GetSeedPositionInChooser(aPageOffset, aChosenSeed.mX, aChosenSeed.mY);
+		}
 		else continue;
 		aChosenSeed.mStartX = aChosenSeed.mX;
 		aChosenSeed.mStartY = aChosenSeed.mY;
@@ -1275,71 +1290,51 @@ void SeedChooserScreen::UpdateAfterPurchase()
 }
 
 // ============================================================
-// Mod API: 滚动条相关方法实现
+// Mod API: 翻页相关方法实现
 // ============================================================
 
-// 是否需要滚动条（自定义植物导致总行数超过原版 7 行显示区域时）
-// 原版 7 行模式: 7 行 × 8 列 = 56 槽位（实际 53 种内置植物）
-// 超过 7 行时需要滚动条才能看到后面的自定义植物
-bool SeedChooserScreen::NeedsScrollbar()
+// 总页数（向上取整：植物总数 / 每页容量）
+int SeedChooserScreen::GetSeedPageCount()
 {
-	int aTotalRows = (GetTotalPlantCount() + 7) / 8;  // ceil(GetTotalPlantCount() / 8)
-	return aTotalRows > 7;
+	int aTotal = GetTotalPlantCount();
+	if (aTotal <= 0) return 1;
+	return (aTotal + SEEDS_PER_PAGE - 1) / SEEDS_PER_PAGE;
 }
 
-// 计算最大滚动偏移量（像素）
-// 内容底部 - 视口底部 = 最大可滚动距离
-int SeedChooserScreen::GetMaxScrollOffset()
+// 当前页起始索引（绝对索引）
+int SeedChooserScreen::GetSeedPageStart()
 {
-	if (!NeedsScrollbar()) return 0;
-	// 第一行 y=123, 行间距 70 (与 GetSeedPositionInChooser 一致)
-	int aTotalRows = (GetTotalPlantCount() + 7) / 8;
-	int aContentBottom = aTotalRows * 70 + 123;  // 最后一行底部 y
-	int aMaxOffset = aContentBottom - mScrollAreaBottom;
-	if (aMaxOffset < 0) aMaxOffset = 0;
-	return aMaxOffset;
+	return mSeedPage * SEEDS_PER_PAGE;
 }
 
-// 更新滚动条状态（范围/可见性）
-// 使用行作为单位（70px/行），使箭头按钮每次滚动一行而非一像素
-void SeedChooserScreen::UpdateScrollbar()
+// 上一页（循环翻页）
+void SeedChooserScreen::PrevSeedPage()
 {
-	if (!mScrollbar) return;
-	const double aRowHeight = 70.0;
-	int aTotalRows = (GetTotalPlantCount() + 7) / 8;
-	int aContentBottom = aTotalRows * 70 + 123;
-	// MaxValue = 内容总高度（行数），PageSize = 视口高度（行数）
-	// Value 范围 [0, MaxValue - PageSize]，对应像素偏移 [0, GetMaxScrollOffset()]
-	double aMaxValue = (aContentBottom - mScrollAreaTop) / aRowHeight;
-	double aPageSize = (mScrollAreaBottom - mScrollAreaTop) / aRowHeight;
-	mScrollbar->SetMaxValue(aMaxValue);
-	mScrollbar->SetPageSize(aPageSize);
-	// 确保当前偏移不越界（自定义植物数量可能动态变化）
-	int aMaxOffset = GetMaxScrollOffset();
-	if (mScrollOffset > aMaxOffset)
-	{
-		mScrollOffset = aMaxOffset;
-		mScrollbar->SetValue(mScrollOffset / aRowHeight);
-	}
-}
-
-// ScrollListener 回调——滚动位置变化时调用
-void SeedChooserScreen::ScrollPosition(int theId, double thePosition)
-{
-	// thePosition 单位为行，转换为像素偏移
-	mScrollOffset = (int)(thePosition * 70.0);
+	int aPages = GetSeedPageCount();
+	if (aPages <= 1) return;
+	mSeedPage = (mSeedPage - 1 + aPages) % aPages;
+	UpdatePageButtons();
 	MarkDirty();
 }
 
-// 鼠标滚轮处理——每次滚动半行（35 像素）
-void SeedChooserScreen::MouseWheel(int theDelta)
+// 下一页（循环翻页）
+void SeedChooserScreen::NextSeedPage()
 {
-	if (mScrollbar && mScrollbar->mVisible && !mScrollbar->mDisabled)
-	{
-		double aStep = 0.5;  // 半行
-		if (theDelta > 0)
-			mScrollbar->SetValue(mScrollbar->mValue - aStep);
-		else
-			mScrollbar->SetValue(mScrollbar->mValue + aStep);
-	}
+	int aPages = GetSeedPageCount();
+	if (aPages <= 1) return;
+	mSeedPage = (mSeedPage + 1) % aPages;
+	UpdatePageButtons();
+	MarkDirty();
+}
+
+// 更新翻页按钮可见性/可用状态
+// 仅当总页数 > 1 时显示按钮（即有自定义植物导致一页放不下时）
+void SeedChooserScreen::UpdatePageButtons()
+{
+	int aPages = GetSeedPageCount();
+	bool aNeedButtons = aPages > 1;
+	mPrevButton->mBtnNoDraw = !aNeedButtons;
+	mPrevButton->mDisabled = !aNeedButtons;
+	mNextButton->mBtnNoDraw = !aNeedButtons;
+	mNextButton->mDisabled = !aNeedButtons;
 }

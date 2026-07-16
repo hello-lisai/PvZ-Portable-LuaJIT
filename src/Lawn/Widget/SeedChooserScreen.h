@@ -25,7 +25,6 @@
 #include "../../ConstEnums.h"
 #include "../../Sexy.TodLib/TodCommon.h"
 #include "widget/Widget.h"
-#include "widget/ScrollListener.h"
 #include <vector>
 using namespace Sexy;
 
@@ -36,7 +35,6 @@ class ToolTipWidget;
 namespace Sexy
 {
     class MTRand;
-    class ScrollbarWidget;
 }
 
 class ChosenSeed
@@ -59,7 +57,7 @@ public:
     bool                    mCrazyDavePicked;
 };
 
-class SeedChooserScreen : public Widget, public ScrollListener
+class SeedChooserScreen : public Widget
 {
 private:
     enum
@@ -70,7 +68,10 @@ private:
         SeedChooserScreen_Almanac = 103,
         SeedChooserScreen_Menu = 104,
         SeedChooserScreen_Store = 105,
-        SeedChooserScreen_Imitater = 106
+        SeedChooserScreen_Imitater = 106,
+        // Mod API: 翻页按钮
+        SeedChooserScreen_PrevPage = 107,
+        SeedChooserScreen_NextPage = 108
     };
 
 public:
@@ -81,6 +82,9 @@ public:
     GameButton*             mAlmanacButton;
     GameButton*             mMenuButton;
     GameButton*             mImitaterButton;
+    // Mod API: 翻页按钮（仅当有自定义植物且总页数 > 1 时可见）
+    GameButton*             mPrevButton;
+    GameButton*             mNextButton;
     // Mod API: 改为 vector 以支持运行时注册的自定义植物（SeedType >= NUM_SEED_TYPES）
     std::vector<ChosenSeed> mChosenSeeds;
     LawnApp*                mApp;
@@ -95,11 +99,8 @@ public:
     int                     mLastMouseY;
     SeedChooserState        mChooseState;
     int                     mViewLawnTime;
-    // Mod API: 滚动条支持自定义植物
-    Sexy::ScrollbarWidget*  mScrollbar;
-    int                     mScrollOffset;     // 当前滚动偏移（像素，向下为正）
-    int                     mScrollAreaTop;    // 滚动区域顶部 y（种子卡片绘制区上界）
-    int                     mScrollAreaBottom;  // 滚动区域底部 y（种子卡片绘制区下界）
+    // Mod API: 翻页模式当前页码（从 0 开始）
+    int                     mSeedPage;
 
 public:
     SeedChooserScreen();
@@ -136,18 +137,17 @@ public:
     void                    MouseUp(int x, int y, int theClickCount) override;
     void                    UpdateImitaterButton();
     void                    MouseDown(int x, int y, int theClickCount) override;
-    void                    MouseDrag(int x, int y) override;
     /*inline*/ bool         PickedPlantType(SeedType theSeedType);
     void                    CloseSeedChooser();
     void                    KeyDown(KeyCode theKey) override;
     void                    KeyChar(char theChar) override;
     void                    UpdateAfterPurchase();
-    // Mod API: 滚动相关
-    void                    ScrollPosition(int theId, double thePosition) override;
-    void                    MouseWheel(int theDelta) override;
-    int                     GetMaxScrollOffset();     // 最大滚动偏移量
-    void                    UpdateScrollbar();          // 更新滚动条状态（可见性/范围）
-    bool                    NeedsScrollbar();          // 是否需要滚动条（自定义植物超出可见区域时）
+    // Mod API: 翻页相关
+    int                     GetSeedPageCount();   // 总页数
+    int                     GetSeedPageStart();   // 当前页起始索引（绝对索引）
+    void                    PrevSeedPage();       // 上一页
+    void                    NextSeedPage();       // 下一页
+    void                    UpdatePageButtons();  // 更新翻页按钮可见性/可用状态
 };
 
 #endif
