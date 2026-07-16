@@ -163,14 +163,16 @@ SeedChooserScreen::SeedChooserScreen()
 	{
 		ChosenSeed& aChosenSeed = mChosenSeeds[aSeedType];
 		aChosenSeed.mSeedType = aSeedType;
-		GetSeedPositionInChooser(aSeedType, aChosenSeed.mX, aChosenSeed.mY);
+		// Mod API: 用可见索引计算初始位置（跳过隐藏植物 49-52）
+		GetSeedPositionInChooser(SeedToVisIdx(aSeedType), aChosenSeed.mX, aChosenSeed.mY);
 		aChosenSeed.mTimeStartMotion = 0;
 		aChosenSeed.mTimeEndMotion = 0;
 		aChosenSeed.mStartX = aChosenSeed.mX;
 		aChosenSeed.mStartY = aChosenSeed.mY;
 		aChosenSeed.mEndX = aChosenSeed.mX;
 		aChosenSeed.mEndY = aChosenSeed.mY;
-		aChosenSeed.mSeedState = aSeedType == SEED_IMITATER ? SEED_PACKET_HIDDEN : SEED_IN_CHOOSER;
+		// Mod API: 隐藏植物（49-52）设为 HIDDEN 状态，不在选种界面显示
+		aChosenSeed.mSeedState = (aSeedType == SEED_IMITATER || IsHiddenSeed(aSeedType)) ? SEED_PACKET_HIDDEN : SEED_IN_CHOOSER;
 		aChosenSeed.mSeedIndexInBank = 0;
 		aChosenSeed.mRefreshCounter = 0;
 		aChosenSeed.mRefreshing = false;
@@ -404,18 +406,17 @@ void SeedChooserScreen::Draw(Graphics* g)
 		}
 	}
 
-	// Mod API: 翻页模式——只绘制当前页的植物
-	// pageStart/pageEnd 为绝对索引范围；pageOffset 为页内偏移（0~SEEDS_PER_PAGE-1），
-	// 用 pageOffset 调用 GetSeedPositionInChooser 计算页内位置（row 0~6）
+	// Mod API: 翻页模式——只绘制当前页的可见植物（跳过隐藏植物 49-52）
+	// pageStart/pageEnd 为可见索引范围；pageOffset 为页内偏移（0~SEEDS_PER_PAGE-1）
 	int aPageStart = GetSeedPageStart();
 	int aPageEnd = aPageStart + SEEDS_PER_PAGE;
-	int aTotalPlants = GetTotalPlantCount();
-	if (aPageEnd > aTotalPlants) aPageEnd = aTotalPlants;
+	int aTotalVisible = GetVisiblePlantCount();
+	if (aPageEnd > aTotalVisible) aPageEnd = aTotalVisible;
 
 	// Mod API: 槽位背景/剪影（仅当前页；用 pageOffset 计算位置）
 	for (int i = aPageStart; i < aPageEnd; i++)
 	{
-		SeedType aSeedShadow = (SeedType)i;
+		SeedType aSeedShadow = VisIdxToSeed(i);
 		if (aSeedShadow == SEED_IMITATER)
 			continue;
 		int aPageOffset = i - aPageStart;
@@ -436,19 +437,24 @@ void SeedChooserScreen::Draw(Graphics* g)
 	}
 
 	// Mod API: 绘制选种器/种子库中的种子
-	// IN_CHOOSER 只绘制当前页（用 pageOffset 位置）；IN_BANK 始终绘制（用 mX/mY）
+	// IN_CHOOSER 只绘制当前页（用可见索引计算 pageOffset）；IN_BANK 始终绘制
+	int aTotalPlants = GetTotalPlantCount();
 	for (int i = 0; i < aTotalPlants; i++)
 	{
 		SeedType aSeedType = (SeedType)i;
+		// Mod API: 跳过隐藏植物（49-52），它们不在选种界面显示
+		if (IsHiddenSeed(aSeedType)) continue;
 		ChosenSeed& aChosenSeed = mChosenSeeds[aSeedType];
 		ChosenSeedState aSeedState = aChosenSeed.mSeedState;
 		if (mApp->HasSeedType(aSeedType) && aSeedState != SEED_FLYING_TO_BANK && aSeedState != SEED_FLYING_TO_CHOOSER &&
 			aSeedState != SEED_PACKET_HIDDEN && (aSeedState == SEED_IN_CHOOSER || mBoard->mCutScene->mSeedChoosing))
 		{
+			// Mod API: 用可见索引判断是否在当前页
+			int aVisIdx = SeedToVisIdx(aSeedType);
 			// IN_CHOOSER 状态：只绘制当前页的种子
 			if (aSeedState == SEED_IN_CHOOSER)
 			{
-				if (i < aPageStart || i >= aPageEnd)
+				if (aVisIdx < aPageStart || aVisIdx >= aPageEnd)
 					continue;
 			}
 
@@ -460,8 +466,8 @@ void SeedChooserScreen::Draw(Graphics* g)
 			int aPosX, aPosY;
 			if (aSeedState == SEED_IN_CHOOSER)
 			{
-				// 用 pageOffset 计算页内位置
-				GetSeedPositionInChooser(i - aPageStart, aPosX, aPosY);
+				// 用可见索引的 pageOffset 计算页内位置
+				GetSeedPositionInChooser(aVisIdx - aPageStart, aPosX, aPosY);
 			}
 			else
 			{
@@ -857,22 +863,26 @@ SeedType SeedChooserScreen::SeedHitTest(int x, int y)
 {
 	if (mMouseVisible)
 	{
-		// Mod API: 翻页模式——IN_CHOOSER 只检测当前页的种子
+		// Mod API: 翻页模式——IN_CHOOSER 只检测当前页的可见种子
 		int aPageStart = GetSeedPageStart();
 		int aPageEnd = aPageStart + SEEDS_PER_PAGE;
+		int aTotalVisible = GetVisiblePlantCount();
+		if (aPageEnd > aTotalVisible) aPageEnd = aTotalVisible;
 		int aTotalPlants = GetTotalPlantCount();
-		if (aPageEnd > aTotalPlants) aPageEnd = aTotalPlants;
 
 		for (int i = 0; i < aTotalPlants; i++)
 		{
 			SeedType aSeedType = (SeedType)i;
+			// Mod API: 跳过隐藏植物
+			if (IsHiddenSeed(aSeedType)) continue;
 			ChosenSeed& aChosenSeed = mChosenSeeds[aSeedType];
 			if (!mApp->HasSeedType(aSeedType) || aChosenSeed.mSeedState == SEED_PACKET_HIDDEN) continue;
-			// IN_CHOOSER 状态：只检测当前页，用 pageOffset 计算位置
+			// IN_CHOOSER 状态：只检测当前页，用可见索引的 pageOffset 计算位置
 			if (aChosenSeed.mSeedState == SEED_IN_CHOOSER)
 			{
-				if (i < aPageStart || i >= aPageEnd) continue;
-				int aPageOffset = i - aPageStart;
+				int aVisIdx = SeedToVisIdx(aSeedType);
+				if (aVisIdx < aPageStart || aVisIdx >= aPageEnd) continue;
+				int aPageOffset = aVisIdx - aPageStart;
 				int aSeedX, aSeedY;
 				GetSeedPositionInChooser(aPageOffset, aSeedX, aSeedY);
 				if (Rect(aSeedX, aSeedY, SEED_PACKET_WIDTH, SEED_PACKET_HEIGHT).Contains(x, y)) return aSeedType;
@@ -929,15 +939,15 @@ void SeedChooserScreen::ClickedSeedInBank(ChosenSeed& theChosenSeed)
 	theChosenSeed.mTimeEndMotion = mSeedChooserAge + 25;
 	theChosenSeed.mStartX = theChosenSeed.mX;
 	theChosenSeed.mStartY = theChosenSeed.mY;
-	// Mod API: 翻页模式——返回选种器时飞回当前页的页内位置
+	// Mod API: 翻页模式——返回选种器时飞回当前页的页内位置（用可见索引）
 	{
-		int aIdx = static_cast<int>(theChosenSeed.mSeedType);
+		int aVisIdx = SeedToVisIdx(theChosenSeed.mSeedType);
 		int aPageStart = GetSeedPageStart();
-		int aPageOffset = aIdx - aPageStart;
+		int aPageOffset = aVisIdx - aPageStart;
 		if (aPageOffset >= 0 && aPageOffset < SEEDS_PER_PAGE)
 			GetSeedPositionInChooser(aPageOffset, theChosenSeed.mEndX, theChosenSeed.mEndY);
 		else
-			GetSeedPositionInChooser(aIdx, theChosenSeed.mEndX, theChosenSeed.mEndY);
+			GetSeedPositionInChooser(aVisIdx, theChosenSeed.mEndX, theChosenSeed.mEndY);
 	}
 	theChosenSeed.mSeedState = SEED_FLYING_TO_CHOOSER;
 	theChosenSeed.mSeedIndexInBank = 0;
@@ -955,11 +965,11 @@ void SeedChooserScreen::ClickedSeedInChooser(ChosenSeed& theChosenSeed)
 
 	theChosenSeed.mTimeStartMotion = mSeedChooserAge;
 	theChosenSeed.mTimeEndMotion = mSeedChooserAge + 25;
-	// Mod API: 翻页模式——从选种器飞向种子库时，起点用当前页的页内位置
+	// Mod API: 翻页模式——从选种器飞向种子库时，起点用当前页的页内位置（可见索引）
 	{
-		int aIdx = static_cast<int>(theChosenSeed.mSeedType);
+		int aVisIdx = SeedToVisIdx(theChosenSeed.mSeedType);
 		int aPageStart = GetSeedPageStart();
-		int aPageOffset = aIdx - aPageStart;
+		int aPageOffset = aVisIdx - aPageStart;
 		GetSeedPositionInChooser(aPageOffset, theChosenSeed.mStartX, theChosenSeed.mStartY);
 	}
 	GetSeedPositionInBank(mSeedsInBank, theChosenSeed.mEndX, theChosenSeed.mEndY);
@@ -1050,9 +1060,9 @@ void SeedChooserScreen::ShowToolTip()
 			}
 			else
 			{
-				// Mod API: 翻页模式——用页内偏移计算位置
+				// Mod API: 翻页模式——用可见索引的页内偏移计算位置
 				int aPageStart = GetSeedPageStart();
-				int aPageOffset = static_cast<int>(aSeedType) - aPageStart;
+				int aPageOffset = SeedToVisIdx(aSeedType) - aPageStart;
 				GetSeedPositionInChooser(aPageOffset, aSeedX, aSeedY);
 			}
 
@@ -1266,17 +1276,18 @@ void SeedChooserScreen::KeyChar(char theChar)
 
 void SeedChooserScreen::UpdateAfterPurchase()
 {
-	// Mod API: 翻页模式——IN_CHOOSER 用页内偏移计算位置
+	// Mod API: 翻页模式——IN_CHOOSER 用可见索引的页内偏移计算位置
 	int aPageStart = GetSeedPageStart();
 	for (SeedType aSeedType = SEED_PEASHOOTER; aSeedType < GetTotalPlantCount(); aSeedType = (SeedType)(aSeedType + 1))
 	{
+		// Mod API: 跳过隐藏植物
+		if (IsHiddenSeed(aSeedType)) continue;
 		ChosenSeed& aChosenSeed = mChosenSeeds[aSeedType];
 		if (aChosenSeed.mSeedState == SEED_IN_BANK)
 			GetSeedPositionInBank(aChosenSeed.mSeedIndexInBank, aChosenSeed.mX, aChosenSeed.mY);
 		else if (aChosenSeed.mSeedState == SEED_IN_CHOOSER)
 		{
-			int aIdx = static_cast<int>(aSeedType);
-			int aPageOffset = aIdx - aPageStart;
+			int aPageOffset = SeedToVisIdx(aSeedType) - aPageStart;
 			GetSeedPositionInChooser(aPageOffset, aChosenSeed.mX, aChosenSeed.mY);
 		}
 		else continue;
@@ -1293,10 +1304,10 @@ void SeedChooserScreen::UpdateAfterPurchase()
 // Mod API: 翻页相关方法实现
 // ============================================================
 
-// 总页数（向上取整：植物总数 / 每页容量）
+// 总页数（基于可见植物数，排除隐藏植物 49-52）
 int SeedChooserScreen::GetSeedPageCount()
 {
-	int aTotal = GetTotalPlantCount();
+	int aTotal = GetVisiblePlantCount();
 	if (aTotal <= 0) return 1;
 	return (aTotal + SEEDS_PER_PAGE - 1) / SEEDS_PER_PAGE;
 }

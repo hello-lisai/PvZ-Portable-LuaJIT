@@ -435,3 +435,31 @@ inline int GetTotalPlantCount() { return static_cast<int>(SeedType::NUM_SEED_TYP
 // 把自定义植物的 SeedType 转换为 gCustomPlantDefs 的索引（0-based）
 inline int CustomSeedTypeToIndex(SeedType s) { return static_cast<int>(s) - static_cast<int>(SeedType::NUM_SEED_TYPES); }
 inline bool IsCustomSeedType(SeedType s) { return static_cast<int>(s) >= static_cast<int>(SeedType::NUM_SEED_TYPES); }
+// Mod API: 隐藏植物（保龄球/禅境花园专用）不在图鉴和选种界面显示
+// SEED_EXPLODE_O_NUT(49)/SEED_GIANT_WALLNUT(50)/SEED_SPROUT(51)/SEED_LEFTPEATER(52)
+inline bool IsHiddenSeed(SeedType s)
+{
+    return s == SeedType::SEED_EXPLODE_O_NUT ||
+           s == SeedType::SEED_GIANT_WALLNUT ||
+           s == SeedType::SEED_SPROUT ||
+           s == SeedType::SEED_LEFTPEATER;
+}
+// Mod API: 可见植物总数（排除隐藏植物，用于图鉴/选种界面分页计算）
+inline int GetVisiblePlantCount()
+{
+    return GetTotalPlantCount() - 4; // 恰好 4 个隐藏植物（49-52）
+}
+// Mod API: SeedType → 可见索引（跳过隐藏植物 49-52）
+// 可见索引 0-48 对应 SeedType 0-48，可见索引 49+ 对应 SeedType 53+
+inline int SeedToVisibleIndex(SeedType s)
+{
+    int idx = static_cast<int>(s);
+    if (idx <= 48) return idx;            // 0-48（含 Imitater）直接映射
+    return idx - 4;                       // 跳过 49-52
+}
+// Mod API: 可见索引 → SeedType（逆向映射）
+inline SeedType VisibleIndexToSeed(int visIdx)
+{
+    if (visIdx <= 48) return static_cast<SeedType>(visIdx);
+    return static_cast<SeedType>(visIdx + 4); // 跳回 53+
+}

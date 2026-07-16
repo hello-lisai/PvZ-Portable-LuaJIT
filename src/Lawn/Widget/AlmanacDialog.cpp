@@ -913,26 +913,16 @@ void AlmanacDialog::KeyDown(KeyCode theKey)
 
 // ====== Mod API: 分页辅助方法 ======
 
-// Mod API: 隐藏植物不在图鉴中显示（保龄球/禅境花园专用植物）
+// Mod API: 隐藏植物不在图鉴中显示（复用 Plant.h 中的 IsHiddenSeed）
 bool AlmanacDialog::IsAlmanacHiddenSeed(SeedType theSeedType)
 {
-	return theSeedType == SeedType::SEED_EXPLODE_O_NUT ||
-	       theSeedType == SeedType::SEED_GIANT_WALLNUT ||
-	       theSeedType == SeedType::SEED_SPROUT ||
-	       theSeedType == SeedType::SEED_LEFTPEATER;
+	return IsHiddenSeed(theSeedType);
 }
 
 // Mod API: 图鉴可见植物总数（排除隐藏植物 49-52）
 int AlmanacDialog::GetAlmanacVisibleSeedCount() const
 {
-	int total = GetTotalPlantCount();
-	int hiddenCount = 0;
-	for (int i = 0; i < total; i++)
-	{
-		if (IsAlmanacHiddenSeed(static_cast<SeedType>(i)))
-			hiddenCount++;
-	}
-	return total - hiddenCount;
+	return GetVisiblePlantCount();
 }
 
 // Mod API: 可见索引 → SeedType（跳过隐藏植物）
@@ -940,17 +930,7 @@ int AlmanacDialog::GetAlmanacVisibleSeedCount() const
 //       visibleIdx 49 → SeedType 53（第一个自定义植物，跳过 49-52）
 SeedType AlmanacDialog::GetAlmanacSeedByVisibleIndex(int visibleIdx) const
 {
-	int total = GetTotalPlantCount();
-	int visCount = 0;
-	for (int i = 0; i < total; i++)
-	{
-		if (IsAlmanacHiddenSeed(static_cast<SeedType>(i)))
-			continue;
-		if (visCount == visibleIdx)
-			return static_cast<SeedType>(i);
-		visCount++;
-	}
-	return SeedType::SEED_NONE;
+	return VisibleIndexToSeed(visibleIdx);
 }
 
 int AlmanacDialog::GetPlantPageCount() const

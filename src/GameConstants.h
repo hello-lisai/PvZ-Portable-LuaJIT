@@ -44,8 +44,9 @@ constexpr const int SEED_BANK_OFFSET_X_END = 10;
 constexpr const int SEED_CHOOSER_OFFSET_Y = 516;
 constexpr const int SEED_PACKET_WIDTH = 50;
 constexpr const int SEED_PACKET_HEIGHT = 70;
-// Mod API: 选种界面翻页模式，每页可容纳的植物数（8列 × 7行）
-constexpr const int SEEDS_PER_PAGE = 56;
+// Mod API: 选种界面翻页模式，每页植物数 = 49（原版可见植物数，含 Imitater）
+// 第 1 页显示原版 49 个植物（0-48），第 2 页起显示自定义植物
+constexpr const int SEEDS_PER_PAGE = 49;
 constexpr const int IMITATER_DIALOG_WIDTH = 500;
 constexpr const int IMITATER_DIALOG_HEIGHT = 600;
 

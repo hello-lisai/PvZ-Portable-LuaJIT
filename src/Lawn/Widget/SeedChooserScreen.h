@@ -143,11 +143,14 @@ public:
     void                    KeyChar(char theChar) override;
     void                    UpdateAfterPurchase();
     // Mod API: 翻页相关
-    int                     GetSeedPageCount();   // 总页数
-    int                     GetSeedPageStart();   // 当前页起始索引（绝对索引）
+    int                     GetSeedPageCount();   // 总页数（基于可见植物数）
+    int                     GetSeedPageStart();   // 当前页起始可见索引
     void                    PrevSeedPage();       // 上一页
     void                    NextSeedPage();       // 下一页
     void                    UpdatePageButtons();  // 更新翻页按钮可见性/可用状态
+    // Mod API: SeedType → 可见索引（跳过隐藏植物 49-52），用于页内位置计算
+    static int              SeedToVisIdx(SeedType s) { return SeedToVisibleIndex(s); }
+    static SeedType         VisIdxToSeed(int visIdx) { return VisibleIndexToSeed(visIdx); }
 };
 
 #endif
