@@ -311,8 +311,23 @@ void Projectile::CheckForCollision()
 		if (aPlant)
 		{
 			const ProjectileDefinition& aProjectileDef = GetProjectileDef();
-			aPlant->mPlantHealth -= aProjectileDef.mDamage;
-			aPlant->mEatenFlashCountdown = std::max(aPlant->mEatenFlashCountdown, 25);
+			int aDamage = aProjectileDef.mDamage;
+			bool aCanceled = false;
+			// Mod API: ON_PLANT_TAKE_DAMAGE_PRE，mod 可改伤害值或取消（植物免伤，抛射物仍消失避免反复碰撞）
+			if (ModBus::HasListenersFor(ModEvent::ON_PLANT_TAKE_DAMAGE_PRE)) {
+				ModCtx _ctx = MakeCtx(ModEvent::ON_PLANT_TAKE_DAMAGE_PRE);
+				_ctx.app = gLawnApp;
+				_ctx.plant = aPlant;
+				_ctx.projectile = this;
+				_ctx.damage = aProjectileDef.mDamage;
+				ModBus::Fire(ModEvent::ON_PLANT_TAKE_DAMAGE_PRE, _ctx);
+				if (_ctx.newDamage >= 0) aDamage = _ctx.newDamage;
+				aCanceled = _ctx.cancel;
+			}
+			if (!aCanceled) {
+				aPlant->mPlantHealth -= aDamage;
+				aPlant->mEatenFlashCountdown = std::max(aPlant->mEatenFlashCountdown, 25);
+			}
 
 			mApp->PlayFoley(FoleyType::FOLEY_SPLAT);
 			mApp->AddTodParticle(mPosX - 3.0f, mPosY + 17.0f, mRenderOrder + 1, ParticleEffect::PARTICLE_PEA_SPLAT);
@@ -612,8 +627,23 @@ void Projectile::UpdateLobMotion()
 		}
 		else
 		{
-			aPlant->mPlantHealth -= GetProjectileDef().mDamage;
-			aPlant->mEatenFlashCountdown = std::max(aPlant->mEatenFlashCountdown, 25);
+			int aDamage = GetProjectileDef().mDamage;
+			bool aCanceled = false;
+			// Mod API: ON_PLANT_TAKE_DAMAGE_PRE，mod 可改伤害值或取消（植物免伤，抛射物仍消失避免反复碰撞）
+			if (ModBus::HasListenersFor(ModEvent::ON_PLANT_TAKE_DAMAGE_PRE)) {
+				ModCtx _ctx = MakeCtx(ModEvent::ON_PLANT_TAKE_DAMAGE_PRE);
+				_ctx.app = gLawnApp;
+				_ctx.plant = aPlant;
+				_ctx.projectile = this;
+				_ctx.damage = aDamage;
+				ModBus::Fire(ModEvent::ON_PLANT_TAKE_DAMAGE_PRE, _ctx);
+				if (_ctx.newDamage >= 0) aDamage = _ctx.newDamage;
+				aCanceled = _ctx.cancel;
+			}
+			if (!aCanceled) {
+				aPlant->mPlantHealth -= aDamage;
+				aPlant->mEatenFlashCountdown = std::max(aPlant->mEatenFlashCountdown, 25);
+			}
 			mApp->PlayFoley(FoleyType::FOLEY_SPLAT);
 			Die();
 		}
