@@ -69,7 +69,6 @@ local M = {}
 local ffi_ok, ffi = pcall(require, "ffi")
 if ffi_ok then
     ffi.cdef[[
-        int printf(const char* fmt, ...);
         size_t strlen(const char* s);
     ]]
 end
@@ -79,9 +78,10 @@ function M.on_app_init()
     print("===== [示例Mod] Mod API 已加载 =====")
     print(string.format("  API 版本: %d.%d", pvz.api_version_major, pvz.api_version_minor))
 
-    -- FFI 自检：用 C 的 printf 打印（而非 Lua 的 print），证明 FFI 可用
+    -- FFI 自检：用 ffi.C.strlen 验证 FFI 链路通畅
     if ffi_ok then
-        ffi.C.printf("[示例Mod] FFI 自检通过: strlen(\"hello\") = %d\n", ffi.C.strlen("hello"))
+        local len = ffi.C.strlen("hello")
+        print(string.format('[示例Mod] FFI 自检通过: strlen("hello") = %d', tonumber(len)))
     else
         print("[示例Mod] FFI 不可用（require 'ffi' 失败）")
     end
