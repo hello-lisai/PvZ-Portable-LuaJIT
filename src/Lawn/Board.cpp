@@ -850,6 +850,38 @@ void Board::PickZombieWaves()
 			PutZombieInWave(aZombieType, aWave, &aZombiePicker);
 		}
 	}
+
+	// Mod API: ON_PICK_ZOMBIE_WAVES_POST —— 原版波次生成完毕后，Mod 可往任意波次追加僵尸
+	// mod 返回 {append = {[wave] = {type1, type2, ...}}}，C++ 侧把僵尸追加到 mZombiesInWave
+	if (ModBus::HasListenersFor(ModEvent::ON_PICK_ZOMBIE_WAVES_POST)) {
+		ModCtx _ctx = MakeCtx(ModEvent::ON_PICK_ZOMBIE_WAVES_POST);
+		_ctx.app = gLawnApp;
+		_ctx.board = this;
+		_ctx.level = mLevel;
+		_ctx.customNumWaves = mNumWaves;  // 通过 customNumWaves 传递已生成的波数给 Lua
+		ModBus::Fire(_ctx.event, _ctx);
+		if (_ctx.useAppendWaves) {
+			for (int w = 0; w < mNumWaves && w < ModCtx::MAX_CUSTOM_WAVES; ++w) {
+				int appendLen = ClampInt(_ctx.appendWaveLengths[w], 0, ModCtx::MAX_CUSTOM_PER_WAVE);
+				if (appendLen <= 0) continue;
+				// 找到当前波次末尾（ZOMBIE_INVALID 标记位置）
+				int existingLen = 0;
+				for (int i = 0; i < MAX_ZOMBIES_IN_WAVE; ++i) {
+					if (mZombiesInWave[w][i] == ZombieType::ZOMBIE_INVALID) break;
+					++existingLen;
+				}
+				// 追加僵尸（不超出 MAX_ZOMBIES_IN_WAVE 上限）
+				for (int i = 0; i < appendLen && existingLen + i < MAX_ZOMBIES_IN_WAVE; ++i) {
+					mZombiesInWave[w][existingLen + i] = _ctx.appendWaves[w][i];
+				}
+				int newLen = existingLen + appendLen;
+				if (newLen > MAX_ZOMBIES_IN_WAVE) newLen = MAX_ZOMBIES_IN_WAVE;
+				if (newLen < MAX_ZOMBIES_IN_WAVE) {
+					mZombiesInWave[w][newLen] = ZombieType::ZOMBIE_INVALID;
+				}
+			}
+		}
+	}
 }
 
 int Board::GetLevelRandSeed()

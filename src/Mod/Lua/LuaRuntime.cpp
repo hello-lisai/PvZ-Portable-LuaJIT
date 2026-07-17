@@ -118,6 +118,7 @@ const char* EventToLuaName(ModEvent e) {
     case ModEvent::ON_PROJECTILE_IMPACT_PRE:   return "on_projectile_impact";
     case ModEvent::ON_SPAWN_ZOMBIE_WAVE_PRE:   return "on_spawn_zombie_wave";
     case ModEvent::ON_PICK_ZOMBIE_WAVES_PRE:   return "on_pick_zombie_waves";
+    case ModEvent::ON_PICK_ZOMBIE_WAVES_POST:  return "on_pick_zombie_waves_post";
     case ModEvent::ON_PICK_ZOMBIE_TYPE_PRE:    return "on_pick_zombie_type";
     case ModEvent::ON_PLANT_DIE_PRE:           return "on_plant_die";
     case ModEvent::ON_PLANT_TAKE_DAMAGE_PRE:   return "on_plant_take_damage";
@@ -1545,6 +1546,13 @@ void DispatchEvent(ModCtx& ctx) {
             lua_pushinteger(g_L, ctx.level);
             nargs = 2;
             break;
+        case ModEvent::ON_PICK_ZOMBIE_WAVES_POST:
+            // 参数：board, level, num_waves（原版已生成的波数）
+            PushBoard(g_L, ctx.board);
+            lua_pushinteger(g_L, ctx.level);
+            lua_pushinteger(g_L, ctx.customNumWaves);  // 复用 customNumWaves 传 mNumWaves
+            nargs = 3;
+            break;
         case ModEvent::ON_PICK_ZOMBIE_TYPE_PRE:
             // 参数：board, level, wave_index, points
             PushBoard(g_L, ctx.board);
@@ -1670,6 +1678,42 @@ void DispatchEvent(ModCtx& ctx) {
                     }
                 }
                 lua_pop(g_L, 1);  // 弹出 plan
+            }
+
+            // ON_PICK_ZOMBIE_WAVES_POST: 返回 {append = {[wave] = {type1, type2, ...}}}
+            // 把指定波次的僵尸追加到已生成的 mZombiesInWave（不替换原版波次）
+            if (ctx.event == ModEvent::ON_PICK_ZOMBIE_WAVES_POST) {
+                lua_getfield(g_L, retIdx, "append");
+                if (lua_istable(g_L, -1)) {
+                    int appendIdx = lua_absindex(g_L, -1);
+                    lua_pushnil(g_L);
+                    while (lua_next(g_L, appendIdx)) {
+                        int waveKey = -1;
+                        if (lua_isinteger(g_L, -2)) {
+                            int k = static_cast<int>(lua_tointeger(g_L, -2));
+                            waveKey = (k >= 1) ? k - 1 : k;  // Lua 1-based → 0-based
+                        }
+                        if (waveKey >= 0 && waveKey < ModCtx::MAX_CUSTOM_WAVES && lua_istable(g_L, -1)) {
+                            int waveListIdx = lua_absindex(g_L, -1);
+                            int len = 0;
+                            lua_pushnil(g_L);
+                            while (lua_next(g_L, waveListIdx) && len < ModCtx::MAX_CUSTOM_PER_WAVE) {
+                                if (lua_isinteger(g_L, -1)) {
+                                    int zt = static_cast<int>(lua_tointeger(g_L, -1));
+                                    if (zt >= 0 && zt < 100) {
+                                        ctx.appendWaves[waveKey][len] = static_cast<ZombieType>(zt);
+                                        ++len;
+                                    }
+                                }
+                                lua_pop(g_L, 1);
+                            }
+                            ctx.appendWaveLengths[waveKey] = len;
+                        }
+                        lua_pop(g_L, 1);  // 弹出 value，保留 key 给 lua_next
+                    }
+                    ctx.useAppendWaves = true;
+                }
+                lua_pop(g_L, 1);  // 弹出 append
             }
         }
         lua_pop(g_L, 1); // 弹出返回值

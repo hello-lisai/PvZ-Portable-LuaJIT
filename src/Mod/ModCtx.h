@@ -70,6 +70,13 @@ struct ModCtx {
     ZombieType  customWaves[MAX_CUSTOM_WAVES][MAX_CUSTOM_PER_WAVE];
     // 每波实际长度（customWaves[i] 的有效元素数）
     int32_t     customWaveLengths[MAX_CUSTOM_WAVES];
+
+    // ====== 波次表追加 (ON_PICK_ZOMBIE_WAVES_POST) ======
+    // Mod 返回 {append = {[wave] = {type1, type2, ...}}} 时填这些字段
+    // C++ 侧在原版波次生成后，把 appendWaves 的僵尸追加到 mZombiesInWave 对应波次
+    bool        useAppendWaves      = false;   // true = 有追加数据需要应用
+    ZombieType  appendWaves[MAX_CUSTOM_WAVES][MAX_CUSTOM_PER_WAVE];
+    int32_t     appendWaveLengths[MAX_CUSTOM_WAVES];
 };
 
 // 可拦截事件的便捷构造
