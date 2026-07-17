@@ -1714,6 +1714,23 @@ void DispatchEvent(ModCtx& ctx) {
                     ctx.useAppendWaves = true;
                 }
                 lua_pop(g_L, 1);  // 弹出 append
+
+                // hide_from_preview: {type1, type2, ...} —— 标记这些僵尸类型不参与关卡开始前的右侧预览
+                lua_getfield(g_L, retIdx, "hide_from_preview");
+                if (lua_istable(g_L, -1)) {
+                    int hideIdx = lua_absindex(g_L, -1);
+                    lua_pushnil(g_L);
+                    while (lua_next(g_L, hideIdx)) {
+                        if (lua_isinteger(g_L, -1)) {
+                            int zt = static_cast<int>(lua_tointeger(g_L, -1));
+                            if (zt >= 0 && zt < 100) {
+                                MarkZombieHiddenFromPreview(static_cast<ZombieType>(zt));
+                            }
+                        }
+                        lua_pop(g_L, 1);
+                    }
+                }
+                lua_pop(g_L, 1);  // 弹出 hide_from_preview
             }
         }
         lua_pop(g_L, 1); // 弹出返回值

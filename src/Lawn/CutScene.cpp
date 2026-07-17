@@ -547,6 +547,11 @@ void CutScene::PlaceStreetZombies()
 			{
 				continue;
 			}
+			// Mod API: mod 标记为 hide_from_preview 的僵尸类型跳过预览统计
+			if (IsZombieHiddenFromPreview(aZombieType))
+			{
+				continue;
+			}
 
 			TOD_ASSERT(aZombieType >= 0);
 			// Mod API: 自定义僵尸类型（>= NUM_CACHED_ZOMBIE_TYPES）计入 map，

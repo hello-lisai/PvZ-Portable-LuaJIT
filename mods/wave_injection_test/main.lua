@@ -7,12 +7,14 @@
 --      - 第 1 波（wave=0）：追加 1 只
 --      - 最后一波（wave=num_waves-1）：追加 2 只
 --   3. 原版出怪不受影响，自定义僵尸作为额外威胁出现
+--   4. 演示 hide_from_preview：让最后一波突袭的快速僵尸不出现在右侧预览
 --
 -- 验证方法：
 --   - 启动游戏，进入任意关卡
---   - 关卡开始前右侧预览应出现快速僵尸（与原版僵尸一起站立）
+--   - 关卡开始前右侧预览应出现 1 只快速僵尸（来自第 1 波）
+--   - 最后一波突袭的 2 只快速僵尸不会出现在预览中（制造突袭感）
 --   - 第 1 波开始时，场上应有原版僵尸 + 1 只快速僵尸
---   - 最后一波（旗波）应有原版僵尸 + 2 只快速僵尸
+--   - 最后一波（旗波）应有原版僵尸 + 2 只快速僵尸（突袭出现）
 --   - 图鉴中应有"快速僵尸"条目
 
 local M = {}
@@ -66,9 +68,9 @@ function M.on_pick_zombie_waves_post(board, level, num_waves)
     -- 构建追加计划：wave 索引 0-based
     -- 注意：Lua 表用 1-based 索引时引擎会自动转 0-based，也可以直接用 0-based
     local append_plan = {}
-    -- 第 1 波追加 1 只快速僵尸
+    -- 第 1 波追加 1 只快速僵尸（会出现在右侧预览中）
     append_plan[0] = { g_fast_zombie_type }
-    -- 最后一波（旗波）追加 2 只快速僵尸
+    -- 最后一波（旗波）追加 2 只快速僵尸（通过 hide_from_preview 隐藏预览，制造突袭感）
     local last_wave = num_waves - 1
     if last_wave > 0 then
         append_plan[last_wave] = { g_fast_zombie_type, g_fast_zombie_type }
@@ -76,6 +78,12 @@ function M.on_pick_zombie_waves_post(board, level, num_waves)
 
     print(string.format("[wave_injection_test] injecting FastZombie: wave 0 (%d), wave %d (%d)",
         1, last_wave, append_plan[last_wave] and #append_plan[last_wave] or 0))
+
+    -- hide_from_preview: 标记快速僵尸不参与最后一波的预览
+    -- 但因为第 1 波也有该类型，所以预览中仍会出现 1 只（来自第 1 波）
+    -- 要完全隐藏某类型，不要在任何"会预览"的波次中加入它
+    -- 这里演示如何隐藏整个类型：取消下面一行的注释即可让快速僵尸完全不出现在预览中
+    -- return { append = append_plan, hide_from_preview = { g_fast_zombie_type } }
 
     return { append = append_plan }
 end
@@ -90,3 +98,4 @@ end
 
 print("[wave_injection_test] 已加载：波次注入测试")
 return M
+

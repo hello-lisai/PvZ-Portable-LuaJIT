@@ -696,4 +696,11 @@ inline int GetTotalZombieCount() { return static_cast<int>(ZombieType::NUM_CACHE
 inline int CustomZombieTypeToIndex(ZombieType z) { return static_cast<int>(z) - static_cast<int>(ZombieType::NUM_CACHED_ZOMBIE_TYPES); }
 inline bool IsCustomZombieType(ZombieType z) { return static_cast<int>(z) >= static_cast<int>(ZombieType::NUM_CACHED_ZOMBIE_TYPES); }
 
+// Mod API: 预览隐藏集合 —— mod 可标记某些僵尸类型不参与关卡开始前的右侧预览
+// 通过 on_pick_zombie_waves_post 返回 {hide_from_preview = {type1, type2, ...}} 设置
+// CutScene::PlaceStreetZombies 统计阶段会跳过这些类型
+void                        MarkZombieHiddenFromPreview(ZombieType z);
+void                        ClearZombieHiddenFromPreview();
+bool                        IsZombieHiddenFromPreview(ZombieType z);
+
 #endif

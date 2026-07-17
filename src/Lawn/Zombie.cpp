@@ -50,6 +50,7 @@ namespace ModLua {
 
 #include <climits>
 #include <vector>  // Mod API: gCustomZombieDefs
+#include <set>     // Mod API: gHiddenFromPreview
 
 // Mod API: 移除 constinit const，改为普通数组（运行时可修改）
 ZombieDefinition gZombieDefs[NUM_ZOMBIE_TYPES] = {
@@ -110,7 +111,16 @@ namespace {
     // Mod API: 自定义僵尸从 NUM_CACHED_ZOMBIE_TYPES 开始分配，避让 ZOMBIE_CACHED_POLEVAULTER_WITH_POLE
     // （ZOMBIE_CACHED_POLEVAULTER_WITH_POLE 值 = NUM_ZOMBIE_TYPES，是原版图鉴缓存用的内部类型）
     int gNextCustomZombieType = static_cast<int>(ZombieType::NUM_CACHED_ZOMBIE_TYPES);
+
+    // Mod API: 预览隐藏集合 —— mod 标记的"不参与关卡开始前右侧预览"的僵尸类型
+    // 每次 PickZombieWaves 时清空，由 on_pick_zombie_waves_post 事件重新填充
+    std::set<ZombieType> gHiddenFromPreview;
 }
+
+// Mod API: 预览隐藏集合实现
+void MarkZombieHiddenFromPreview(ZombieType z) { gHiddenFromPreview.insert(z); }
+void ClearZombieHiddenFromPreview() { gHiddenFromPreview.clear(); }
+bool IsZombieHiddenFromPreview(ZombieType z) { return gHiddenFromPreview.find(z) != gHiddenFromPreview.end(); }
 
 const ZombieDefinition& GetZombieDefinition(ZombieType theZombieType)
 {

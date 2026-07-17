@@ -853,12 +853,14 @@ void Board::PickZombieWaves()
 
 	// Mod API: ON_PICK_ZOMBIE_WAVES_POST —— 原版波次生成完毕后，Mod 可往任意波次追加僵尸
 	// mod 返回 {append = {[wave] = {type1, type2, ...}}}，C++ 侧把僵尸追加到 mZombiesInWave
+	// mod 也可返回 {hide_from_preview = {type1, type2, ...}} 标记某些类型不参与右侧预览
 	if (ModBus::HasListenersFor(ModEvent::ON_PICK_ZOMBIE_WAVES_POST)) {
 		ModCtx _ctx = MakeCtx(ModEvent::ON_PICK_ZOMBIE_WAVES_POST);
 		_ctx.app = gLawnApp;
 		_ctx.board = this;
 		_ctx.level = mLevel;
 		_ctx.customNumWaves = mNumWaves;  // 通过 customNumWaves 传递已生成的波数给 Lua
+		ClearZombieHiddenFromPreview();  // 每次重新生成波次时清空隐藏标记
 		ModBus::Fire(_ctx.event, _ctx);
 		if (_ctx.useAppendWaves) {
 			for (int w = 0; w < mNumWaves && w < ModCtx::MAX_CUSTOM_WAVES; ++w) {
