@@ -46,6 +46,7 @@
 #include "../Sexy.TodLib/TodStringFile.h"
 #include "misc/PerfTimer.h"
 #include "widget/WidgetManager.h"
+#include <unordered_map>  // Mod API: 自定义僵尸预览统计
 
 static const int	TimePanRightStart				= 1500;
 static const int	TimePanRightEnd					= 3500;
@@ -517,6 +518,8 @@ void CutScene::PlaceStreetZombies()
 	// int aZombieValueTotal = 0;
 	int aTotalZombieCount = 0;
 	int aZombieTypeCount[ZombieType::NUM_ZOMBIE_TYPES] = { 0 };
+	// Mod API: 自定义僵尸（>= NUM_CACHED_ZOMBIE_TYPES）用 map 统计，避让固定数组越界
+	std::unordered_map<int, int> aCustomZombieTypeCount;
 	TOD_ASSERT(mBoard->mNumWaves <= MAX_ZOMBIE_WAVES);
 
 	for (int aWave = 0; aWave < mBoard->mNumWaves; aWave++)
@@ -546,10 +549,14 @@ void CutScene::PlaceStreetZombies()
 			}
 
 			TOD_ASSERT(aZombieType >= 0);
-			// Mod API: 自定义僵尸类型（>= NUM_CACHED_ZOMBIE_TYPES）跳过预览统计，不计入固定数组
-			// （避让 ZOMBIE_CACHED_POLEVAULTER_WITH_POLE，后者值 = NUM_ZOMBIE_TYPES）
+			// Mod API: 自定义僵尸类型（>= NUM_CACHED_ZOMBIE_TYPES）计入 map，
+			// 原版类型（含 ZOMBIE_CACHED_POLEVAULTER_WITH_POLE 但后者不会出现在出怪列表中）计入固定数组
 			if (aZombieType >= ZombieType::NUM_CACHED_ZOMBIE_TYPES)
+			{
+				++aCustomZombieTypeCount[static_cast<int>(aZombieType)];
+				++aTotalZombieCount;
 				continue;
+			}
 
 			++aZombieTypeCount[aZombieType];
 			++aTotalZombieCount;
@@ -568,6 +575,16 @@ void CutScene::PlaceStreetZombies()
 			if (aZombieType != ZombieType::ZOMBIE_YETI && mBoard->mZombieAllowed[aZombieType])
 			{
 				aZombieTypeCount[aZombieType] = std::max(aZombieTypeCount[aZombieType], 1);
+			}
+		}
+		// Mod API: 自定义僵尸在谁笑到最后也保证至少 1 只预览（mZombieAllowed 数组大小 100，可容纳自定义类型）
+		for (const auto& def : gCustomZombieDefs)
+		{
+			int idx = static_cast<int>(def.mZombieType);
+			if (idx < 100 && mBoard->mZombieAllowed[idx])
+			{
+				int& cnt = aCustomZombieTypeCount[idx];
+				cnt = std::max(cnt, 1);
 			}
 		}
 	}
@@ -600,6 +617,21 @@ void CutScene::PlaceStreetZombies()
 		if (aZombieTypeCount[aZombieType] && !Is2x2Zombie(aZombieType) && aZombieType != ZombieType::ZOMBIE_ZAMBONI)
 		{
 			int aZombieNumInWave = aZombieTypeCount[aZombieType];
+			int aZombiePreviewNum = aZombieNumInWave * aPreviewCapacity / aTotalZombieCount;
+			aZombiePreviewNum = ClampInt(aZombiePreviewNum, 1, aZombieNumInWave);
+			for (int i = 0; i < aZombiePreviewNum; i++)
+			{
+				FindAndPlaceZombie(aZombieType, aZombieGrid);
+			}
+		}
+	}
+	// Mod API: 放置自定义僵尸预览（套用普通体型逻辑，不涉及 2x2/ZAMBONI 特殊处理）
+	// 自定义僵尸视为普通体型，走 FindAndPlaceZombie 通用路径
+	if (aTotalZombieCount > 0)
+	{
+		for (const auto& [typeIdx, aZombieNumInWave] : aCustomZombieTypeCount)
+		{
+			ZombieType aZombieType = static_cast<ZombieType>(typeIdx);
 			int aZombiePreviewNum = aZombieNumInWave * aPreviewCapacity / aTotalZombieCount;
 			aZombiePreviewNum = ClampInt(aZombiePreviewNum, 1, aZombieNumInWave);
 			for (int i = 0; i < aZombiePreviewNum; i++)
