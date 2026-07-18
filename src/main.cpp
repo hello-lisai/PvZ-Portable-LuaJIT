@@ -22,6 +22,7 @@
 #include "LawnApp.h"
 #include "Resources.h"
 #include "Sexy.TodLib/TodStringFile.h"
+#include <cstdio>
 #include <cstdlib>
 #include <vector>
 using namespace Sexy;
@@ -90,6 +91,34 @@ static void BuildUtf8ArgsFromWin32(int& argc, char**& argv)
 }
 #endif
 
+#ifdef _WIN32
+// Windows SEH 异常捕获：把崩溃信息写入 log.txt，便于定位自定义僵尸等问题
+static LONG WINAPI CrashLogger(EXCEPTION_POINTERS* ep)
+{
+	const char* excName = "Unknown";
+	switch (ep->ExceptionRecord->ExceptionCode) {
+		case EXCEPTION_ACCESS_VIOLATION:         excName = "ACCESS_VIOLATION"; break;
+		case EXCEPTION_ARRAY_BOUNDS_EXCEEDED:    excName = "ARRAY_BOUNDS_EXCEEDED"; break;
+		case EXCEPTION_BREAKPOINT:               excName = "BREAKPOINT"; break;
+		case EXCEPTION_ILLEGAL_INSTRUCTION:      excName = "ILLEGAL_INSTRUCTION"; break;
+		case EXCEPTION_STACK_OVERFLOW:           excName = "STACK_OVERFLOW"; break;
+		case EXCEPTION_INT_DIVIDE_BY_ZERO:       excName = "INT_DIVIDE_BY_ZERO"; break;
+		default: break;
+	}
+	std::fprintf(stderr, "[CRASH] SEH exception 0x%08X (%s) at address 0x%p\n",
+		static_cast<unsigned int>(ep->ExceptionRecord->ExceptionCode),
+		excName,
+		ep->ExceptionRecord->ExceptionAddress);
+	if (ep->ExceptionRecord->ExceptionCode == EXCEPTION_ACCESS_VIOLATION && ep->ExceptionRecord->NumberParameters >= 2) {
+		std::fprintf(stderr, "[CRASH] Access violation: %s address 0x%p\n",
+			ep->ExceptionRecord->ExceptionInformation[0] == 0 ? "reading" : "writing",
+			(void*)ep->ExceptionRecord->ExceptionInformation[1]);
+	}
+	std::fflush(stderr);
+	return EXCEPTION_EXECUTE_HANDLER;
+}
+#endif
+
 int main(int argc, char** argv)
 {
 #ifdef __3DS__
@@ -98,6 +127,7 @@ int main(int argc, char** argv)
 
 #ifdef _WIN32
 	BuildUtf8ArgsFromWin32(argc, argv);
+	SetUnhandledExceptionFilter(CrashLogger);
 #endif
 
 	TodStringListSetColors(gLawnStringFormats, gLawnStringFormatCount);
