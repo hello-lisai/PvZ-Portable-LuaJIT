@@ -93,6 +93,8 @@ static void BuildUtf8ArgsFromWin32(int& argc, char**& argv)
 
 #ifdef _WIN32
 // Windows SEH 异常捕获：把崩溃信息写入 log.txt，便于定位自定义僵尸等问题
+// 使用 Vectored Exception Handler，在 SEH filter 之前触发，
+// 即使栈溢出或 C 运行时 abort 也能捕获（比 SetUnhandledExceptionFilter 更可靠）
 static LONG WINAPI CrashLogger(EXCEPTION_POINTERS* ep)
 {
 	const char* excName = "Unknown";
@@ -103,9 +105,16 @@ static LONG WINAPI CrashLogger(EXCEPTION_POINTERS* ep)
 		case EXCEPTION_ILLEGAL_INSTRUCTION:      excName = "ILLEGAL_INSTRUCTION"; break;
 		case EXCEPTION_STACK_OVERFLOW:           excName = "STACK_OVERFLOW"; break;
 		case EXCEPTION_INT_DIVIDE_BY_ZERO:       excName = "INT_DIVIDE_BY_ZERO"; break;
+		case EXCEPTION_DATATYPE_MISALIGNMENT:    excName = "DATATYPE_MISALIGNMENT"; break;
+		case EXCEPTION_PRIV_INSTRUCTION:         excName = "PRIV_INSTRUCTION"; break;
+		case EXCEPTION_IN_PAGE_ERROR:            excName = "IN_PAGE_ERROR"; break;
+		case EXCEPTION_NONCONTINUABLE_EXCEPTION: excName = "NONCONTINUABLE_EXCEPTION"; break;
+		case EXCEPTION_INVALID_DISPOSITION:      excName = "INVALID_DISPOSITION"; break;
+		case EXCEPTION_GUARD_PAGE:               excName = "GUARD_PAGE"; break;
+		case EXCEPTION_INVALID_HANDLE:           excName = "INVALID_HANDLE"; break;
 		default: break;
 	}
-	std::fprintf(stderr, "[CRASH] SEH exception 0x%08X (%s) at address 0x%p\n",
+	std::fprintf(stderr, "[CRASH] VEH exception 0x%08X (%s) at address 0x%p\n",
 		static_cast<unsigned int>(ep->ExceptionRecord->ExceptionCode),
 		excName,
 		ep->ExceptionRecord->ExceptionAddress);
@@ -115,7 +124,8 @@ static LONG WINAPI CrashLogger(EXCEPTION_POINTERS* ep)
 			(void*)ep->ExceptionRecord->ExceptionInformation[1]);
 	}
 	std::fflush(stderr);
-	return EXCEPTION_EXECUTE_HANDLER;
+	// 不处理异常，让下一个 handler 继续处理（包括默认的崩溃对话框）
+	return EXCEPTION_CONTINUE_SEARCH;
 }
 #endif
 
@@ -127,7 +137,9 @@ int main(int argc, char** argv)
 
 #ifdef _WIN32
 	BuildUtf8ArgsFromWin32(argc, argv);
-	SetUnhandledExceptionFilter(CrashLogger);
+	// 用 VectoredExceptionHandler 而非 SetUnhandledExceptionFilter，
+	// 因为前者在 SEH 链最早处触发，能捕获栈溢出等 SetUnhandledExceptionFilter 无法处理的场景
+	AddVectoredExceptionHandler(1 /*第一个被调用*/, CrashLogger);
 #endif
 
 	TodStringListSetColors(gLawnStringFormats, gLawnStringFormatCount);
