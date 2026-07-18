@@ -1572,7 +1572,7 @@ void DispatchEvent(ModCtx& ctx) {
             lua_pushinteger(g_L, ctx.mouseX);
             lua_pushinteger(g_L, ctx.mouseY);
             lua_pushinteger(g_L, ctx.mouseBtn);
-            nargs = 3;
+            nargs = 4;
             break;
         case ModEvent::ON_SUN_CHANGED:
             PushBoard(g_L, ctx.board);
