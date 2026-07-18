@@ -139,6 +139,7 @@ bool SafePCall(lua_State* L, int nargs, int nresults) {
     if (lua_pcall(L, nargs, nresults, 0) != LUA_OK) {
         const char* err = lua_tostring(L, -1);
         std::fprintf(stderr, "[ModLua] %s\n", err ? err : "(unknown error)");
+        std::fflush(stderr);
         lua_pop(L, 1);
         return false;
     }
@@ -1171,6 +1172,11 @@ namespace ModLua {
 
 void Initialize() {
     if (g_L) return; // 已初始化
+
+    // stdout 默认在重定向到文件时是全缓冲模式，崩溃时会丢失末尾日志
+    // 设置为行缓冲，确保每行 print 实时写入 log.txt
+    std::setvbuf(stdout, nullptr, _IOLBF, 0);
+    std::setvbuf(stderr, nullptr, _IOLBF, 0);
 
     g_L = luaL_newstate();
     if (!g_L) {
