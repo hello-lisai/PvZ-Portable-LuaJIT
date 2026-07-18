@@ -69,7 +69,10 @@ namespace ModLua {
 namespace {
 
 lua_State* g_L = nullptr;
-std::mutex g_lua_mutex;
+// 使用递归锁：Lua 回调中可能调用 C API（如 board:add_zombie）触发新事件，
+// 新事件的 DispatchEvent 会在同一线程上再次获取锁，std::mutex 会死锁。
+// std::recursive_mutex 允许同一线程多次加锁，避免此问题。
+std::recursive_mutex g_lua_mutex;
 
 std::vector<ModLua::ModInfo> g_mods;
 
@@ -1432,7 +1435,7 @@ void Initialize() {
 }
 
 void Shutdown() {
-    std::lock_guard<std::mutex> lk(g_lua_mutex);
+    std::lock_guard<std::recursive_mutex> lk(g_lua_mutex);
     if (!g_L) return;
 
     // 最终保存配置
@@ -1457,7 +1460,7 @@ void Reload() {
 }
 
 void DispatchEvent(ModCtx& ctx) {
-    std::lock_guard<std::mutex> lk(g_lua_mutex);
+    std::lock_guard<std::recursive_mutex> lk(g_lua_mutex);
     if (!g_L) return;
 
     const char* cb_name = EventToLuaName(ctx.event);
@@ -1761,7 +1764,7 @@ void DispatchEvent(ModCtx& ctx) {
 }
 
 std::string DoString(const std::string& code) {
-    std::lock_guard<std::mutex> lk(g_lua_mutex);
+    std::lock_guard<std::recursive_mutex> lk(g_lua_mutex);
     if (!g_L) return "Lua runtime not initialized";
 
     if (luaL_loadstring(g_L, code.c_str()) != LUA_OK) {
