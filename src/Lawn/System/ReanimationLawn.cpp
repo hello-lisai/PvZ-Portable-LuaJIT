@@ -307,6 +307,23 @@ MemoryImage* ReanimatorCache::MakeCachedZombieFrame(ZombieType theZombieType)
 		aReanim.AssignRenderGroupToTrack("boss_head2", RENDER_GROUP_HIDDEN);
 		aReanim.Draw(&aMemoryGraphics);
 	}
+	else if (theZombieType >= ZombieType::NUM_CACHED_ZOMBIE_TYPES)
+	{
+		// Mod API: 自定义僵尸小图标需要与全身像逻辑一致
+		// 全身像路径: SetupZombie -> ZombieInitialize -> LoadReanim(IsOnBoard()==false 时优先 anim_idle2)
+		//          -> InitZombieTypeCustom -> LoadPlainZombieReanim -> SetupReanimLayers
+		// 这里复用相同逻辑，避免小图标用 anim_idle 而全身像用 anim_idle2 导致姿势不一致
+		Reanimation aReanim;
+		aReanim.ReanimationInitializeType(aPosX, aPosY, aZombieDef.mReanimationType);
+		// 与 LoadReanim 一致：优先 anim_idle2，否则 anim_idle
+		if (aReanim.TrackExists("anim_idle2"))
+			aReanim.SetFramesForLayer("anim_idle2");
+		else if (aReanim.TrackExists("anim_idle"))
+			aReanim.SetFramesForLayer("anim_idle");
+		// 与 LoadPlainZombieReanim 一致：调用 SetupReanimLayers 处理装饰层
+		Zombie::SetupReanimLayers(&aReanim, theZombieType);
+		aReanim.Draw(&aMemoryGraphics);
+	}
 	else
 	{
 		const char* aTrackName = "anim_idle";

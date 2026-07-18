@@ -1242,12 +1242,18 @@ ReanimationType ReanimatorRegisterAnimation(const std::string& theFileName, int3
 	newDefs[oldCount].mFPS = 12.0f;
 	newDefs[oldCount].mReanimAtlas = nullptr;
 
-	// 释放旧数组（不调用 ReanimationFreeDefinition，因为数据已转移到新数组）
+	// 释放旧 ReanimationParams 数组（std::string 析构会释放字符串内存，新数组已深拷贝）
 	// gReanimationParamArray 可能指向静态数组 gLawnReanimationArray，需判断后才能 delete
 	if (gReanimationParamArray != gLawnReanimationArray) {
 		delete[] gReanimationParamArray;
 	}
-	delete[] gReanimatorDefArray;
+	// Mod API: 故意不 delete[] 旧的 gReanimatorDefArray。
+	// 原因：已存在的 Reanimation 对象通过 mDefinition 指针直接引用数组元素，
+	// 若释放旧数组，这些指针将变成悬空指针（use-after-free）。
+	// ReanimatorDefinition 无析构函数，旧数组仅占用少量内存（每个元素约 16 字节），
+	// 注册新 reanim 是低频操作，泄漏可接受，进程退出时由 OS 回收。
+	// 注意：新数组的定义已浅拷贝旧数组的 mTracks.tracks / mReanimAtlas 指针，
+	// 这些指针指向的数据仍有效，ReanimatorFreeDefinitions 会通过新数组统一释放。
 
 	gReanimationParamArray = newParams;
 	gReanimationParamArraySize = newCount;

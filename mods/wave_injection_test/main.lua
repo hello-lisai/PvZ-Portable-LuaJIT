@@ -2,7 +2,7 @@
 -- 演示 ON_PICK_ZOMBIE_WAVES_POST 事件：把自定义僵尸追加到任意波次
 --
 -- 功能：
---   1. 注册一只"快速僵尸"（套用普通僵尸 reanim，速度更快、血量更低）
+--   1. 注册一只"快速僵尸"（套用橄榄球僵尸 reanim，速度更快、血量更低）
 --   2. on_pick_zombie_waves_post 时，把自定义僵尸追加到指定波次：
 --      - 第 1 波（wave=0）：追加 1 只
 --      - 最后一波（wave=num_waves-1）：追加 2 只
@@ -30,14 +30,14 @@ function M.on_app_init()
         print("[wave_injection_test] ERROR: pvz.zombies.register 不可用")
         return
     end
-    if not pvz.reanim or not pvz.reanim.types or not pvz.reanim.types.ZOMBIE then
-        print("[wave_injection_test] ERROR: pvz.reanim.types.ZOMBIE 不可用")
+    if not pvz.reanim or not pvz.reanim.types or not pvz.reanim.types.ZOMBIE_FOOTBALL then
+        print("[wave_injection_test] ERROR: pvz.reanim.types.ZOMBIE_FOOTBALL 不可用")
         return
     end
 
     g_fast_zombie_type = pvz.zombies.register({
         name               = "FastZombie",
-        reanim_type        = pvz.reanim.types.ZOMBIE,
+        reanim_type        = pvz.reanim.types.ZOMBIE_FOOTBALL,
         value              = 50,
         starting_level     = 1,
         first_allowed_wave = 1,

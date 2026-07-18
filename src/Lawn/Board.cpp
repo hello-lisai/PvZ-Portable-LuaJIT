@@ -590,8 +590,13 @@ void Board::PutZombieInWave(ZombieType theZombieType, int theWaveNumber, ZombieP
 		mZombiesInWave[theWaveNumber][theZombiePicker->mZombieCount] = ZombieType::ZOMBIE_INVALID;
 	}
 	theZombiePicker->mZombiePoints -= GetZombieDefinition(theZombieType).mZombieValue;
-	theZombiePicker->mZombieTypeCount[theZombieType]++;
-	theZombiePicker->mAllWavesZombieTypeCount[theZombieType]++;
+	// Mod API: 自定义僵尸类型（>= NUM_ZOMBIE_TYPES）跳过原版统计数组更新，避免越界
+	// mZombieTypeCount/mAllWavesZombieTypeCount 仅用于原版僵尸的波次分布检查，自定义僵尸不参与
+	if (theZombieType < ZombieType::NUM_ZOMBIE_TYPES)
+	{
+		theZombiePicker->mZombieTypeCount[theZombieType]++;
+		theZombiePicker->mAllWavesZombieTypeCount[theZombieType]++;
+	}
 }
 
 void Board::PutInMissingZombies(int theWaveNumber, ZombiePicker* theZombiePicker)
@@ -2524,6 +2529,13 @@ bool Board::CanZombieSpawnOnLevel(ZombieType theZombieType, int theLevel)
 	if (theLevel < aZombieDef.mStartingLevel || aZombieDef.mPickWeight == 0)
 	{
 		return false;
+	}
+
+	// Mod API: 自定义僵尸类型（>= NUM_ZOMBIE_TYPES）没有 gZombieAllowedLevels 条目，
+	// 仅依据 ZombieDefinition 的 mStartingLevel 和 mPickWeight 判断（上面已检查）
+	if (theZombieType >= ZombieType::NUM_ZOMBIE_TYPES)
+	{
+		return true;
 	}
 
 	TOD_ASSERT(gZombieAllowedLevels[theZombieType].mZombieType == theZombieType);
