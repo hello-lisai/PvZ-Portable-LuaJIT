@@ -1187,6 +1187,23 @@ void Initialize() {
     // 加载所有标准库（用户要求宽松沙箱，方便篡改）
     luaL_openlibs(g_L);
 
+    // 替换全局 print：调用原版 print 后立即 fflush(stdout)
+    // 崩溃时 stdout 缓冲区内容会丢失，这确保每行 print 实时写入 log.txt
+    {
+        // upvalue[1] = 原 print 函数
+        lua_getglobal(g_L, "print");
+        lua_pushcclosure(g_L, [](lua_State* L) -> int {
+            // 调用 upvalue[1]（原 print），参数原样传递
+            int n = lua_gettop(L);
+            lua_pushvalue(L, lua_upvalueindex(1));
+            lua_insert(L, 1);
+            lua_call(L, n, 0);
+            std::fflush(stdout);
+            return 0;
+        }, 1);
+        lua_setglobal(g_L, "print");
+    }
+
     // 加载用户配置（mods/config.json），必须在扫描 mod 目录前完成
     LoadUserConfig();
 
