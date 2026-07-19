@@ -3209,6 +3209,22 @@ Reanimation* Plant::AttachBlinkAnim(Reanimation* theReanimBody)
             aAnimToAttach = FindReanimAttachment(aTrackInstance->mAttachmentID);
         }
     }
+    // Mod API: 自定义 SHOOTER 植物复用 PEASHOOTER 家族的头部附加点逻辑
+    // 否则眨眼动画会附加到 body 而非 head，导致位置错位
+    else if (mSeedType >= SeedType::NUM_SEED_TYPES &&
+             aPlantDef.mSubClass == PlantSubClass::SUBCLASS_SHOOTER)
+    {
+        if (theReanimBody->TrackExists("anim_stem"))
+        {
+            ReanimatorTrackInstance* aTrackInstance = theReanimBody->GetTrackInstanceByName("anim_stem");
+            aAnimToAttach = FindReanimAttachment(aTrackInstance->mAttachmentID);
+        }
+        else if (theReanimBody->TrackExists("anim_idle"))
+        {
+            ReanimatorTrackInstance* aTrackInstance = theReanimBody->GetTrackInstanceByName("anim_idle");
+            aAnimToAttach = FindReanimAttachment(aTrackInstance->mAttachmentID);
+        }
+    }
 
     if (aAnimToAttach == nullptr)
     {
@@ -4919,6 +4935,16 @@ void Plant::GetFireOrigin(PlantWeapon thePlantWeapon, int& aOriginX, int& aOrigi
         aOriginY = mY - 56;
     }
     else if (mSeedType == SeedType::SEED_PEASHOOTER || mSeedType == SeedType::SEED_SNOWPEA || mSeedType == SeedType::SEED_REPEATER)
+    {
+        int aOffsetX, aOffsetY;
+        GetPeaHeadOffset(aOffsetX, aOffsetY);
+        aOriginX = mX + aOffsetX + 24;
+        aOriginY = mY + aOffsetY - 33;
+    }
+    // Mod API: 自定义 SHOOTER 植物复用 PEASHOOTER 家族的发射点计算
+    // 否则走默认分支 mX+10/mY+5（body 位置），发射点不准
+    else if (mSeedType >= SeedType::NUM_SEED_TYPES &&
+             GetPlantDefinition(mSeedType).mSubClass == PlantSubClass::SUBCLASS_SHOOTER)
     {
         int aOffsetX, aOffsetY;
         GetPeaHeadOffset(aOffsetX, aOffsetY);
