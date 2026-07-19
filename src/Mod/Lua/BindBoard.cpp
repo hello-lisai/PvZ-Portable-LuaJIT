@@ -119,6 +119,9 @@ int l_board_add_plant(lua_State* L) {
 }
 
 // board:add_projectile(x, y, row, projectile_type) -> Projectile
+// 注意：mod 手动创建的投射物默认 mDamageRangeFlags=1（DAMAGES_GROUND），
+// 与原版豌豆射手 GetDamageRangeFlags 的 default 返回值一致，
+// 确保投射物能正确碰撞地面僵尸（mDamageRangeFlags=0 会导致部分碰撞判定异常）
 int l_board_add_projectile(lua_State* L) {
     Board* b = CheckUserdata<Board>(L, 1, MT_BOARD);
     if (!b) return 0;
@@ -127,6 +130,10 @@ int l_board_add_projectile(lua_State* L) {
     int row = static_cast<int>(luaL_checkinteger(L, 4));
     ProjectileType pt = static_cast<ProjectileType>(luaL_checkinteger(L, 5));
     Projectile* p = b->AddProjectile(x, y, 0, row, pt);
+    if (p) {
+        // 默认 DAMAGE_RANGE_FLAGS_GROUND = 1（bit 0 = DAMAGES_GROUND）
+        p->mDamageRangeFlags = 1;
+    }
     PushProjectile(L, p);
     return 1;
 }

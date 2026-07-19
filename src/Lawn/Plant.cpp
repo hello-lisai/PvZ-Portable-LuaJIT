@@ -579,6 +579,14 @@ void Plant::InitPlantByType(SeedType theSeedType, const PlantDefinition& aPlantD
         aBodyReanim->SetTruncateDisappearingFrames();
         // 注意：原代码此处无 break（fallthrough 到 default），保持不变
     default:
+        // Mod API: 自定义植物（>= NUM_SEED_TYPES）根据 mSubClass 初始化头部
+        // SUBCLASS_SHOOTER 复用豌豆射手家族的头部创建逻辑，使自定义射手植物
+        // 能显示头部动画，并让 FindTargetAndFire 能播放 anim_shooting 触发射击
+        if (theSeedType >= SeedType::NUM_SEED_TYPES &&
+            aPlantDef.mSubClass == PlantSubClass::SUBCLASS_SHOOTER)
+        {
+            InitPlantPeashooterFamily(aPlantDef);
+        }
         break;
     }
 }
