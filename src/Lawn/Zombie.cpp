@@ -1342,24 +1342,58 @@ Reanimation* Zombie::LoadReanim(ReanimationType theReanimationType)
     aBodyReanim->mLoopType = ReanimLoopType::REANIM_LOOP;
     aBodyReanim->mIsAttachment = true;
 
-    if (!IsOnBoard())
+    // Mod API: 自定义僵尸可指定预览/图鉴使用的 reanim track
+    // mFromWave == ZOMBIE_WAVE_CUTSCENE(-2)：关卡开始右侧预览，默认 StartWalkAnim 走路动画
+    // mFromWave == ZOMBIE_WAVE_UI(-3) 或其他非棋盘场景：图鉴预览，默认 anim_idle2/anim_idle
+    bool aModTrackApplied = false;
+    if (IsCustomZombieType(mZombieType))
     {
-        if (Rand(4) > 0 && aBodyReanim->TrackExists("anim_idle2"))
+        const ZombieDefinition& aDef = GetZombieDefinition(mZombieType);
+        if (mFromWave == Zombie::ZOMBIE_WAVE_CUTSCENE && !aDef.mPreviewTrack.empty())
         {
-            float aRanimRate = RandRangeFloat(12.0f, 24.0f);
-            PlayZombieReanim("anim_idle2", ReanimLoopType::REANIM_LOOP, 0, aRanimRate);
+            // 关卡右侧预览：mod 指定的 preview_track（如 "anim_idle" 让僵尸站着不动）
+            if (aBodyReanim->TrackExists(aDef.mPreviewTrack.c_str()))
+            {
+                float aRanimRate = RandRangeFloat(12.0f, 18.0f);
+                PlayZombieReanim(aDef.mPreviewTrack.c_str(), ReanimLoopType::REANIM_LOOP, 0, aRanimRate);
+                aBodyReanim->mAnimTime = RandRangeFloat(0.0f, 0.99f);
+                aModTrackApplied = true;
+            }
         }
-        else if (aBodyReanim->TrackExists("anim_idle"))
+        else if (!IsOnBoard() && !aDef.mAlmanacTrack.empty())
         {
-            float aRanimRate = RandRangeFloat(12.0f, 18.0f);
-            PlayZombieReanim("anim_idle", ReanimLoopType::REANIM_LOOP, 0, aRanimRate);
+            // 图鉴预览：mod 指定的 almanac_track
+            if (aBodyReanim->TrackExists(aDef.mAlmanacTrack.c_str()))
+            {
+                float aRanimRate = RandRangeFloat(12.0f, 18.0f);
+                PlayZombieReanim(aDef.mAlmanacTrack.c_str(), ReanimLoopType::REANIM_LOOP, 0, aRanimRate);
+                aBodyReanim->mAnimTime = RandRangeFloat(0.0f, 0.99f);
+                aModTrackApplied = true;
+            }
         }
-
-        aBodyReanim->mAnimTime = RandRangeFloat(0.0f, 0.99f);
     }
-    else
+
+    if (!aModTrackApplied)
     {
-        StartWalkAnim(0);
+        if (!IsOnBoard())
+        {
+            if (Rand(4) > 0 && aBodyReanim->TrackExists("anim_idle2"))
+            {
+                float aRanimRate = RandRangeFloat(12.0f, 24.0f);
+                PlayZombieReanim("anim_idle2", ReanimLoopType::REANIM_LOOP, 0, aRanimRate);
+            }
+            else if (aBodyReanim->TrackExists("anim_idle"))
+            {
+                float aRanimRate = RandRangeFloat(12.0f, 18.0f);
+                PlayZombieReanim("anim_idle", ReanimLoopType::REANIM_LOOP, 0, aRanimRate);
+            }
+
+            aBodyReanim->mAnimTime = RandRangeFloat(0.0f, 0.99f);
+        }
+        else
+        {
+            StartWalkAnim(0);
+        }
     }
 
     return aBodyReanim;

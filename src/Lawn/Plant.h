@@ -423,6 +423,17 @@ public:
     // Mod API: 选种界面/图鉴显示排序权重（-1 = 自动追加到末尾，>=0 = 按此值排序）
     // 原版植物 sort_order = 0~48，自定义植物默认 -1（追加），mod 可指定如 49 表示第二页首位
     int                     mSeedSortOrder = -1;
+    // Mod API: 卡包背景样式字段（仅自定义植物生效，原版走 switch 自动判定）
+    // mPacketBackgroundCel: 卡包背景 cel 索引（IMAGE_SEEDS 0-8），-1 = 走原版自动逻辑
+    //   0=IMITATER, 1=UPGRADE, 2=NORMAL(默认), 3=CRATER, 4=SHUFFLE, 5=SUN, 6=DIAMOND, 7=SNORKLE, 8=TROPHY
+    // mPacketScale/mPacketOffsetX/mPacketOffsetY: 卡包内植物图标的缩放和偏移
+    int                     mPacketBackgroundCel = -1;
+    float                   mPacketScale = 0.5f;
+    float                   mPacketOffsetX = 5.0f;
+    float                   mPacketOffsetY = 8.0f;
+    // Mod API: 图鉴大预览动画使用的 reanim track（默认空 = 用 anim_idle）
+    // mod 可指定如 "anim_idle2" 让图鉴预览播放不同姿势
+    std::string             mAlmanacTrack;
 };
 extern PlantDefinition gPlantDefs[SeedType::NUM_SEED_TYPES];  // Mod API: 移除 const
 

@@ -479,9 +479,18 @@ int l_resources_unmount(lua_State* L) {
 //   cost (int, 默认 0)           阳光花费
 //   refresh (int, 默认 0)        冷却时间（毫秒）
 //   reanim_type (int, 默认 0)    对应的 ReanimationType
-//   packet_index (int, 默认 0)   卡包索引
+//   packet_index (int, 默认 0)   卡包索引（保留字段，当前未使用）
 //   subclass (int, 默认 0)       PlantSubClass (0=NORMAL, 1=SHOOTER)
 //   launch_rate (int, 默认 0)    发射间隔
+//   almanac_name (string, 可选)        图鉴标题
+//   almanac_description (string, 可选) 图鉴描述
+//   makes_sun (bool, 可选)       是否产阳光
+//   seed_sort_order (int, 可选)  选种界面/图鉴排序权重（-1=追加，>=0=按值排序）
+//   packet_background_cel (int, 可选) 卡包背景 cel 索引（IMAGE_SEEDS 0-8，-1=自动）
+//   packet_scale (float, 可选)   卡包内图标缩放（默认 0.5）
+//   packet_offset_x (float, 可选) 卡包内图标 X 偏移（默认 5.0）
+//   packet_offset_y (float, 可选) 卡包内图标 Y 偏移（默认 8.0）
+//   almanac_track (string, 可选) 图鉴大预览使用的 reanim track（默认空 = 用 anim_idle）
 int l_plants_register(lua_State* L) {
     luaL_checktype(L, 1, LUA_TTABLE);
     int tblIdx = lua_absindex(L, 1);
@@ -535,6 +544,30 @@ int l_plants_register(lua_State* L) {
     if (lua_isinteger(L, -1)) def.mSeedSortOrder = static_cast<int>(lua_tointeger(L, -1));
     lua_pop(L, 1);
 
+    // Mod API: 卡包背景样式字段（可选）
+    // packet_background_cel: 卡包背景 cel 索引（IMAGE_SEEDS 0-8），-1 = 走原版自动逻辑
+    // packet_scale/packet_offset_x/packet_offset_y: 卡包内植物图标的缩放和偏移
+    lua_getfield(L, tblIdx, "packet_background_cel");
+    if (lua_isinteger(L, -1)) def.mPacketBackgroundCel = static_cast<int>(lua_tointeger(L, -1));
+    lua_pop(L, 1);
+
+    lua_getfield(L, tblIdx, "packet_scale");
+    if (lua_isnumber(L, -1)) def.mPacketScale = static_cast<float>(lua_tonumber(L, -1));
+    lua_pop(L, 1);
+
+    lua_getfield(L, tblIdx, "packet_offset_x");
+    if (lua_isnumber(L, -1)) def.mPacketOffsetX = static_cast<float>(lua_tonumber(L, -1));
+    lua_pop(L, 1);
+
+    lua_getfield(L, tblIdx, "packet_offset_y");
+    if (lua_isnumber(L, -1)) def.mPacketOffsetY = static_cast<float>(lua_tonumber(L, -1));
+    lua_pop(L, 1);
+
+    // Mod API: 图鉴大预览使用的 reanim track（可选，默认空 = 用 anim_idle）
+    lua_getfield(L, tblIdx, "almanac_track");
+    if (lua_isstring(L, -1)) def.mAlmanacTrack = lua_tostring(L, -1);
+    lua_pop(L, 1);
+
     lua_getfield(L, tblIdx, "on_update");
     if (lua_isfunction(L, -1)) {
         int ref = luaL_ref(L, LUA_REGISTRYINDEX);
@@ -567,6 +600,8 @@ int l_plants_register(lua_State* L) {
 //   shield_health (int, 默认 0)      护甲血量
 //   almanac_name (string, 可选)      图鉴标题
 //   almanac_description (string, 可选) 图鉴描述
+//   almanac_track (string, 可选)     图鉴大预览使用的 reanim track（默认空 = 自动选 anim_idle2/anim_idle）
+//   preview_track (string, 可选)     关卡开始右侧预览使用的 reanim track（默认空 = StartWalkAnim 走路动画）
 //   on_update (function, 可选)       逐帧行为回调 function(zombie)
 int l_zombies_register(lua_State* L) {
     luaL_checktype(L, 1, LUA_TTABLE);
@@ -633,6 +668,16 @@ int l_zombies_register(lua_State* L) {
 
     lua_getfield(L, tblIdx, "almanac_description");
     if (lua_isstring(L, -1)) def.mAlmanacDescription = lua_tostring(L, -1);
+    lua_pop(L, 1);
+
+    // Mod API: 图鉴大预览使用的 reanim track（可选，默认空 = 走原版自动逻辑 anim_idle2/anim_idle）
+    lua_getfield(L, tblIdx, "almanac_track");
+    if (lua_isstring(L, -1)) def.mAlmanacTrack = lua_tostring(L, -1);
+    lua_pop(L, 1);
+
+    // Mod API: 关卡开始右侧预览使用的 reanim track（可选，默认空 = 走原版 StartWalkAnim 走路动画）
+    lua_getfield(L, tblIdx, "preview_track");
+    if (lua_isstring(L, -1)) def.mPreviewTrack = lua_tostring(L, -1);
     lua_pop(L, 1);
 
     lua_getfield(L, tblIdx, "on_update");

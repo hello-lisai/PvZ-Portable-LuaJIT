@@ -677,6 +677,12 @@ public:
     int                             mHelmHealth = 0;              // 头盔血量
     ShieldType                      mShieldType = ShieldType::SHIELDTYPE_NONE; // 护甲类型（门/报纸/梯子）
     int                             mShieldHealth = 0;            // 护甲血量
+    // Mod API: 图鉴大预览动画使用的 reanim track（默认空 = 走原版自动逻辑 anim_idle2/anim_idle）
+    // mod 可指定如 "anim_idle" 强制图鉴预览使用特定姿势
+    std::string                     mAlmanacTrack;
+    // Mod API: 关卡开始右侧预览动画使用的 reanim track（默认空 = 走原版 StartWalkAnim 走路动画）
+    // mod 可指定如 "anim_idle" 让预览僵尸站着不动而非走路
+    std::string                     mPreviewTrack;
 };
 extern ZombieDefinition gZombieDefs[NUM_ZOMBIE_TYPES];  // Mod API: 移除 const
 

@@ -308,6 +308,16 @@ void DrawSeedPacket(Graphics* g, float x, float y, SeedType theSeedType, SeedTyp
 		theSeedType == SeedType::SEED_ZOMBIQUARIUM_SNORKLE ? 7 :
 		theSeedType == SeedType::SEED_ZOMBIQUARIUM_TROPHY ? 8 : 2;
 
+	// Mod API: 自定义植物可指定卡包背景 cel（覆盖原版自动判定）
+	if (IsCustomSeedType(theSeedType))
+	{
+		const PlantDefinition& aCustomDef = GetPlantDefinition(theSeedType);
+		if (aCustomDef.mPacketBackgroundCel >= 0 && aCustomDef.mPacketBackgroundCel <= 8)
+		{
+			aPacketBackground = aCustomDef.mPacketBackgroundCel;
+		}
+	}
+
 	if (g->mScaleX > 1)
 	{
 		TodDrawImageCelScaledF(g, Sexy::IMAGE_SEEDPACKET_LARGER, x, y, 0, 0, g->mScaleX * 0.5f, g->mScaleY * 0.5f);
@@ -520,6 +530,14 @@ void DrawSeedPacket(Graphics* g, float x, float y, SeedType theSeedType, SeedTyp
 		aDrawSeedInMiddle = false;
 		break;
 	default:
+		// Mod API: 自定义植物从 PlantDefinition 读取缩放和偏移
+		if (IsCustomSeedType(aSeedType))
+		{
+			const PlantDefinition& aCustomDef = GetPlantDefinition(aSeedType);
+			aScale = aCustomDef.mPacketScale;
+			aOffsetX = aCustomDef.mPacketOffsetX;
+			aOffsetY = aCustomDef.mPacketOffsetY;
+		}
 		break;
 	}
 	if (((LawnApp*)gSexyAppBase)->mGameMode == GameMode::GAMEMODE_CHALLENGE_BIG_TIME)

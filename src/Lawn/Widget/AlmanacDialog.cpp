@@ -28,6 +28,7 @@
 #include "AlmanacDialog.h"
 #include "../../Resources.h"
 #include "../System/Music.h"
+#include "../../Sexy.TodLib/Reanimator.h"
 #include "../../GameConstants.h"
 #include "../System/PlayerInfo.h"
 #include "../System/PoolEffect.h"
@@ -221,6 +222,20 @@ void AlmanacDialog::SetupPlant()
 	mPlant->PlantInitialize(0, 0, mSelectedSeed, SEED_NONE);
 	mPlant->mX = aPosX;
 	mPlant->mY = aPosY;
+
+	// Mod API: 自定义植物可指定图鉴预览使用的 reanim track（覆盖默认 anim_idle）
+	if (IsCustomSeedType(mSelectedSeed))
+	{
+		const PlantDefinition& aCustomDef = GetPlantDefinition(mSelectedSeed);
+		if (!aCustomDef.mAlmanacTrack.empty())
+		{
+			Reanimation* aBodyReanim = mApp->ReanimationTryToGet(mPlant->mBodyReanimID);
+			if (aBodyReanim && aBodyReanim->TrackExists(aCustomDef.mAlmanacTrack.c_str()))
+			{
+				aBodyReanim->SetFramesForLayer(aCustomDef.mAlmanacTrack.c_str());
+			}
+		}
+	}
 }
 
 // GOTY @Patoke: 0x402D90
