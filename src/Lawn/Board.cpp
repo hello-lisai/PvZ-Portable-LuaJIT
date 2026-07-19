@@ -21,6 +21,7 @@
 
 #include <time.h>
 #include <algorithm>
+#include <cstdio>
 #include <SDL.h>
 #include "ZenGarden.h"
 #include "BoardInclude.h"
@@ -889,6 +890,17 @@ void Board::PickZombieWaves()
 			}
 		}
 	}
+	// 诊断日志：注入后打印第 0 波内容，确认追加成功
+	std::fprintf(stdout, "[TRACE] PickZombieWaves done: mNumWaves=%d, wave0=[", mNumWaves);
+	for (int i = 0; i < MAX_ZOMBIES_IN_WAVE; ++i) {
+		int t = static_cast<int>(mZombiesInWave[0][i]);
+		if (t < 0) { std::fprintf(stdout, "INVALID"); break; }
+		std::fprintf(stdout, "%d", t);
+		if (i + 1 < MAX_ZOMBIES_IN_WAVE && mZombiesInWave[0][i + 1] != ZombieType::ZOMBIE_INVALID)
+			std::fprintf(stdout, ",");
+	}
+	std::fprintf(stdout, "]\n");
+	std::fflush(stdout);
 }
 
 int Board::GetLevelRandSeed()
@@ -1319,7 +1331,11 @@ void Board::InitZombieWaves()
 	{
 		mChallenge->InitZombieWaves();
 	}
+	std::fprintf(stdout, "[TRACE] InitZombieWaves: before PickZombieWaves, mLevel=%d\n", mLevel);
+	std::fflush(stdout);
 	PickZombieWaves();
+	std::fprintf(stdout, "[TRACE] InitZombieWaves: after PickZombieWaves, mNumWaves=%d\n", mNumWaves);
+	std::fflush(stdout);
 	TOD_ASSERT(IsZombieWaveDistributionOk());
 
 	mCurrentWave = 0;
@@ -1471,7 +1487,11 @@ void Board::InitLevel()
 	// 设定关卡背景
 	PickBackground();
 	// 设定关卡出怪
+	std::fprintf(stdout, "[TRACE] InitLevel: before InitZombieWaves, mLevel=%d\n", mLevel);
+	std::fflush(stdout);
 	InitZombieWaves();
+	std::fprintf(stdout, "[TRACE] InitLevel: after InitZombieWaves OK\n");
+	std::fflush(stdout);
 	// 设定关卡初始阳光数量
 	if (aGameMode == GameMode::GAMEMODE_CHALLENGE_BEGHOULED || aGameMode == GameMode::GAMEMODE_CHALLENGE_BEGHOULED_TWIST ||
 		mApp->IsScaryPotterLevel() || mApp->IsWhackAZombieLevel())
@@ -2836,6 +2856,9 @@ bool Board::CanAddBobSled()
 // GOTY @Patoke: 0x410700
 Zombie* Board::AddZombieInRow(ZombieType theZombieType, int theRow, int theFromWave)
 {
+	std::fprintf(stdout, "[TRACE] AddZombieInRow: START type=%d row=%d fromWave=%d\n",
+		static_cast<int>(theZombieType), theRow, theFromWave);
+	std::fflush(stdout);
 	if (mZombies.mSize >= mZombies.mMaxSize - 1)
 	{
 		TodTrace("Too many zombies!!");
@@ -2849,8 +2872,16 @@ Zombie* Board::AddZombieInRow(ZombieType theZombieType, int theRow, int theFromW
 	}
 
 	bool aVariant = !Rand(5);
+	std::fprintf(stdout, "[TRACE] AddZombieInRow: before DataArrayAlloc\n");
+	std::fflush(stdout);
 	Zombie* aZombie = mZombies.DataArrayAlloc();
+	std::fprintf(stdout, "[TRACE] AddZombieInRow: after DataArrayAlloc, aZombie=%p\n", static_cast<void*>(aZombie));
+	std::fflush(stdout);
+	std::fprintf(stdout, "[TRACE] AddZombieInRow: before ZombieInitialize\n");
+	std::fflush(stdout);
 	aZombie->ZombieInitialize(theRow, theZombieType, aVariant, nullptr, theFromWave);
+	std::fprintf(stdout, "[TRACE] AddZombieInRow: after ZombieInitialize OK\n");
+	std::fflush(stdout);
 	if (theZombieType == ZombieType::ZOMBIE_BOBSLED && aZombie->IsOnBoard())
 	{
 		for (int _i = 0; _i < 3; _i++)

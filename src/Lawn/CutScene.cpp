@@ -19,6 +19,7 @@
  * along with PvZ-Portable. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <cstdio>
 #include "Board.h"
 #include "Plant.h"
 #include "Zombie.h"
@@ -139,7 +140,12 @@ void CutScene::PlaceAZombie(ZombieType theZombieType, int theGridX, int theGridY
 		aPutOnDuckyTube = true;
 	}
 
+	std::fprintf(stdout, "[TRACE] PlaceAZombie: type=%d gridX=%d gridY=%d, before AddZombieInRow\n",
+		static_cast<int>(theZombieType), theGridX, theGridY);
+	std::fflush(stdout);
 	Zombie* aZombie = mBoard->AddZombieInRow(theZombieType, theGridY, -2);
+	std::fprintf(stdout, "[TRACE] PlaceAZombie: after AddZombieInRow, aZombie=%p\n", static_cast<void*>(aZombie));
+	std::fflush(stdout);
 	TOD_ASSERT(aZombie);
 	aZombie->mPosX = theGridX * 56 + 830;
 	aZombie->mPosY = theGridY * 90 + 70;
@@ -345,6 +351,8 @@ void CutScene::PreloadResources()
 		return;
 	}
 	mPreloaded = true;
+	std::fprintf(stdout, "[TRACE] PreloadResources: START, mNumWaves=%d\n", mBoard->mNumWaves);
+	std::fflush(stdout);
 
 	mLoadedResourceNames.clear();
 
@@ -360,9 +368,13 @@ void CutScene::PreloadResources()
 			{
 				break;
 			}
+			std::fprintf(stdout, "[TRACE] PreloadResources: wave=%d idx=%d type=%d\n", aWave, aZombieIndex, static_cast<int>(aZombieType));
+			std::fflush(stdout);
 			Zombie::PreloadZombieResources(aZombieType);
 		}
 	}
+	std::fprintf(stdout, "[TRACE] PreloadResources: zombie preload done\n");
+	std::fflush(stdout);
 
 	for (SeedType aSeedType = SeedType::SEED_PEASHOOTER; aSeedType < SeedType::NUM_SEED_TYPES; aSeedType = static_cast<SeedType>(static_cast<int>(aSeedType) + 1))
 	{
@@ -371,6 +383,8 @@ void CutScene::PreloadResources()
 			Plant::PreloadPlantResources(aSeedType);
 		}
 	}
+	std::fprintf(stdout, "[TRACE] PreloadResources: plant preload done\n");
+	std::fflush(stdout);
 
 	if (mApp->IsFirstTimeAdventureMode() && mBoard->mLevel <= 50)
 	{
@@ -513,6 +527,8 @@ void CutScene::PlaceStreetZombies()
 	mPlacedZombies = true;
 	if (mApp->IsFinalBossLevel())
 		return;
+	std::fprintf(stdout, "[TRACE] PlaceStreetZombies: START\n");
+	std::fflush(stdout);
 
 	// 以下统计出怪列表中各种可预览的僵尸的数量
 	// int aZombieValueTotal = 0;

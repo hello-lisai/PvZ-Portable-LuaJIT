@@ -19,6 +19,7 @@
  * along with PvZ-Portable. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <cstdio>
 #include "Plant.h"
 #include "Board.h"
 #include "../ConstEnums.h"
@@ -844,17 +845,26 @@ void Zombie::InitZombieTypeSquashHead()
 // reanim 已在 ZombieInitialize 的 919-922 行通用代码中加载（LoadReanim）。
 void Zombie::InitZombieTypeCustom()
 {
+    std::fprintf(stdout, "[TRACE] InitZombieTypeCustom: START type=%d\n", static_cast<int>(mZombieType));
+    std::fflush(stdout);
     const ZombieDefinition& aDef = GetZombieDefinition(mZombieType);
+    std::fprintf(stdout, "[TRACE] InitZombieTypeCustom: got def, body_health=%d helm_type=%d helm_health=%d shield_type=%d shield_health=%d\n",
+        aDef.mBodyHealth, static_cast<int>(aDef.mHelmType), aDef.mHelmHealth, static_cast<int>(aDef.mShieldType), aDef.mShieldHealth);
+    std::fflush(stdout);
     mBodyHealth   = aDef.mBodyHealth;
     mAbilities    = aDef.mAbilities;
     mHelmType     = aDef.mHelmType;
     mHelmHealth   = aDef.mHelmHealth;
     mShieldType   = aDef.mShieldType;
     mShieldHealth = aDef.mShieldHealth;
+    std::fprintf(stdout, "[TRACE] InitZombieTypeCustom: before LoadPlainZombieReanim\n");
+    std::fflush(stdout);
 
     // 走原版普通僵尸的通用动画层配置（设置攻击框、mustache/future 变体等）
     // 注意：reanim 已在 switch 前加载，这里只做层配置
     LoadPlainZombieReanim();
+    std::fprintf(stdout, "[TRACE] InitZombieTypeCustom: END OK\n");
+    std::fflush(stdout);
 }
 
 // ===== ZombieInitialize 小函数实现结束 =====
@@ -950,7 +960,12 @@ void Zombie::ZombieInitialize(int theRow, ZombieType theType, bool theVariant, Z
     int aRenderOffset = 4;
     if (aZombieDef.mReanimationType != ReanimationType::REANIM_NONE)
     {
+        std::fprintf(stdout, "[TRACE] ZombieInitialize: before LoadReanim type=%d reanimType=%d\n",
+            static_cast<int>(mZombieType), static_cast<int>(aZombieDef.mReanimationType));
+        std::fflush(stdout);
         LoadReanim(aZombieDef.mReanimationType);
+        std::fprintf(stdout, "[TRACE] ZombieInitialize: after LoadReanim OK\n");
+        std::fflush(stdout);
     }
 
     switch (theType)
@@ -1101,10 +1116,18 @@ void Zombie::ZombieInitialize(int theRow, ZombieType theType, bool theVariant, Z
         // Mod API: >= NUM_CACHED_ZOMBIE_TYPES 的自定义僵尸走 default 分支，
         // 从 ZombieDefinition 读取血量/能力位/护甲等字段初始化
         if (theType >= ZombieType::NUM_CACHED_ZOMBIE_TYPES)
+        {
+            std::fprintf(stdout, "[TRACE] ZombieInitialize: default branch, calling InitZombieTypeCustom type=%d\n", static_cast<int>(theType));
+            std::fflush(stdout);
             InitZombieTypeCustom();
+            std::fprintf(stdout, "[TRACE] ZombieInitialize: InitZombieTypeCustom returned OK\n");
+            std::fflush(stdout);
+        }
         break;
     }
 
+    std::fprintf(stdout, "[TRACE] ZombieInitialize: after switch, before UpdateAnimSpeed\n");
+    std::fflush(stdout);
     if (IsOnBoard() && mApp->mGameMode == GameMode::GAMEMODE_CHALLENGE_ZOMBIQUARIUM)
     {
         float aAnimRate = RandRangeFloat(8.0f, 10.0f);
@@ -1127,6 +1150,8 @@ void Zombie::ZombieInitialize(int theRow, ZombieType theType, bool theVariant, Z
     }
 
     UpdateAnimSpeed();
+    std::fprintf(stdout, "[TRACE] ZombieInitialize: after UpdateAnimSpeed OK\n");
+    std::fflush(stdout);
     if (mVariant)
     {
         ReanimShowPrefix("anim_tongue", RENDER_GROUP_NORMAL);
@@ -1151,7 +1176,11 @@ void Zombie::ZombieInitialize(int theRow, ZombieType theType, bool theVariant, Z
         StartZombieSound();
     }
 
+    std::fprintf(stdout, "[TRACE] ZombieInitialize: before UpdateReanim\n");
+    std::fflush(stdout);
     UpdateReanim();
+    std::fprintf(stdout, "[TRACE] ZombieInitialize: END OK type=%d\n", static_cast<int>(mZombieType));
+    std::fflush(stdout);
 }
 
 void Zombie::SetupDoorArms(Reanimation* aReanim, bool theShow)

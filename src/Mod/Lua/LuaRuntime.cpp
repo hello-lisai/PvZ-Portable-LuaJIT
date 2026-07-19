@@ -1671,9 +1671,9 @@ void DispatchEvent(ModCtx& ctx) {
                         // key 在 -2，value 在 -1
                         int waveKey = -1;
                         if (lua_isinteger(g_L, -2)) {
-                                                            // Lua 1-based 索引：自动转 0-based
-                                int k = static_cast<int>(lua_tointeger(g_L, -2));
-                            waveKey = (k >= 1) ? k - 1 : k;  // 0 也允许
+                            // Mod 使用 0-based 索引（wave 0 = 第一波），无需转换
+                            int k = static_cast<int>(lua_tointeger(g_L, -2));
+                            waveKey = k;
                         }
                         if (waveKey >= 0 && waveKey < ModCtx::MAX_CUSTOM_WAVES && lua_istable(g_L, -1)) {
                             int waveListIdx = lua_absindex(g_L, -1);
@@ -1716,8 +1716,9 @@ void DispatchEvent(ModCtx& ctx) {
                     while (lua_next(g_L, appendIdx)) {
                         int waveKey = -1;
                         if (lua_isinteger(g_L, -2)) {
+                            // Mod 使用 0-based 索引（wave 0 = 第一波），无需转换
                             int k = static_cast<int>(lua_tointeger(g_L, -2));
-                            waveKey = (k >= 1) ? k - 1 : k;  // Lua 1-based → 0-based
+                            waveKey = k;
                         }
                         if (waveKey >= 0 && waveKey < ModCtx::MAX_CUSTOM_WAVES && lua_istable(g_L, -1)) {
                             int waveListIdx = lua_absindex(g_L, -1);

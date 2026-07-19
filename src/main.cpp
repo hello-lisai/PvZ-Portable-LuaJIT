@@ -95,6 +95,33 @@ static void BuildUtf8ArgsFromWin32(int& argc, char**& argv)
 // Windows SEH 异常捕获：把崩溃信息写入 log.txt，便于定位自定义僵尸等问题
 // 使用 Vectored Exception Handler，在 SEH filter 之前触发，
 // 即使栈溢出或 C 运行时 abort 也能捕获（比 SetUnhandledExceptionFilter 更可靠）
+
+// 把一个代码地址解析成 "模块名+偏移" 的字符串，写入 buf
+// 例如 0x00007ff7ef819691 -> "pvz-portable.exe+0x19691"
+static void FormatAddressWithModule(char* buf, size_t bufSize, void* addr)
+{
+	HMODULE hMod = nullptr;
+	if (GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+		(LPCWSTR)addr, &hMod) && hMod != nullptr)
+	{
+		wchar_t wpath[MAX_PATH] = { 0 };
+		GetModuleFileNameW(hMod, wpath, MAX_PATH);
+		// 取 basename
+		const wchar_t* base = wpath;
+		for (const wchar_t* p = wpath; *p; ++p) {
+			if (*p == L'\\' || *p == L'/') base = p + 1;
+		}
+		char name[MAX_PATH] = { 0 };
+		WideCharToMultiByte(CP_UTF8, 0, base, -1, name, MAX_PATH, nullptr, nullptr);
+		ptrdiff_t offset = (char*)addr - (char*)hMod;
+		std::snprintf(buf, bufSize, "%s+0x%llX", name, static_cast<unsigned long long>(offset));
+	}
+	else
+	{
+		std::snprintf(buf, bufSize, "0x%p", addr);
+	}
+}
+
 static LONG WINAPI CrashLogger(EXCEPTION_POINTERS* ep)
 {
 	const char* excName = "Unknown";
@@ -114,15 +141,53 @@ static LONG WINAPI CrashLogger(EXCEPTION_POINTERS* ep)
 		case EXCEPTION_INVALID_HANDLE:           excName = "INVALID_HANDLE"; break;
 		default: break;
 	}
-	std::fprintf(stderr, "[CRASH] VEH exception 0x%08X (%s) at address 0x%p\n",
+
+	char addrBuf[256] = { 0 };
+	FormatAddressWithModule(addrBuf, sizeof(addrBuf), ep->ExceptionRecord->ExceptionAddress);
+
+	std::fprintf(stderr, "[CRASH] VEH exception 0x%08X (%s) at %s\n",
 		static_cast<unsigned int>(ep->ExceptionRecord->ExceptionCode),
 		excName,
-		ep->ExceptionRecord->ExceptionAddress);
+		addrBuf);
 	if (ep->ExceptionRecord->ExceptionCode == EXCEPTION_ACCESS_VIOLATION && ep->ExceptionRecord->NumberParameters >= 2) {
 		std::fprintf(stderr, "[CRASH] Access violation: %s address 0x%p\n",
 			ep->ExceptionRecord->ExceptionInformation[0] == 0 ? "reading" : "writing",
 			(void*)ep->ExceptionRecord->ExceptionInformation[1]);
 	}
+
+#if defined(_M_X64) || defined(__x86_64__)
+	// 打印关键寄存器，便于定位
+	std::fprintf(stderr, "[CRASH] Registers: RIP=0x%llX RSP=0x%llX RBP=0x%llX\n",
+		(unsigned long long)ep->ContextRecord->Rip,
+		(unsigned long long)ep->ContextRecord->Rsp,
+		(unsigned long long)ep->ContextRecord->Rbp);
+	std::fprintf(stderr, "[CRASH] Registers: RCX=0x%llX RDX=0x%llX R8=0x%llX R9=0x%llX\n",
+		(unsigned long long)ep->ContextRecord->Rcx,
+		(unsigned long long)ep->ContextRecord->Rdx,
+		(unsigned long long)ep->ContextRecord->R8,
+		(unsigned long long)ep->ContextRecord->R9);
+	std::fprintf(stderr, "[CRASH] Registers: RAX=0x%llX RBX=0x%llX RCX=0x%llX RDI=0x%llX RSI=0x%llX\n",
+		(unsigned long long)ep->ContextRecord->Rax,
+		(unsigned long long)ep->ContextRecord->Rbx,
+		(unsigned long long)ep->ContextRecord->Rcx,
+		(unsigned long long)ep->ContextRecord->Rdi,
+		(unsigned long long)ep->ContextRecord->Rsi);
+#endif
+
+	// 捕获调用栈（最多 32 帧）
+	// RtlCaptureStackBackTrace 在 VEH 中能捕获当前栈，但会包含 VEH handler 自身的帧
+	{
+		const int kMaxFrames = 32;
+		void* frames[kMaxFrames] = { 0 };
+		USHORT n = RtlCaptureStackBackTrace(0 /*跳过0帧，保留全部*/, kMaxFrames, frames, nullptr);
+		std::fprintf(stderr, "[CRASH] Backtrace (%u frames):\n", (unsigned)n);
+		for (USHORT i = 0; i < n; ++i) {
+			char buf[256] = { 0 };
+			FormatAddressWithModule(buf, sizeof(buf), frames[i]);
+			std::fprintf(stderr, "[CRASH]   #%02u %s\n", (unsigned)i, buf);
+		}
+	}
+
 	std::fflush(stderr);
 	// 不处理异常，让下一个 handler 继续处理（包括默认的崩溃对话框）
 	return EXCEPTION_CONTINUE_SEARCH;
