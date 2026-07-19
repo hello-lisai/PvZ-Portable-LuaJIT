@@ -1576,7 +1576,13 @@ Zombie* Plant::FindSquashTarget()
                         aPlantX = aAttackRect.mX - 60;
                     }
 
-                    if (aZombie->IsWalkingBackwards() || aZombieRect.mX + aZombieRect.mWidth >= aPlantX)
+                    // 修复：允许窝瓜攻击身后（左侧）已经存在的僵尸
+                    // 原代码 aZombieRect.mX + aZombieRect.mWidth >= aPlantX 过滤掉了
+                    // 所有右边缘 < mX+20 的僵尸（即完全在植物左侧/身后的僵尸），
+                    // 导致后种的窝瓜无法攻击身后已存在的僵尸。
+                    // 现允许身后僵尸在 70 像素内被攻击（与上方 aRange <= 70 对应），
+                    // 这样 aRange <= 70 限制距离，条件只负责允许身后方向。
+                    if (aZombie->IsWalkingBackwards() || aZombieRect.mX + aZombieRect.mWidth >= aPlantX - 70)
                     {
                         if (mBoard->ZombieGetID(aZombie) == mTargetZombieID)
                             return aZombie;  // 是锁定的目标僵尸，则直接返回该僵尸
@@ -5659,8 +5665,12 @@ Rect Plant::GetPlantAttackRect(PlantWeapon thePlantWeapon)
     case SeedType::SEED_LEFTPEATER:     aRect = Rect(0,             mY,             mX,                 mHeight);               break;
     case SeedType::SEED_SQUASH:         aRect = Rect(mX + 20,       mY,             mWidth - 35,        mHeight);               break;
     case SeedType::SEED_CHOMPER:        aRect = Rect(mX + 80,       mY,             40,                 mHeight);               break;
+    // 修复：向左扩展地刺攻击范围，覆盖已经经过的僵尸
+    // 原代码 Rect(mX + 20, mY, mWidth - 50, mHeight) 只覆盖 [mX+20, mX+50]，
+    // 僵尸一旦走过地刺（在左侧）就不被攻击，后种的地刺无法攻击已经经过的僵尸。
+    // 现向左延伸到 mX-30，覆盖身后 30 像素，使正在经过和刚经过的僵尸都能被刺到。
     case SeedType::SEED_SPIKEWEED:
-    case SeedType::SEED_SPIKEROCK:      aRect = Rect(mX + 20,       mY,             mWidth - 50,        mHeight);               break;
+    case SeedType::SEED_SPIKEROCK:      aRect = Rect(mX - 30,       mY,             mWidth + 10,        mHeight);               break;
     case SeedType::SEED_POTATOMINE:     aRect = Rect(mX,            mY,             mWidth - 25,        mHeight);               break;
     case SeedType::SEED_TORCHWOOD:      aRect = Rect(mX + 50,       mY,             30,                 mHeight);               break;
     case SeedType::SEED_PUFFSHROOM:
