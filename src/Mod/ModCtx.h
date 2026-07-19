@@ -80,8 +80,12 @@ struct ModCtx {
 };
 
 // 可拦截事件的便捷构造
+// 注意：必须值初始化（{}），否则 customWaves/appendWaves/appendWaveLengths 等
+// POD 数组成员不会被清零，ON_PICK_ZOMBIE_WAVES_POST 的 append 逻辑会误用未初始化的
+// appendWaveLengths[w]（随机正数），用垃圾值覆盖 mZombiesInWave，导致统计阶段
+// aZombieTypeCount[负数垃圾值] 越界写入栈，栈帧损坏崩溃
 inline ModCtx MakeCtx(ModEvent e) {
-    ModCtx c;
+    ModCtx c{};
     c.event = e;
     return c;
 }

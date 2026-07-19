@@ -570,6 +570,15 @@ void CutScene::PlaceStreetZombies()
 			}
 
 			TOD_ASSERT(aZombieType >= 0);
+			// 防御性检查：跳过负数类型（mZombiesInWave 损坏时可能出现）
+			// 避免负数索引 aZombieTypeCount[负数] 越界写入栈导致栈帧损坏
+			if (static_cast<int>(aZombieType) < 0)
+			{
+				std::fprintf(stdout, "[WARN] PlaceStreetZombies: skip invalid zombie type=%d at wave=%d idx=%d\n",
+					static_cast<int>(aZombieType), aWave, aZombieIndex);
+				std::fflush(stdout);
+				continue;
+			}
 			// Mod API: 自定义僵尸类型（>= NUM_CACHED_ZOMBIE_TYPES）计入 map，
 			// 原版类型（含 ZOMBIE_CACHED_POLEVAULTER_WITH_POLE 但后者不会出现在出怪列表中）计入固定数组
 			if (aZombieType >= ZombieType::NUM_CACHED_ZOMBIE_TYPES)
