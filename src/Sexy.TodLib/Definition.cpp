@@ -594,22 +594,10 @@ bool DefinitionReadCompiledFile(const std::string& theCompiledFilePath, const De
     aTimer.Start();
 
     std::string aFullCompiledPath = DefinitionGetCompiledCacheFullPath(theCompiledFilePath);
-    std::ifstream aFileStream;
-
-    // Mod API: 如果 pak 内有编译版本，优先用 pak 内的（而非磁盘缓存）
-    // 这确保更换 main.pak 后立即生效，避免使用过期的 cache64/ 磁盘缓存
-    bool aCompiledInPak = IsFileInPakFile(theCompiledFilePath);
-    if (aCompiledInPak)
+    std::ifstream aFileStream(Sexy::PathFromU8(aFullCompiledPath), std::ios::binary);
+    if (!aFileStream)
     {
         aFileStream.open(Sexy::PathFromU8(theCompiledFilePath), std::ios::binary);
-    }
-    else
-    {
-        aFileStream.open(Sexy::PathFromU8(aFullCompiledPath), std::ios::binary);
-        if (!aFileStream)
-        {
-            aFileStream.open(Sexy::PathFromU8(theCompiledFilePath), std::ios::binary);
-        }
     }
 
     if (!aFileStream) return false;
@@ -689,18 +677,8 @@ bool DefinitionIsCompiled(const std::string& theXMLFilePath)
     std::filesystem::file_time_type aXMLFileTime{};
     if (!DefinitionGetFileModTime(theXMLFilePath, aXMLFileTime))
     {
-        // Mod API: 源文件可能在 pak 内（不是磁盘文件），无法获取文件系统修改时间
-        // 用 pak 文件本身的修改时间作为源文件时间
-        // 这样更换 main.pak 后，pak 时间更新，磁盘缓存自动失效
-        if (IsFileInPakFile(theXMLFilePath))
-        {
-            aXMLFileTime = gPakInterface->mPakFileModTime;
-        }
-        else
-        {
-            TodTrace("Can't find source file to compile '%s'", theXMLFilePath.c_str());
-            return false;
-        }
+        TodTrace("Can't find source file to compile '%s'", theXMLFilePath.c_str());
+        return false;
     }
 
     return aXMLFileTime <= aCompiledFileTime;
@@ -1340,17 +1318,16 @@ bool DefinitionCompileFile(const std::string& theXMLFilePath, const std::string&
 // (void* def, *defMap, string& xmlFilePath)  //esp -= 0xC
 bool DefinitionCompileAndLoad(const std::string& theXMLFilePath, const DefMap* theDefMap, void* theDefinition)
 {
+#ifdef PVZ_DEBUG
+    const bool aRequireCompiledUpToDate = true;
+#else
+    const bool aRequireCompiledUpToDate = false;
+#endif
+
     TodHesitationTrace("predef");
     std::string aCompiledFilePath = DefinitionGetCompiledFilePathFromXMLFilePath(theXMLFilePath);
 
-    // Mod API: 始终检查编译缓存有效性（包括 release 模式）
-    // 原版 release 模式下 aRequireCompiledUpToDate=false 导致 aShouldTryCompiled 永远为 true，
-    // 更换 main.pak 后旧的 cache64/ 磁盘缓存不会被失效，游戏仍用过期缓存。
-    // 现在统一用 DefinitionIsCompiled 检查：
-    //   - pak 内有 .compiled → true（优先用 pak 内版本）
-    //   - 磁盘缓存存在且时间戳有效 → true
-    //   - pak 内源文件但无 pak 内 .compiled → false（重新编译，确保用最新 pak 内容）
-    const bool aShouldTryCompiled = DefinitionIsCompiled(theXMLFilePath);
+    const bool aShouldTryCompiled = !aRequireCompiledUpToDate || DefinitionIsCompiled(theXMLFilePath);
     if (aShouldTryCompiled && DefinitionReadCompiledFile(aCompiledFilePath, theDefMap, theDefinition))
     {
         TodHesitationTrace("loaded %s", aCompiledFilePath.c_str());

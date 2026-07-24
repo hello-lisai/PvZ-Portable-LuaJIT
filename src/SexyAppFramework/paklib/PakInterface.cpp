@@ -88,12 +88,6 @@ bool PakInterface::AddPakFile(const std::string& theFileName)
 	if (!aFileHandle)
 		return false;
 
-	// Mod API: 记录 pak 文件修改时间，用于判断 pak 内源文件的磁盘缓存是否过期
-	std::error_code ec;
-	auto aModTime = std::filesystem::last_write_time(Sexy::PathFromU8(theFileName), ec);
-	if (!ec)
-		mPakFileModTime = aModTime;
-
 	fseek(aFileHandle, 0, SEEK_END);
 	size_t aFileSize = ftell(aFileHandle);
 	fseek(aFileHandle, 0, SEEK_SET);
