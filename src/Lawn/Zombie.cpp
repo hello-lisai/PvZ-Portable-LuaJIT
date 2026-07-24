@@ -8424,6 +8424,8 @@ int Zombie::TakeShieldDamage(int theDamage, unsigned int theDamageFlags)
 
 void Zombie::DropHelm(unsigned int theDamageFlags)
 {
+    std::fprintf(stdout, "[HELM-DBG] DropHelm: helmType=%d\n", static_cast<int>(mHelmType));
+    std::fflush(stdout);
     if (mHelmType == HelmType::HELMTYPE_NONE)
         return;
 
@@ -8475,6 +8477,9 @@ void Zombie::DropHelm(unsigned int theDamageFlags)
 
 void Zombie::UpdateHelmDamageImageOverride(int aDamageIndex)
 {
+    std::fprintf(stdout, "[HELM-DBG] UpdateHelmDamageImageOverride: helmType=%d dmgIdx=%d\n",
+        static_cast<int>(mHelmType), aDamageIndex);
+    std::fflush(stdout);
     Reanimation* aBodyReanim = mApp->ReanimationTryToGet(mBodyReanimID);
     if (mHelmType == HelmType::HELMTYPE_TRAFFIC_CONE && aDamageIndex == 1 && aBodyReanim)
     {
@@ -8537,6 +8542,9 @@ void Zombie::UpdateHelmDamageImageOverride(int aDamageIndex)
 
 int Zombie::TakeHelmDamage(int theDamage, unsigned int theDamageFlags)
 {
+    std::fprintf(stdout, "[HELM-DBG] TakeHelmDamage: helmType=%d helmHP=%d helmMaxHP=%d dmg=%d\n",
+        static_cast<int>(mHelmType), mHelmHealth, mHelmMaxHealth, theDamage);
+    std::fflush(stdout);
     if (!TestBit(theDamageFlags, static_cast<int>(DamageFlags::DAMAGE_DOESNT_CAUSE_FLASH)))
     {
         mJustGotShotCounter = 25;
