@@ -126,6 +126,13 @@ int l_zombie_get_abilities(lua_State* L) {
     return 1;
 }
 
+int l_zombie_get_is_eating(lua_State* L) {
+    Zombie* z = CheckUserdata<Zombie>(L, 1, MT_ZOMBIE);
+    if (!z) return 0;
+    lua_pushboolean(L, z->mIsEating);
+    return 1;
+}
+
 int l_zombie_set_abilities(lua_State* L) {
     Zombie* z = CheckUserdata<Zombie>(L, 1, MT_ZOMBIE);
     if (!z) return 0;
@@ -216,6 +223,7 @@ int l_zombie_index(lua_State* L) {
         {"phase",            l_zombie_get_phase},
         {"from_wave",        l_zombie_get_from_wave},
         {"abilities",        l_zombie_get_abilities},
+        {"is_eating",        l_zombie_get_is_eating},
     };
     for (auto& p : props) {
         if (strcmp(key, p.name) == 0) return p.fn(L);

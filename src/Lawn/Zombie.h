@@ -683,6 +683,10 @@ public:
     // Mod API: 关卡开始右侧预览动画使用的 reanim track（默认空 = 走原版 StartWalkAnim 走路动画）
     // mod 可指定如 "anim_idle" 让预览僵尸站着不动而非走路
     std::string                     mPreviewTrack;
+    // Mod API: 自定义僵尸的外观基础类型（默认 ZOMBIE_NORMAL）
+    // 用于断臂/断头等受伤动画的 track 名和图像覆盖逻辑：
+    // 例如 base_type=ZOMBIE_FOOTBALL 时，断臂会隐藏 Zombie_football_leftarm_* track
+    ZombieType                      mBaseZombieType = ZombieType::ZOMBIE_NORMAL;
 };
 extern ZombieDefinition gZombieDefs[NUM_ZOMBIE_TYPES];  // Mod API: 移除 const
 

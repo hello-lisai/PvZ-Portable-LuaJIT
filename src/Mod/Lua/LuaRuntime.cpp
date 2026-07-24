@@ -680,6 +680,13 @@ int l_zombies_register(lua_State* L) {
     if (lua_isstring(L, -1)) def.mPreviewTrack = lua_tostring(L, -1);
     lua_pop(L, 1);
 
+    // Mod API: 外观基础类型（可选，默认 ZOMBIE_NORMAL）
+    // 指定后，断臂/断头等受伤动画会使用该类型对应的 track 名和图像覆盖
+    // 例如 base_type = pvz.ZombieType.ZOMBIE_FOOTBALL 时使用橄榄球僵尸的断臂逻辑
+    lua_getfield(L, tblIdx, "base_type");
+    if (lua_isinteger(L, -1)) def.mBaseZombieType = static_cast<ZombieType>(lua_tointeger(L, -1));
+    lua_pop(L, 1);
+
     lua_getfield(L, tblIdx, "on_update");
     if (lua_isfunction(L, -1)) {
         int ref = luaL_ref(L, LUA_REGISTRYINDEX);

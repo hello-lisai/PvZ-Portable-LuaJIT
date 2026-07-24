@@ -4179,7 +4179,15 @@ void Zombie::DropHead(unsigned int theDamageFlags)
 
 void Zombie::HideLostArmTracks()
 {
-    switch (mZombieType)
+    // Mod API: 自定义僵尸使用 mBaseZombieType 选择断臂 track 逻辑
+    ZombieType aSwitchType = mZombieType;
+    if (IsCustomZombieType(mZombieType))
+    {
+        const ZombieDefinition& aDef = GetZombieDefinition(mZombieType);
+        aSwitchType = aDef.mBaseZombieType;
+    }
+
+    switch (aSwitchType)
     {
     case ZombieType::ZOMBIE_FOOTBALL:
         ReanimShowPrefix("Zombie_football_leftarm_lower", RENDER_GROUP_HIDDEN);
@@ -4214,7 +4222,15 @@ void Zombie::SetupLostArmImageOverride(float& aPosX, float& aPosY)
     Reanimation* aBodyReanim = mApp->ReanimationTryToGet(mBodyReanimID);
     if (aBodyReanim)
     {
-        switch (mZombieType)
+        // Mod API: 自定义僵尸使用 mBaseZombieType 选择断臂图像覆盖
+        ZombieType aSwitchType = mZombieType;
+        if (IsCustomZombieType(mZombieType))
+        {
+            const ZombieDefinition& aDef = GetZombieDefinition(mZombieType);
+            aSwitchType = aDef.mBaseZombieType;
+        }
+
+        switch (aSwitchType)
         {
         case ZombieType::ZOMBIE_FOOTBALL:
             GetTrackPosition("Zombie_football_leftarm_hand", aPosX, aPosY);
