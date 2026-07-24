@@ -1296,7 +1296,13 @@ void Initialize() {
     BindSol2(g_L);
 
     // 提供全局 pvz 表（含 api_version + config 子表）
-    lua_newtable(g_L);
+    // 注意：BindEnums 已创建 pvz 表并设置了 ZombieType/SeedType 等枚举子表，
+    // 这里必须获取已有表而非创建新表，否则会覆盖枚举导致 mod 中 pvz.ZombieType 为 nil
+    lua_getglobal(g_L, "pvz");
+    if (!lua_istable(g_L, -1)) {
+        lua_pop(g_L, 1);
+        lua_newtable(g_L);
+    }
     lua_pushstring(g_L, "api_version_major");
     lua_pushinteger(g_L, MOD_API_VERSION_MAJOR);
     lua_settable(g_L, -3);
