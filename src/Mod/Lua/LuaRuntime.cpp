@@ -103,6 +103,28 @@ std::unordered_map<int, int> g_plantUpdateCallbacks;
 ModJson::JsonValue g_userConfig;
 std::string        g_configPath;
 
+// pvz.images 动态查询表：key → 指向全局 Image* 指针的地址
+// 资源在异步线程 LoadingThreadProc 中加载，ModBus::Initialize 时机早于资源加载完成，
+// 因此不能在 mod 初始化时缓存 image 指针，必须每次访问时实时读取全局变量。
+std::unordered_map<std::string, Image**> g_imageMap;
+
+// pvz.images 表的 __index 元方法：根据 key 实时读取对应全局 Image* 指针
+int l_images_index(lua_State* L) {
+    const char* key = luaL_checkstring(L, 2);
+    auto it = g_imageMap.find(key);
+    if (it == g_imageMap.end() || it->second == nullptr) {
+        lua_pushnil(L);
+        return 1;
+    }
+    Image* img = *(it->second);  // 读取当前指针值（资源加载后会被赋值）
+    if (img) {
+        ModLua::PushImage(L, img);
+    } else {
+        lua_pushnil(L);
+    }
+    return 1;
+}
+
 // ModEvent → Lua 回调名映射
 const char* EventToLuaName(ModEvent e) {
     switch (e) {
@@ -1467,9 +1489,11 @@ void Initialize() {
 
     // pvz.images 子表：暴露常用 IMAGE_* 指针给 mod（共数百个，这里选最常用的）
     // mod 用法: local img = pvz.images.BACKGROUND1; g:draw_image(img, 0, 0)
-    lua_newtable(g_L);
-    auto push_img = [&](const char* key, Image* img) {
-        if (img) { PushImage(g_L, img); lua_setfield(g_L, -2, key); }
+    // 注意：资源在异步线程 LoadingThreadProc 中加载，ModBus::Initialize 时机早于资源加载完成，
+    // 因此这里不直接缓存指针，而是建立 key→全局指针地址 的映射，通过 __index 元方法动态查询。
+    g_imageMap.clear();
+    auto push_img = [&](const char* key, Image*& img) {
+        g_imageMap[std::string(key)] = &img;  // 存储全局变量地址，访问时实时读取
     };
     push_img("BACKGROUND1",          IMAGE_BACKGROUND1);
     push_img("BACKGROUND2",          IMAGE_BACKGROUND2);
@@ -1504,6 +1528,12 @@ void Initialize() {
     push_img("ZOMBIE_FOOTBALL_HELMET",  IMAGE_REANIM_ZOMBIE_FOOTBALL_HELMET);
     push_img("ZOMBIE_FOOTBALL_HELMET2", IMAGE_REANIM_ZOMBIE_FOOTBALL_HELMET2);
     push_img("ZOMBIE_FOOTBALL_HELMET3", IMAGE_REANIM_ZOMBIE_FOOTBALL_HELMET3);
+    // 创建 pvz.images 表，设置 __index 元方法实现动态查询
+    lua_newtable(g_L);
+    lua_newtable(g_L);  // 元表
+    lua_pushcfunction(g_L, l_images_index);
+    lua_setfield(g_L, -2, "__index");
+    lua_setmetatable(g_L, -2);
     lua_setfield(g_L, -2, "images");
 
     lua_setglobal(g_L, "pvz");
