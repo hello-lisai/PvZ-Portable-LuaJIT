@@ -31,6 +31,7 @@
 #include <string_view>
 #include <vector>
 #include <cstdint>
+#include <filesystem>
 
 class PakCollection;
 
@@ -100,6 +101,10 @@ public:
 	// FOpen 查询顺序：mod 覆盖目录 > pak 记录 > 资源目录
 	// 用 vector 保持挂载顺序，后挂载的优先级更高（栈式覆盖）
 	std::vector<std::string>	mModOverlayDirs;
+
+	// Mod API: 记录最后添加的 pak 文件的修改时间
+	// 用于判断 pak 内源文件的缓存是否过期（更换 pak 后自动失效磁盘缓存）
+	std::filesystem::file_time_type	mPakFileModTime{};
 
 	static std::string		NormalizePakPath(std::string_view theFileName);
 
