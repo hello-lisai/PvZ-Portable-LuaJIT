@@ -988,9 +988,50 @@ void Zombie::ZombieInitialize(int theRow, ZombieType theType, bool theVariant, Z
         mPosX += 40.0f;
     }
     PickRandomSpeed();
-    mBodyHealth = 270;
 
     const ZombieDefinition& aZombieDef = GetZombieDefinition(mZombieType);
+
+    // Mod API: 自定义僵尸从 def 读取初始血量/头盔/护甲/能力位
+    // 原版 mBodyHealth=270 是默认值，会被 switch 里的 InitZombieType* 覆盖；
+    // 但自定义僵尸如果 switch 的 default 分支未正确触发，这些值不会被覆盖，
+    // 导致血量/头盔类型错误。这里在 switch 之前就设置，确保数值正确。
+    if (IsCustomZombieType(theType))
+    {
+        mBodyHealth   = aZombieDef.mBodyHealth;
+        mHelmType     = aZombieDef.mHelmType;
+        mHelmHealth   = aZombieDef.mHelmHealth;
+        mShieldType   = aZombieDef.mShieldType;
+        mShieldHealth = aZombieDef.mShieldHealth;
+        mAbilities    = aZombieDef.mAbilities;
+    }
+    else
+    {
+        mBodyHealth = 270;
+    }
+
+    // Mod API: 自定义僵尸在 switch 之前完成完整初始化（含原版基础类型复用）
+    // 不依赖 switch 的 default 分支，避免因编译器优化或其他未知原因导致 default 未触发
+    bool aCustomInitDone = false;
+    if (IsCustomZombieType(theType))
+    {
+        if (!IsValidCustomZombieType(theType))
+        {
+            std::fprintf(stdout, "[WARN] ZombieInitialize: ZombieType %d not registered (mod disabled?), falling back to ZOMBIE_NORMAL\n", static_cast<int>(theType));
+            std::fflush(stdout);
+            mZombieType = ZombieType::ZOMBIE_NORMAL;
+            // 降级为普通僵尸，走 switch 的 ZOMBIE_NORMAL 分支
+        }
+        else
+        {
+            std::fprintf(stdout, "[TRACE] ZombieInitialize: calling InitZombieTypeCustom type=%d\n", static_cast<int>(theType));
+            std::fflush(stdout);
+            InitZombieTypeCustom();
+            std::fprintf(stdout, "[TRACE] ZombieInitialize: InitZombieTypeCustom returned OK\n");
+            std::fflush(stdout);
+            aCustomInitDone = true;
+        }
+    }
+
     RenderLayer aRenderLayer = RenderLayer::RENDER_LAYER_ZOMBIE;
     int aRenderOffset = 4;
     if (aZombieDef.mReanimationType != ReanimationType::REANIM_NONE)
@@ -1148,27 +1189,15 @@ void Zombie::ZombieInitialize(int theRow, ZombieType theType, bool theVariant, Z
         break;
 
     default:
-        // Mod API: >= NUM_CACHED_ZOMBIE_TYPES 的自定义僵尸走 default 分支，
-        // 从 ZombieDefinition 读取血量/能力位/护甲等字段初始化
-        if (theType >= ZombieType::NUM_CACHED_ZOMBIE_TYPES)
+        // Mod API: 自定义僵尸已在 switch 之前通过 InitZombieTypeCustom 完成初始化
+        // 如果走到这里说明 aCustomInitDone=false 且 theType >= NUM_CACHED_ZOMBIE_TYPES，
+        // 即自定义类型无效（mod 已禁用），降级为 ZOMBIE_NORMAL 处理
+        if (!aCustomInitDone && theType >= ZombieType::NUM_CACHED_ZOMBIE_TYPES)
         {
-            // Mod API: 检查自定义类型是否有效（mod 可能已禁用，存档残留旧 ID）
-            if (!IsValidCustomZombieType(theType))
-            {
-                std::fprintf(stdout, "[WARN] ZombieInitialize: ZombieType %d not registered (mod disabled?), falling back to ZOMBIE_NORMAL\n", static_cast<int>(theType));
-                std::fflush(stdout);
-                mZombieType = ZombieType::ZOMBIE_NORMAL;
-                // 走普通僵尸初始化分支
-                InitZombieTypeNormal();
-            }
-            else
-            {
-                std::fprintf(stdout, "[TRACE] ZombieInitialize: default branch, calling InitZombieTypeCustom type=%d\n", static_cast<int>(theType));
-                std::fflush(stdout);
-                InitZombieTypeCustom();
-                std::fprintf(stdout, "[TRACE] ZombieInitialize: InitZombieTypeCustom returned OK\n");
-                std::fflush(stdout);
-            }
+            std::fprintf(stdout, "[WARN] ZombieInitialize: ZombieType %d not registered (mod disabled?), falling back to ZOMBIE_NORMAL\n", static_cast<int>(theType));
+            std::fflush(stdout);
+            mZombieType = ZombieType::ZOMBIE_NORMAL;
+            InitZombieTypeNormal();
         }
         break;
     }
@@ -8424,8 +8453,6 @@ int Zombie::TakeShieldDamage(int theDamage, unsigned int theDamageFlags)
 
 void Zombie::DropHelm(unsigned int theDamageFlags)
 {
-    std::fprintf(stdout, "[HELM-DBG] DropHelm: helmType=%d\n", static_cast<int>(mHelmType));
-    std::fflush(stdout);
     if (mHelmType == HelmType::HELMTYPE_NONE)
         return;
 
@@ -8477,9 +8504,6 @@ void Zombie::DropHelm(unsigned int theDamageFlags)
 
 void Zombie::UpdateHelmDamageImageOverride(int aDamageIndex)
 {
-    std::fprintf(stdout, "[HELM-DBG] UpdateHelmDamageImageOverride: helmType=%d dmgIdx=%d\n",
-        static_cast<int>(mHelmType), aDamageIndex);
-    std::fflush(stdout);
     Reanimation* aBodyReanim = mApp->ReanimationTryToGet(mBodyReanimID);
     if (mHelmType == HelmType::HELMTYPE_TRAFFIC_CONE && aDamageIndex == 1 && aBodyReanim)
     {
@@ -8542,9 +8566,6 @@ void Zombie::UpdateHelmDamageImageOverride(int aDamageIndex)
 
 int Zombie::TakeHelmDamage(int theDamage, unsigned int theDamageFlags)
 {
-    std::fprintf(stdout, "[HELM-DBG] TakeHelmDamage: helmType=%d helmHP=%d helmMaxHP=%d dmg=%d\n",
-        static_cast<int>(mHelmType), mHelmHealth, mHelmMaxHealth, theDamage);
-    std::fflush(stdout);
     if (!TestBit(theDamageFlags, static_cast<int>(DamageFlags::DAMAGE_DOESNT_CAUSE_FLASH)))
     {
         mJustGotShotCounter = 25;
