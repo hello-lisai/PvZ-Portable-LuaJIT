@@ -5973,6 +5973,11 @@ void Zombie::UpdateReanimShakeAndScale(Reanimation* aBodyReanim, float& anOffset
     {
         anOffsetY += 20.0f - mScaleZombie * 20.0f;
     }
+    // Mod API: 自定义僵尸继承 mBaseZombieType 的缩放偏移
+    if (IsCustomZombieType(mZombieType) && mBaseZombieType == ZombieType::ZOMBIE_FOOTBALL && mScaleZombie < 1.0f)
+    {
+        anOffsetY += 20.0f - mScaleZombie * 20.0f;
+    }
 }
 
 // 镜像处理（Dancer/BackupDancer）— 提取自 UpdateReanim
@@ -6608,6 +6613,47 @@ void Zombie::GetDrawPos(ZombieDrawPosition& theDrawPos)
         theDrawPos.mImageOffsetY -= 12.0f;
         break;
     default:
+        // Mod API: 自定义僵尸继承 mBaseZombieType 的渲染偏移
+        // 例如 berserker（base_type=FOOTBALL）需要 -16.0f 偏移，否则动画位置偏下
+        if (IsCustomZombieType(mZombieType))
+        {
+            switch (mBaseZombieType)
+            {
+            case ZombieType::ZOMBIE_FOOTBALL:
+                theDrawPos.mImageOffsetY -= 16.0f;
+                break;
+            case ZombieType::ZOMBIE_YETI:
+                theDrawPos.mImageOffsetY -= 20.0f;
+                break;
+            case ZombieType::ZOMBIE_CATAPULT:
+                theDrawPos.mImageOffsetX -= 25.0f;
+                theDrawPos.mImageOffsetY -= 18.0f;
+                break;
+            case ZombieType::ZOMBIE_POGO:
+                theDrawPos.mImageOffsetY += 16.0f;
+                break;
+            case ZombieType::ZOMBIE_BALLOON:
+                theDrawPos.mImageOffsetY += 17.0f;
+                break;
+            case ZombieType::ZOMBIE_POLEVAULTER:
+                theDrawPos.mImageOffsetX -= 6.0f;
+                theDrawPos.mImageOffsetY -= 11.0f;
+                break;
+            case ZombieType::ZOMBIE_ZAMBONI:
+                theDrawPos.mImageOffsetX += 68.0f;
+                theDrawPos.mImageOffsetY -= 23.0f;
+                break;
+            case ZombieType::ZOMBIE_GARGANTUAR:
+            case ZombieType::ZOMBIE_REDEYE_GARGANTUAR:
+                theDrawPos.mImageOffsetY -= 8.0f;
+                break;
+            case ZombieType::ZOMBIE_BOBSLED:
+                theDrawPos.mImageOffsetY -= 12.0f;
+                break;
+            default:
+                break;
+            }
+        }
         break;
     }
 
