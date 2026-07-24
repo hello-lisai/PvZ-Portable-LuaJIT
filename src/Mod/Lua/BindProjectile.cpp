@@ -54,12 +54,14 @@ int l_proj_get_age(lua_State* L) {
     return 1;
 }
 
-// projectile.damage —— 投射物伤害值（mDamage）
-// 修改此值会立即影响后续命中伤害计算
+// projectile.damage —— 投射物伤害值（来自 ProjectileDefinition，只读）
+// 伤害值存储在静态定义表 gProjectileDefinition 中，按类型共享，无法单独修改实例。
+// 如需按命中修改伤害，请在 on_projectile_impact 事件中返回 {damage = N}：
+//   function on_projectile_impact(proj, zombie) return {damage = 999} end
 int l_proj_get_damage(lua_State* L) {
     Projectile* p = CheckUserdata<Projectile>(L, 1, MT_PROJECTILE);
     if (!p) return 0;
-    lua_pushinteger(L, p->mDamage);
+    lua_pushinteger(L, p->GetProjectileDef().mDamage);
     return 1;
 }
 
@@ -123,9 +125,9 @@ int l_proj_newindex(lua_State* L) {
         p->mVelX = static_cast<float>(luaL_checknumber(L, 3));
     } else if (strcmp(key, "vel_y") == 0) {
         p->mVelY = static_cast<float>(luaL_checknumber(L, 3));
-    } else if (strcmp(key, "damage") == 0) {
-        p->mDamage = static_cast<int32_t>(luaL_checkinteger(L, 3));
     }
+    // damage 为只读属性（来自共享的 ProjectileDefinition），如需修改请用
+    // on_projectile_impact 事件返回 {damage = N}
     return 0;
 }
 
