@@ -19,6 +19,13 @@ int l_zombie_get_type(lua_State* L) {
     return 1;
 }
 
+int l_zombie_get_instance_id(lua_State* L) {
+    Zombie* z = CheckUserdata<Zombie>(L, 1, MT_ZOMBIE);
+    if (!z) { lua_pushnil(L); return 1; }
+    lua_pushinteger(L, z->mInstanceId);
+    return 1;
+}
+
 int l_zombie_get_health(lua_State* L) {
     Zombie* z = CheckUserdata<Zombie>(L, 1, MT_ZOMBIE);
     if (!z) return 0;
@@ -287,6 +294,7 @@ int l_zombie_index(lua_State* L) {
 
     // 属性（getter）
     struct { const char* name; lua_CFunction fn; } props[] = {
+        {"instance_id",      l_zombie_get_instance_id},
         {"type",             l_zombie_get_type},
         {"health",           l_zombie_get_health},
         {"max_health",       l_zombie_get_max_health},

@@ -21,6 +21,11 @@
 
 #include "GameObject.h"
 #include "../LawnApp.h"
+#include <atomic>
+
+// Mod API: 全局实例 ID 计数器。从 1 开始，0 保留给未初始化的对象。
+// DataArrayAlloc 用 placement new 调用构造函数，所以每次分配都会递增。
+static std::atomic<uint32_t> g_instanceIdCounter{1};
 
 GameObject::GameObject()
 {
@@ -33,6 +38,7 @@ GameObject::GameObject()
 	mVisible = true;
 	mRow = -1;
 	mRenderOrder = RenderLayer::RENDER_LAYER_TOP;
+	mInstanceId = g_instanceIdCounter.fetch_add(1, std::memory_order_relaxed);
 }
 
 bool GameObject::BeginDraw(Graphics* g)

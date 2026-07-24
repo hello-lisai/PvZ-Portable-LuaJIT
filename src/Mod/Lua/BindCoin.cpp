@@ -11,6 +11,12 @@ int l_coin_get_type(lua_State* L) {
     lua_pushinteger(L, static_cast<lua_Integer>(c->mType));
     return 1;
 }
+int l_coin_get_instance_id(lua_State* L) {
+    Coin* c = CheckUserdata<Coin>(L, 1, MT_COIN);
+    if (!c) { lua_pushnil(L); return 1; }
+    lua_pushinteger(L, c->mInstanceId);
+    return 1;
+}
 int l_coin_get_pos_x(lua_State* L) {
     Coin* c = CheckUserdata<Coin>(L, 1, MT_COIN);
     if (!c) return 0;
@@ -75,6 +81,7 @@ int l_coin_index(lua_State* L) {
     const char* key = luaL_checkstring(L, 2);
 
     struct { const char* name; lua_CFunction fn; } props[] = {
+        {"instance_id", l_coin_get_instance_id},
         {"type",   l_coin_get_type},
         {"pos_x",  l_coin_get_pos_x},
         {"pos_y",  l_coin_get_pos_y},

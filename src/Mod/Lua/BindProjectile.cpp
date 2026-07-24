@@ -11,6 +11,12 @@ int l_proj_get_type(lua_State* L) {
     lua_pushinteger(L, static_cast<lua_Integer>(p->mProjectileType));
     return 1;
 }
+int l_projectile_get_instance_id(lua_State* L) {
+    Projectile* p = CheckUserdata<Projectile>(L, 1, MT_PROJECTILE);
+    if (!p) { lua_pushnil(L); return 1; }
+    lua_pushinteger(L, p->mInstanceId);
+    return 1;
+}
 int l_proj_get_pos_x(lua_State* L) {
     Projectile* p = CheckUserdata<Projectile>(L, 1, MT_PROJECTILE);
     if (!p) return 0;
@@ -86,6 +92,7 @@ int l_proj_index(lua_State* L) {
     const char* key = luaL_checkstring(L, 2);
 
     struct { const char* name; lua_CFunction fn; } props[] = {
+        {"instance_id", l_projectile_get_instance_id},
         {"type",    l_proj_get_type},
         {"pos_x",   l_proj_get_pos_x},
         {"pos_y",   l_proj_get_pos_y},

@@ -49,4 +49,9 @@ public:
     /*inline*/ bool                 BeginDraw(Graphics* g);
     /*inline*/ void                 EndDraw(Graphics* g);
     /*inline*/ void                 MakeParentGraphicsFrame(Graphics* g);
+
+    // Mod API: 全局唯一的实例 ID，用于 Lua mod 跨帧保存 per-instance 状态。
+    // DataArray 回收死亡对象内存后地址会复用，用原始指针做 table key 会导致
+    // 新对象继承旧对象的状态。mInstanceId 在构造时从全局计数器分配，永不复用。
+    uint32_t                        mInstanceId = 0;
 };

@@ -17,6 +17,12 @@ int l_plant_get_type(lua_State* L) {
     lua_pushinteger(L, static_cast<lua_Integer>(p->mSeedType));
     return 1;
 }
+int l_plant_get_instance_id(lua_State* L) {
+    Plant* p = CheckUserdata<Plant>(L, 1, MT_PLANT);
+    if (!p) { lua_pushnil(L); return 1; }
+    lua_pushinteger(L, p->mInstanceId);
+    return 1;
+}
 int l_plant_get_health(lua_State* L) {
     Plant* p = CheckUserdata<Plant>(L, 1, MT_PLANT);
     if (!p) return 0;
@@ -165,6 +171,7 @@ int l_plant_index(lua_State* L) {
     const char* key = luaL_checkstring(L, 2);
 
     struct { const char* name; lua_CFunction fn; } props[] = {
+        {"instance_id",    l_plant_get_instance_id},
         {"type",           l_plant_get_type},
         {"health",         l_plant_get_health},
         {"max_health",     l_plant_get_max_health},
