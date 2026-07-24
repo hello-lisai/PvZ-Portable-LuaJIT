@@ -654,6 +654,8 @@ void Projectile::UpdateLobMotion()
 	{
 		// @Patoke: implemented
 		int aBeforeGargantuarCount = mBoard->GetLiveGargantuarCount();
+		// Mod API: 设置伤害来源为当前投射物（玉米炮炮弹）
+		ModBus::DamageSourceGuard _dsg(nullptr, nullptr, this);
 		mBoard->KillAllZombiesInRadius(mRow, mPosX + 80, mPosY + 40, 115, 1, true, mDamageRangeFlags);
 		int aAfterGargantuarCount = mBoard->GetLiveGargantuarCount();
 		mBoard->mGargantuarsKillsByCornCob += aBeforeGargantuarCount - aAfterGargantuarCount;

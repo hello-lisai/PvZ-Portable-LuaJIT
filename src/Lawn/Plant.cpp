@@ -2604,6 +2604,8 @@ bool Plant::HandleBowlingZombieImpact(PlantState& aNewState)
         mApp->PlaySample(SOUND_BOWLINGIMPACT2);
 
         int aDamageRangeFlags = GetDamageRangeFlags(PlantWeapon::WEAPON_PRIMARY) | 32U;
+        // Mod API: 设置伤害来源为当前植物（爆炸坚果）
+        ModBus::DamageSourceGuard _dsg(nullptr, this, nullptr);
         mBoard->KillAllZombiesInRadius(mRow, aPosX, aPosY, 90, 1, true, aDamageRangeFlags);
         mApp->AddTodParticle(aPosX, aPosY, static_cast<int>(RenderLayer::RENDER_LAYER_TOP), ParticleEffect::PARTICLE_POWIE);
         mBoard->ShakeBoard(3, -4);
@@ -4620,6 +4622,8 @@ void Plant::DoSpecialCherryBomb()
     mApp->PlayFoley(FoleyType::FOLEY_CHERRYBOMB);
     mApp->PlayFoley(FoleyType::FOLEY_JUICY);
 
+    // Mod API: 设置伤害来源为当前植物（樱桃炸弹）
+    ModBus::DamageSourceGuard _dsg(nullptr, this, nullptr);
     if (mBoard->KillAllZombiesInRadius(mRow, aPosX, aPosY, 115, 1, true, aDamageRangeFlags) >= 10)
         ReportAchievement::GiveAchievement(mApp, Explodonator, true); // @Patoke: add achievement
 
@@ -4637,6 +4641,8 @@ void Plant::DoSpecialDoomShroom()
 
     mApp->PlaySample(SOUND_DOOMSHROOM);
 
+    // Mod API: 设置伤害来源为当前植物（毁灭菇）
+    ModBus::DamageSourceGuard _dsg(nullptr, this, nullptr);
     mBoard->KillAllZombiesInRadius(mRow, aPosX, aPosY, 250, 3, true, aDamageRangeFlags);
     KillAllPlantsNearDoom();
 
@@ -4691,6 +4697,8 @@ void Plant::DoSpecialPotatoMine()
     int aDamageRangeFlags = GetDamageRangeFlags(PlantWeapon::WEAPON_PRIMARY);
 
     mApp->PlaySample(SOUND_POTATO_MINE);
+    // Mod API: 设置伤害来源为当前植物（土豆地雷）
+    ModBus::DamageSourceGuard _dsg(nullptr, this, nullptr);
     if (mBoard->KillAllZombiesInRadius(mRow, aPosX, aPosY, 60, 0, false, aDamageRangeFlags) >= 1)
         ReportAchievement::GiveAchievement(mApp, Spudow, true); // @Patoke: add achievement
 

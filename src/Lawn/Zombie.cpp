@@ -2496,6 +2496,8 @@ void Zombie::UpdateZombieJackInTheBox()
 
             int aPosX = mX + mWidth / 2;
             int aPosY = mY + mHeight / 2;
+            // Mod API: 设置伤害来源为当前僵尸（小丑僵尸自爆）
+            ModBus::DamageSourceGuard _dsg(this, nullptr, nullptr);
             if (mMindControlled)
             {
                 mBoard->KillAllZombiesInRadius(mRow, aPosX, aPosY, JackInTheBoxZombieRadius, 1, true, 127);

@@ -659,6 +659,8 @@ void GridItem::UpdateRake()
             Zombie* aZombie = RakeFindZombie();
             if (aZombie)
             {
+                // Mod API: 耙子是关卡道具，不属于植物/僵尸/投射物，
+                // 来源设为空（source 表全 nil），与系统结算伤害一致
                 aZombie->TakeDamage(1800, 0U);
                 mApp->PlayFoley(FoleyType::FOLEY_BONK);
             }

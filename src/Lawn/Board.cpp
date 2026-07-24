@@ -9935,6 +9935,9 @@ int Board::KillAllZombiesInRadius(int theRow, int theX, int theY, int theRadius,
 {
 	Zombie* aZombie = nullptr;
 	int aKilledZombies = 0; // @Patoke: implemented this
+	// Mod API: 伤害来源由调用方通过 DamageSourceGuard 设置到 thread_local，
+	// TakeDamage 内部派发 ON_ZOMBIE_TAKE_DAMAGE_PRE 时自动读取。
+	// ApplyBurn 路径不经过 TakeDamage，不触发伤害事件。
 	while (IterateZombies(aZombie))
 	{
 		if (aZombie->EffectedByDamage(theDamageRangeFlags))
