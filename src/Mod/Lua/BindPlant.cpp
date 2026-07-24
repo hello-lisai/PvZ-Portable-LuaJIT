@@ -1,7 +1,12 @@
 #include "LuaBindUtil.h"
 #include "../../Lawn/Plant.h"
+#include "../../Sexy.TodLib/Reanimator.h"
+#include "../../LawnApp.h"
 
 namespace ModLua {
+
+// 前向声明：PushReanimation 在 BindReanimation.cpp 中实现
+void PushReanimation(lua_State* L, Reanimation* r);
 
 namespace {
 
@@ -67,6 +72,35 @@ int l_plant_get_y(lua_State* L) {
     return 1;
 }
 
+// plant.body_reanim —— 获取身体动画对象（Reanimation userdata），无动画时返回 nil
+// mod 可通过此对象读取/修改植物动画：
+//   local r = plant.body_reanim
+//   if r then
+//       print(r.current_track_name, r.anim_time)
+//       r.anim_rate = 1.5  -- 加速播放
+//       r:play_reanim("anim_shooting", pvz.ReanimLoop.PLAY_ONCE, 0, 0)
+//   end
+int l_plant_get_body_reanim(lua_State* L) {
+    Plant* p = CheckUserdata<Plant>(L, 1, MT_PLANT);
+    if (!p) { lua_pushnil(L); return 1; }
+    if (p->mBodyReanimID == ReanimationID::REANIMATIONID_NULL || !gLawnApp) {
+        lua_pushnil(L);
+        return 1;
+    }
+    Reanimation* r = gLawnApp->ReanimationTryToGet(p->mBodyReanimID);
+    if (!r) { lua_pushnil(L); return 1; }
+    PushReanimation(L, r);
+    return 1;
+}
+
+// plant.body_reanim_id —— 动画对象的 ID（uint32），可用于 pvz.get_reanimation(id)
+int l_plant_get_body_reanim_id(lua_State* L) {
+    Plant* p = CheckUserdata<Plant>(L, 1, MT_PLANT);
+    if (!p) { lua_pushinteger(L, 0); return 1; }
+    lua_pushinteger(L, static_cast<lua_Integer>(p->mBodyReanimID));
+    return 1;
+}
+
 // === Plant 方法 ===
 int l_plant_die(lua_State* L) {
     Plant* p = CheckUserdata<Plant>(L, 1, MT_PLANT);
@@ -107,33 +141,54 @@ int l_plant_set_state(lua_State* L) {
     return 0;
 }
 
+// plant:play_body_reanim(track_name, loop_type, blend_time, anim_rate)
+// 切换身体动画到指定轨道（封装 Plant::PlayBodyReanim）
+//   track_name  : 轨道名（如 "anim_idle"、"anim_shooting"、"anim_sun" 等）
+//   loop_type   : ReanimLoopType 枚举值（0=LOOP, 2=PLAY_ONCE, 3=PLAY_ONCE_AND_HOLD ...）
+//   blend_time  : 混合过渡时长（0=立即切换）
+//   anim_rate   : 播放速率（0=保持原速率；负值=倒放）
+// 例：plant:play_body_reanim("anim_shooting", pvz.ReanimLoop.PLAY_ONCE, 0, 0)
+int l_plant_play_body_reanim(lua_State* L) {
+    Plant* p = CheckUserdata<Plant>(L, 1, MT_PLANT);
+    if (!p) return 0;
+    const char* track = luaL_checkstring(L, 2);
+    int loopType = static_cast<int>(luaL_optinteger(L, 3, 0));
+    int blendTime = static_cast<int>(luaL_optinteger(L, 4, 0));
+    float rate = static_cast<float>(luaL_optnumber(L, 5, 0.0f));
+    p->PlayBodyReanim(track, static_cast<ReanimLoopType>(loopType), blendTime, rate);
+    return 0;
+}
+
 int l_plant_index(lua_State* L) {
     Plant* p = CheckUserdata<Plant>(L, 1, MT_PLANT);
     if (!p) { lua_pushnil(L); return 1; }
     const char* key = luaL_checkstring(L, 2);
 
     struct { const char* name; lua_CFunction fn; } props[] = {
-        {"type",        l_plant_get_type},
-        {"health",      l_plant_get_health},
-        {"max_health",  l_plant_get_max_health},
-        {"col",         l_plant_get_col},
-        {"row",         l_plant_get_row},
-        {"state",       l_plant_get_state},
-        {"asleep",      l_plant_get_asleep},
-        {"dead",        l_plant_get_dead},
-        {"x",           l_plant_get_x},
-        {"y",           l_plant_get_y},
+        {"type",           l_plant_get_type},
+        {"health",         l_plant_get_health},
+        {"max_health",     l_plant_get_max_health},
+        {"col",            l_plant_get_col},
+        {"row",            l_plant_get_row},
+        {"state",          l_plant_get_state},
+        {"asleep",         l_plant_get_asleep},
+        {"dead",           l_plant_get_dead},
+        {"x",              l_plant_get_x},
+        {"y",              l_plant_get_y},
+        {"body_reanim",    l_plant_get_body_reanim},
+        {"body_reanim_id", l_plant_get_body_reanim_id},
     };
     for (auto& pr : props) {
         if (strcmp(key, pr.name) == 0) return pr.fn(L);
     }
 
     struct { const char* name; lua_CFunction fn; } methods[] = {
-        {"die",         l_plant_die},
-        {"do_special",  l_plant_do_special},
-        {"squish",      l_plant_squish},
-        {"get_ptr",     l_plant_get_ptr},
-        {"set_state",   l_plant_set_state},
+        {"die",              l_plant_die},
+        {"do_special",       l_plant_do_special},
+        {"squish",           l_plant_squish},
+        {"get_ptr",          l_plant_get_ptr},
+        {"set_state",        l_plant_set_state},
+        {"play_body_reanim", l_plant_play_body_reanim},
     };
     for (auto& m : methods) {
         if (strcmp(key, m.name) == 0) {
@@ -156,6 +211,11 @@ int l_plant_newindex(lua_State* L) {
         p->mPlantMaxHealth = static_cast<int32_t>(luaL_checkinteger(L, 3));
     } else if (strcmp(key, "asleep") == 0) {
         p->mIsAsleep = lua_toboolean(L, 3) != 0;
+    } else if (strcmp(key, "x") == 0) {
+        // mX/mY 来自 GameObject 基类，直接修改渲染位置
+        p->mX = static_cast<int>(luaL_checkinteger(L, 3));
+    } else if (strcmp(key, "y") == 0) {
+        p->mY = static_cast<int>(luaL_checkinteger(L, 3));
     }
     return 0;
 }

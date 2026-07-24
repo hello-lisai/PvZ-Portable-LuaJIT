@@ -1,7 +1,12 @@
 #include "LuaBindUtil.h"
 #include "../../Lawn/Zombie.h"
+#include "../../Sexy.TodLib/Reanimator.h"
+#include "../../LawnApp.h"
 
 namespace ModLua {
+
+// 前向声明：PushReanimation 在 BindReanimation.cpp 中实现
+void PushReanimation(lua_State* L, Reanimation* r);
 
 namespace {
 
@@ -133,6 +138,35 @@ int l_zombie_get_is_eating(lua_State* L) {
     return 1;
 }
 
+// zombie.body_reanim —— 获取身体动画对象（Reanimation userdata），无动画时返回 nil
+// mod 可通过此对象读取当前轨道名/时间轴/速率并修改：
+//   local r = zombie.body_reanim
+//   if r then
+//       print(r.current_track_name, r.anim_time, r.anim_rate)
+//       r.anim_rate = 2.0  -- 加速播放
+//       r:play_reanim("anim_walk", pvz.ReanimLoop.LOOP, 0, 0)  -- 切换轨道
+//   end
+int l_zombie_get_body_reanim(lua_State* L) {
+    Zombie* z = CheckUserdata<Zombie>(L, 1, MT_ZOMBIE);
+    if (!z) { lua_pushnil(L); return 1; }
+    if (z->mBodyReanimID == ReanimationID::REANIMATIONID_NULL || !gLawnApp) {
+        lua_pushnil(L);
+        return 1;
+    }
+    Reanimation* r = gLawnApp->ReanimationTryToGet(z->mBodyReanimID);
+    if (!r) { lua_pushnil(L); return 1; }
+    PushReanimation(L, r);
+    return 1;
+}
+
+// zombie.body_reanim_id —— 动画对象的 ID（uint32），可用于 pvz.get_reanimation(id)
+int l_zombie_get_body_reanim_id(lua_State* L) {
+    Zombie* z = CheckUserdata<Zombie>(L, 1, MT_ZOMBIE);
+    if (!z) { lua_pushinteger(L, 0); return 1; }
+    lua_pushinteger(L, static_cast<lua_Integer>(z->mBodyReanimID));
+    return 1;
+}
+
 int l_zombie_set_abilities(lua_State* L) {
     Zombie* z = CheckUserdata<Zombie>(L, 1, MT_ZOMBIE);
     if (!z) return 0;
@@ -198,6 +232,24 @@ int l_zombie_set_phase(lua_State* L) {
     return 0;
 }
 
+// zombie:play_zombie_reanim(track_name, loop_type, blend_time, anim_rate)
+// 切换身体动画到指定轨道（封装 Zombie::PlayZombieReanim）
+//   track_name  : 轨道名（如 "anim_walk"、"anim_idle"、"anim_armraise" 等）
+//   loop_type   : ReanimLoopType 枚举值（0=LOOP, 2=PLAY_ONCE, 3=PLAY_ONCE_AND_HOLD ...）
+//   blend_time  : 混合过渡时长（0=立即切换）
+//   anim_rate   : 播放速率（0=保持原速率；负值=倒放）
+// 例：zombie:play_zombie_reanim("anim_armraise", pvz.ReanimLoop.PLAY_ONCE_AND_HOLD, 0, 24)
+int l_zombie_play_zombie_reanim(lua_State* L) {
+    Zombie* z = CheckUserdata<Zombie>(L, 1, MT_ZOMBIE);
+    if (!z) return 0;
+    const char* track = luaL_checkstring(L, 2);
+    int loopType = static_cast<int>(luaL_optinteger(L, 3, 0));
+    int blendTime = static_cast<int>(luaL_optinteger(L, 4, 0));
+    float rate = static_cast<float>(luaL_optnumber(L, 5, 0.0f));
+    z->PlayZombieReanim(track, static_cast<ReanimLoopType>(loopType), blendTime, rate);
+    return 0;
+}
+
 // zombie:__index
 int l_zombie_index(lua_State* L) {
     Zombie* z = CheckUserdata<Zombie>(L, 1, MT_ZOMBIE);
@@ -224,6 +276,8 @@ int l_zombie_index(lua_State* L) {
         {"from_wave",        l_zombie_get_from_wave},
         {"abilities",        l_zombie_get_abilities},
         {"is_eating",        l_zombie_get_is_eating},
+        {"body_reanim",      l_zombie_get_body_reanim},
+        {"body_reanim_id",   l_zombie_get_body_reanim_id},
     };
     for (auto& p : props) {
         if (strcmp(key, p.name) == 0) return p.fn(L);
@@ -231,12 +285,13 @@ int l_zombie_index(lua_State* L) {
 
     // 方法
     struct { const char* name; lua_CFunction fn; } methods[] = {
-        {"take_damage",      l_zombie_take_damage},
-        {"apply_chill",      l_zombie_apply_chill},
-        {"die",              l_zombie_die},
-        {"die_with_loot",    l_zombie_die_with_loot},
-        {"get_ptr",          l_zombie_get_ptr},
-        {"set_phase",        l_zombie_set_phase},
+        {"take_damage",         l_zombie_take_damage},
+        {"apply_chill",         l_zombie_apply_chill},
+        {"die",                 l_zombie_die},
+        {"die_with_loot",       l_zombie_die_with_loot},
+        {"get_ptr",             l_zombie_get_ptr},
+        {"set_phase",           l_zombie_set_phase},
+        {"play_zombie_reanim",  l_zombie_play_zombie_reanim},
     };
     for (auto& m : methods) {
         if (strcmp(key, m.name) == 0) {

@@ -41,6 +41,7 @@ namespace ModLua {
     void BindZombie(lua_State* L);
     void BindPlant(lua_State* L);
     void BindProjectile(lua_State* L);
+    void BindReanimation(lua_State* L);
     void BindCoin(lua_State* L);
     void BindGridItem(lua_State* L);
     void BindLawnMower(lua_State* L);
@@ -58,6 +59,7 @@ namespace ModLua {
     void PushZombie(lua_State* L, Zombie* z);
     void PushPlant(lua_State* L, Plant* p);
     void PushProjectile(lua_State* L, Projectile* p);
+    void PushReanimation(lua_State* L, Reanimation* r);
     void PushCoin(lua_State* L, Coin* c);
     void PushGridItem(lua_State* L, GridItem* g);
     void PushLawnMower(lua_State* L, LawnMower* m);
@@ -446,6 +448,20 @@ int l_reanim_register(lua_State* L) {
     int32_t flags = static_cast<int32_t>(luaL_optinteger(L, 2, 0));
     ReanimationType t = ReanimatorRegisterAnimation(path, flags);
     lua_pushinteger(L, static_cast<lua_Integer>(t));
+    return 1;
+}
+
+// pvz.get_reanimation(reanim_id) → 通过 ReanimationID 获取 Reanimation userdata
+// reanim_id: 通常是 zombie.body_reanim_id 或 plant.body_reanim_id 字段值
+// 返回 Reanimation userdata 或 nil（ID 无效时）
+// 例：local r = pvz.get_reanimation(zombie.body_reanim_id)
+//     if r then print(r.current_track_name, r.anim_time) end
+int l_get_reanimation(lua_State* L) {
+    lua_Integer id = luaL_checkinteger(L, 1);
+    if (id == 0 || !gLawnApp) { lua_pushnil(L); return 1; }
+    Reanimation* r = gLawnApp->ReanimationTryToGet(static_cast<ReanimationID>(id));
+    if (!r) { lua_pushnil(L); return 1; }
+    ModLua::PushReanimation(L, r);
     return 1;
 }
 
@@ -1268,6 +1284,7 @@ void Initialize() {
     BindZombie(g_L);
     BindPlant(g_L);
     BindProjectile(g_L);
+    BindReanimation(g_L);
     BindCoin(g_L);
     BindGridItem(g_L);
     BindLawnMower(g_L);
@@ -1329,6 +1346,22 @@ void Initialize() {
     ModLua::SetIntField(g_L, "ZOMBIE_ZAMBONI",  static_cast<lua_Integer>(ReanimationType::REANIM_ZOMBIE_ZAMBONI));
     lua_setfield(g_L, -2, "types");
     lua_setfield(g_L, -2, "reanim");
+
+    // pvz.ReanimLoop 子表：ReanimLoopType 枚举值
+    // mod 在 play_reanim/play_zombie_reanim/play_body_reanim 调用时使用
+    lua_newtable(g_L);
+    ModLua::SetIntField(g_L, "LOOP",                            static_cast<lua_Integer>(REANIM_LOOP));
+    ModLua::SetIntField(g_L, "LOOP_FULL_LAST_FRAME",            static_cast<lua_Integer>(REANIM_LOOP_FULL_LAST_FRAME));
+    ModLua::SetIntField(g_L, "PLAY_ONCE",                       static_cast<lua_Integer>(REANIM_PLAY_ONCE));
+    ModLua::SetIntField(g_L, "PLAY_ONCE_AND_HOLD",              static_cast<lua_Integer>(REANIM_PLAY_ONCE_AND_HOLD));
+    ModLua::SetIntField(g_L, "PLAY_ONCE_FULL_LAST_FRAME",       static_cast<lua_Integer>(REANIM_PLAY_ONCE_FULL_LAST_FRAME));
+    ModLua::SetIntField(g_L, "PLAY_ONCE_FULL_LAST_FRAME_AND_HOLD", static_cast<lua_Integer>(REANIM_PLAY_ONCE_FULL_LAST_FRAME_AND_HOLD));
+    lua_setfield(g_L, -2, "ReanimLoop");
+
+    // pvz.get_reanimation(reanim_id) → 通过 ReanimationID 获取 Reanimation userdata
+    // 用于从 zombie.body_reanim_id / plant.body_reanim_id 获取动画对象
+    lua_pushcfunction(g_L, l_get_reanimation);
+    lua_setfield(g_L, -2, "get_reanimation");
 
     // pvz.resources 子表：资源覆盖目录管理
     // mod 目录默认已自动挂载，此 API 用于挂载额外目录

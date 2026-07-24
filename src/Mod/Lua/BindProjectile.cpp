@@ -54,6 +54,15 @@ int l_proj_get_age(lua_State* L) {
     return 1;
 }
 
+// projectile.damage —— 投射物伤害值（mDamage）
+// 修改此值会立即影响后续命中伤害计算
+int l_proj_get_damage(lua_State* L) {
+    Projectile* p = CheckUserdata<Projectile>(L, 1, MT_PROJECTILE);
+    if (!p) return 0;
+    lua_pushinteger(L, p->mDamage);
+    return 1;
+}
+
 int l_proj_die(lua_State* L) {
     Projectile* p = CheckUserdata<Projectile>(L, 1, MT_PROJECTILE);
     if (!p) return 0;
@@ -83,6 +92,7 @@ int l_proj_index(lua_State* L) {
         {"row",     l_proj_get_row},
         {"dead",    l_proj_get_dead},
         {"age",     l_proj_get_age},
+        {"damage",  l_proj_get_damage},
     };
     for (auto& pr : props) {
         if (strcmp(key, pr.name) == 0) return pr.fn(L);
@@ -113,6 +123,8 @@ int l_proj_newindex(lua_State* L) {
         p->mVelX = static_cast<float>(luaL_checknumber(L, 3));
     } else if (strcmp(key, "vel_y") == 0) {
         p->mVelY = static_cast<float>(luaL_checknumber(L, 3));
+    } else if (strcmp(key, "damage") == 0) {
+        p->mDamage = static_cast<int32_t>(luaL_checkinteger(L, 3));
     }
     return 0;
 }

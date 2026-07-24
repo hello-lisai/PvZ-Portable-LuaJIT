@@ -75,6 +75,7 @@ if(PVZ_MOD_API)
 		${CMAKE_CURRENT_SOURCE_DIR}/src/Mod/Lua/BindZombie.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/src/Mod/Lua/BindPlant.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/src/Mod/Lua/BindProjectile.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/src/Mod/Lua/BindReanimation.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/src/Mod/Lua/BindCoin.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/src/Mod/Lua/BindGridItem.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/src/Mod/Lua/BindLawnMower.cpp
