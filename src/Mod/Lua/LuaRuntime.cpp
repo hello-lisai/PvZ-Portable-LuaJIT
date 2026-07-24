@@ -30,6 +30,7 @@
 #include "../../SexyAppFramework/paklib/PakInterface.h"  // gPakInterface / AddModOverlayDir
 #include "../../Lawn/Zombie.h"          // ZombieDefinition / RegisterZombieDefinition
 #include "../../Sexy.TodLib/Reanimator.h"  // ReanimatorRegisterAnimation
+#include "../../Sexy.TodLib/Definition.h" // DefinitionClearCompiledCache
 #include "../../SexyAppFramework/graphics/Graphics.h"  // Graphics（ON_BOARD_DRAW_HUD 事件）
 #include "../../Resources.h"            // FONT_* / IMAGE_* 全局指针（pvz.fonts / pvz.images）
 #include "../../SexyAppFramework/widget/Widget.h"  // Widget 系统暴露
@@ -487,6 +488,16 @@ int l_resources_unmount(lua_State* L) {
         gPakInterface->RemoveModOverlayDir(dir);
     }
     return 0;
+}
+
+// pvz.resources.clear_compiled_cache() → 清理编译定义的磁盘缓存
+// 更换 main.pak 后调用此函数可强制游戏重新从 pak 读取并编译定义文件
+// 注意：仅在游戏启动时（on_app_init）调用有效，关卡运行中调用可能导致已加载的资源状态不一致
+// 返回成功删除的文件数量
+int l_resources_clear_compiled_cache(lua_State* L) {
+    int deleted = DefinitionClearCompiledCache();
+    lua_pushinteger(L, deleted);
+    return 1;
 }
 
 // pvz.plants.register(definition_table) → 注册新植物类型，返回 SeedType
@@ -1376,6 +1387,9 @@ void Initialize() {
     lua_setfield(g_L, -2, "mount");
     lua_pushcfunction(g_L, l_resources_unmount);
     lua_setfield(g_L, -2, "unmount");
+    // 清理编译定义的磁盘缓存（更换 main.pak 后调用）
+    lua_pushcfunction(g_L, l_resources_clear_compiled_cache);
+    lua_setfield(g_L, -2, "clear_compiled_cache");
     lua_setfield(g_L, -2, "resources");
 
     // pvz.plants 子表：植物定义注册

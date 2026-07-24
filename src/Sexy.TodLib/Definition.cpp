@@ -1443,3 +1443,39 @@ void DefinitionFreeMap(const DefMap* theDefMap, void* theDefinition)
         }
     }
 }
+
+// Mod API: 清理编译定义的磁盘缓存（cache64/ 或 cache32/ 目录下所有文件）
+// 更换 main.pak 后调用此函数可强制游戏重新从 pak 读取并编译定义文件
+// 返回成功删除的文件数量
+int DefinitionClearCompiledCache()
+{
+    std::string aCacheRoot = (sizeof(void*) == 8) ? "cache64/" : "cache32/";
+    std::string aCacheDir = GetAppDataPath(aCacheRoot);
+
+    int aDeletedCount = 0;
+    std::error_code ec;
+
+    // 递归遍历缓存目录，删除所有文件（保留目录结构）
+    for (auto it = std::filesystem::recursive_directory_iterator(
+            Sexy::PathFromU8(aCacheDir), std::filesystem::directory_options::skip_permission_denied, ec);
+         it != std::filesystem::recursive_directory_iterator{}; )
+    {
+        if (ec)
+        {
+            it.increment(ec);
+            continue;
+        }
+
+        const auto& entry = *it;
+        if (entry.is_regular_file(ec))
+        {
+            std::filesystem::remove(entry.path(), ec);
+            if (!ec) ++aDeletedCount;
+        }
+        it.increment(ec);
+    }
+
+    TodTrace("[ModAPI] Cleared compiled cache: %d file(s) deleted from %s",
+             aDeletedCount, aCacheDir.c_str());
+    return aDeletedCount;
+}

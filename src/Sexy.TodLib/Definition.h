@@ -220,6 +220,11 @@ bool                    DefinitionLoadXML(const std::string& theFilename, const 
 void                    DefinitionFreeArrayField(DefinitionArrayDef* theArray, const DefMap* theDefMap);
 void                    DefinitionFreeMap(const DefMap* theDefMap, void* theDefinition);
 
+// Mod API: 清理编译定义的磁盘缓存（cache64/ 或 cache32/ 目录下所有文件）
+// 更换 main.pak 后调用此函数可强制游戏重新从 pak 读取并编译定义文件
+// 返回成功删除的文件数量
+int                     DefinitionClearCompiledCache();
+
 /*inline*/ bool         FloatTrackIsSet(const FloatParameterTrack& theTrack);
 /*inline*/ void         FloatTrackSetDefault(FloatParameterTrack& theTrack, float theValue);
 float                   FloatTrackEvaluate(FloatParameterTrack& theTrack, float theTimeValue, float theInterp);
