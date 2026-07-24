@@ -41,6 +41,7 @@
 #include "misc/Buffer.h"
 #include <algorithm>
 #include <cstdint>
+#include <cstdio>  // Mod API: std::fprintf for save cleanup warnings
 #include <vector>
 
 static constexpr const char* FILE_COMPILE_TIME_STRING = "Jul  2 201011:47:03"; // The compile time of 1.2.0.1073 GOTY
@@ -624,6 +625,13 @@ static void SyncTodSmoothArrayList(PortableSaveContext& theContext, TodSmoothArr
 static void SyncPottedPlantPortable(PortableSaveContext& theContext, PottedPlant& thePlant)
 {
 	SyncEnum32(theContext, thePlant.mSeedType);
+	// Mod API: 存档加载时清理失效的自定义 SeedType（禅境花园的盆栽植物）
+	if (theContext.mReading && !IsValidCustomSeedType(thePlant.mSeedType))
+	{
+		std::fprintf(stdout, "[WARN] SyncPottedPlantPortable: SeedType %d invalid (mod disabled?), resetting to SEED_PEASHOOTER\n", static_cast<int>(thePlant.mSeedType));
+		std::fflush(stdout);
+		thePlant.mSeedType = SeedType::SEED_PEASHOOTER;
+	}
 	SyncEnum32(theContext, thePlant.mWhichZenGarden);
 	theContext.SyncInt32(thePlant.mX);
 	theContext.SyncInt32(thePlant.mY);
@@ -677,7 +685,16 @@ static void SyncCursorObjectTailPortable(PortableSaveContext& theContext, Cursor
 {
 	theContext.SyncInt32(theObject.mSeedBankIndex);
 	SyncEnum32(theContext, theObject.mType);
+	// Mod API: 存档加载时清理失效的自定义 SeedType
+	if (theContext.mReading && !IsValidCustomSeedType(theObject.mType))
+	{
+		theObject.mType = SeedType::SEED_NONE;
+	}
 	SyncEnum32(theContext, theObject.mImitaterType);
+	if (theContext.mReading && !IsValidCustomSeedType(theObject.mImitaterType))
+	{
+		theObject.mImitaterType = SeedType::SEED_NONE;
+	}
 	SyncEnum32(theContext, theObject.mCursorType);
 	SyncEnumU32(theContext, theObject.mCoinID);
 	SyncEnumU32(theContext, theObject.mGlovePlantID);
@@ -720,9 +737,22 @@ static void SyncSeedPacketTailPortable(PortableSaveContext& theContext, SeedPack
 	theContext.SyncInt32(thePacket.mIndex);
 	theContext.SyncInt32(thePacket.mOffsetX);
 	SyncEnum32(theContext, thePacket.mPacketType);
+	// Mod API: 存档加载时清理失效的自定义 SeedType
+	if (theContext.mReading && !IsValidCustomSeedType(thePacket.mPacketType))
+	{
+		thePacket.mPacketType = SeedType::SEED_NONE;
+	}
 	SyncEnum32(theContext, thePacket.mImitaterType);
+	if (theContext.mReading && !IsValidCustomSeedType(thePacket.mImitaterType))
+	{
+		thePacket.mImitaterType = SeedType::SEED_NONE;
+	}
 	theContext.SyncInt32(thePacket.mSlotMachineCountDown);
 	SyncEnum32(theContext, thePacket.mSlotMachiningNextSeed);
+	if (theContext.mReading && !IsValidCustomSeedType(thePacket.mSlotMachiningNextSeed))
+	{
+		thePacket.mSlotMachiningNextSeed = SeedType::SEED_NONE;
+	}
 	theContext.SyncFloat(thePacket.mSlotMachiningPosition);
 	theContext.SyncBool(thePacket.mActive);
 	theContext.SyncBool(thePacket.mRefreshing);
@@ -743,6 +773,11 @@ static void SyncChallengeTailPortable(PortableSaveContext& theContext, Challenge
 	theContext.SyncInt32(theChallenge.mChallengeScore);
 	theContext.SyncInt32(theChallenge.mShowBowlingLine);
 	SyncEnum32(theContext, theChallenge.mLastConveyorSeedType);
+	// Mod API: 存档加载时清理失效的自定义 SeedType
+	if (theContext.mReading && !IsValidCustomSeedType(theChallenge.mLastConveyorSeedType))
+	{
+		theChallenge.mLastConveyorSeedType = SeedType::SEED_NONE;
+	}
 	theContext.SyncInt32(theChallenge.mSurvivalStage);
 	theContext.SyncInt32(theChallenge.mSlotMachineRollCount);
 	SyncEnumU32(theContext, theChallenge.mReanimChallenge);
@@ -792,6 +827,14 @@ static void SyncMusicTailPortable(PortableSaveContext& theContext, Music& theMus
 static void SyncZombieTailPortable(PortableSaveContext& theContext, Zombie& theZombie)
 {
 	SyncEnum32(theContext, theZombie.mZombieType);
+	// Mod API: 存档加载时清理失效的自定义 ZombieType（mod 已禁用但存档残留旧 ID）
+	// 重置为 ZOMBIE_NORMAL，避免后续游戏逻辑访问不存在的定义导致崩溃
+	if (theContext.mReading && !IsValidCustomZombieType(theZombie.mZombieType))
+	{
+		std::fprintf(stdout, "[WARN] SyncZombieTailPortable: ZombieType %d invalid (mod disabled?), resetting to ZOMBIE_NORMAL\n", static_cast<int>(theZombie.mZombieType));
+		std::fflush(stdout);
+		theZombie.mZombieType = ZombieType::ZOMBIE_NORMAL;
+	}
 	SyncEnum32(theContext, theZombie.mZombiePhase);
 	theContext.SyncFloat(theZombie.mPosX);
 	theContext.SyncFloat(theZombie.mPosY);
@@ -871,6 +914,14 @@ static void SyncZombieTailPortable(PortableSaveContext& theContext, Zombie& theZ
 static void SyncPlantTailPortable(PortableSaveContext& theContext, Plant& thePlant)
 {
 	SyncEnum32(theContext, thePlant.mSeedType);
+	// Mod API: 存档加载时清理失效的自定义 SeedType（mod 已禁用但存档残留旧 ID）
+	// 重置为 SEED_PEASHOOTER，避免后续游戏逻辑访问不存在的定义导致崩溃
+	if (theContext.mReading && !IsValidCustomSeedType(thePlant.mSeedType))
+	{
+		std::fprintf(stdout, "[WARN] SyncPlantTailPortable: SeedType %d invalid (mod disabled?), resetting to SEED_PEASHOOTER\n", static_cast<int>(thePlant.mSeedType));
+		std::fflush(stdout);
+		thePlant.mSeedType = SeedType::SEED_PEASHOOTER;
+	}
 	theContext.SyncInt32(thePlant.mPlantCol);
 	theContext.SyncInt32(thePlant.mAnimCounter);
 	theContext.SyncInt32(thePlant.mFrame);
@@ -911,6 +962,11 @@ static void SyncPlantTailPortable(PortableSaveContext& theContext, Plant& thePla
 	theContext.SyncInt32(thePlant.mWakeUpCounter);
 	SyncEnum32(theContext, thePlant.mOnBungeeState);
 	SyncEnum32(theContext, thePlant.mImitaterType);
+	// Mod API: 存档加载时清理失效的自定义 mImitaterType
+	if (theContext.mReading && !IsValidCustomSeedType(thePlant.mImitaterType))
+	{
+		thePlant.mImitaterType = SeedType::SEED_NONE;
+	}
 	theContext.SyncInt32(thePlant.mPottedPlantIndex);
 	theContext.SyncBool(thePlant.mAnimPing);
 	theContext.SyncBool(thePlant.mDead);
@@ -971,6 +1027,11 @@ static void SyncCoinTailPortable(PortableSaveContext& theContext, Coin& theCoin)
 	SyncEnum32(theContext, theCoin.mAttachmentID);
 	theContext.SyncFloat(theCoin.mCollectionDistance);
 	SyncEnum32(theContext, theCoin.mUsableSeedType);
+	// Mod API: 存档加载时清理失效的自定义 SeedType
+	if (theContext.mReading && !IsValidCustomSeedType(theCoin.mUsableSeedType))
+	{
+		theCoin.mUsableSeedType = SeedType::SEED_NONE;
+	}
 	SyncPottedPlantPortable(theContext, theCoin.mPottedPlantSpec);
 	theContext.SyncBool(theCoin.mNeedsBouncyArrow);
 	theContext.SyncBool(theCoin.mHasBouncyArrow);
@@ -1014,7 +1075,17 @@ static void SyncGridItemTailPortable(PortableSaveContext& theContext, GridItem& 
 	SyncEnumU32(theContext, theItem.mGridItemReanimID);
 	SyncEnumU32(theContext, theItem.mGridItemParticleID);
 	SyncEnum32(theContext, theItem.mZombieType);
+	// Mod API: 存档加载时清理失效的自定义 ZombieType
+	if (theContext.mReading && !IsValidCustomZombieType(theItem.mZombieType))
+	{
+		theItem.mZombieType = ZombieType::ZOMBIE_NORMAL;
+	}
 	SyncEnum32(theContext, theItem.mSeedType);
+	// Mod API: 存档加载时清理失效的自定义 SeedType
+	if (theContext.mReading && !IsValidCustomSeedType(theItem.mSeedType))
+	{
+		theItem.mSeedType = SeedType::SEED_NONE;
+	}
 	SyncEnum32(theContext, theItem.mScaryPotType);
 	theContext.SyncBool(theItem.mHighlighted);
 	theContext.SyncInt32(theItem.mTransparentCounter);
@@ -1594,7 +1665,22 @@ static void SyncBoardBasePortable(PortableSaveContext& theContext, Board* theBoa
 			case BOARD_FIELD_ICE_TIMER: ApplyFieldWithSync(aFieldData, aFieldSize, [&](PortableSaveContext& c){ SyncInt32Array(c, &theBoard->mIceTimer[0], MAX_GRID_SIZE_Y); }); break;
 			case BOARD_FIELD_ICE_PARTICLE_ID: ApplyFieldWithSync(aFieldData, aFieldSize, [&](PortableSaveContext& c){ SyncEnumU32Array(c, &theBoard->mIceParticleID[0], MAX_GRID_SIZE_Y); }); break;
 			case BOARD_FIELD_ROW_PICKING_ARRAY: ApplyFieldWithSync(aFieldData, aFieldSize, [&](PortableSaveContext& c){ SyncTodSmoothArrayList(c, &theBoard->mRowPickingArray[0], MAX_GRID_SIZE_Y); }); break;
-			case BOARD_FIELD_ZOMBIES_IN_WAVE: ApplyFieldWithSync(aFieldData, aFieldSize, [&](PortableSaveContext& c){ SyncEnum32Array(c, &theBoard->mZombiesInWave[0][0], MAX_ZOMBIE_WAVES * MAX_ZOMBIES_IN_WAVE); }); break;
+			case BOARD_FIELD_ZOMBIES_IN_WAVE: ApplyFieldWithSync(aFieldData, aFieldSize, [&](PortableSaveContext& c){
+				SyncEnum32Array(c, &theBoard->mZombiesInWave[0][0], MAX_ZOMBIE_WAVES * MAX_ZOMBIES_IN_WAVE);
+				// Mod API: 存档加载时清理失效的自定义 ZombieType（mod 已禁用但存档残留旧 ID）
+				// 替换为 ZOMBIE_NORMAL，避免后续波次生成时出错
+				if (c.mReading)
+				{
+					ZombieType* aFlat = &theBoard->mZombiesInWave[0][0];
+					for (int i = 0; i < MAX_ZOMBIE_WAVES * MAX_ZOMBIES_IN_WAVE; i++)
+					{
+						if (!IsValidCustomZombieType(aFlat[i]))
+						{
+							aFlat[i] = ZombieType::ZOMBIE_NORMAL;
+						}
+					}
+				}
+			}); break;
 			case BOARD_FIELD_ZOMBIE_ALLOWED: ApplyFieldWithSync(aFieldData, aFieldSize, [&](PortableSaveContext& c){ SyncBoolArray(c, &theBoard->mZombieAllowed[0], 100); }); break;
 			case BOARD_FIELD_SUN_COUNTDOWN: ApplyFieldWithSync(aFieldData, aFieldSize, [&](PortableSaveContext& c){ c.SyncInt32(theBoard->mSunCountDown); }); break;
 			case BOARD_FIELD_NUM_SUNS_FALLEN: ApplyFieldWithSync(aFieldData, aFieldSize, [&](PortableSaveContext& c){ c.SyncInt32(theBoard->mNumSunsFallen); }); break;
@@ -1807,7 +1893,13 @@ static void SyncZombiesPortable(PortableSaveContext& theContext, Board* theBoard
 			switch (aFieldId)
 			{
 			case 1U: ReadGameObjectField(aData, aSize, theZombie); break;
-			case 2U: ReadPodTailField(aData, aSize, theZombie, &Zombie::mZombieType); break; // legacy
+			case 2U: ReadPodTailField(aData, aSize, theZombie, &Zombie::mZombieType);
+				// Mod API: legacy 路径也需要清理失效的自定义 ZombieType
+				if (!IsValidCustomZombieType(theZombie.mZombieType))
+				{
+					theZombie.mZombieType = ZombieType::ZOMBIE_NORMAL;
+				}
+				break; // legacy
 			case PORTABLE_FIELD_TAIL: ApplyFieldWithSync(aData, aSize, [&](PortableSaveContext& c){ SyncZombieTailPortable(c, theZombie); }); break;
 			default: break;
 			}
@@ -1827,9 +1919,25 @@ static void SyncPlantsPortable(PortableSaveContext& theContext, Board* theBoard)
 			switch (aFieldId)
 			{
 			case 1U: ReadGameObjectField(aData, aSize, thePlant); break;
-			case 2U: ReadPodTailField(aData, aSize, thePlant, &Plant::mSeedType); break; // legacy
-			case 3U: ApplyFieldWithSync(aData, aSize, [&](PortableSaveContext& c){ c.SyncEnum(thePlant.mSeedType); }); break; // legacy
-			case 4U: ApplyFieldWithSync(aData, aSize, [&](PortableSaveContext& c){ c.SyncEnum(thePlant.mImitaterType); }); break; // legacy
+			case 2U: ReadPodTailField(aData, aSize, thePlant, &Plant::mSeedType);
+				// Mod API: legacy 路径也需要清理失效的自定义 SeedType
+				if (!IsValidCustomSeedType(thePlant.mSeedType))
+				{
+					thePlant.mSeedType = SeedType::SEED_PEASHOOTER;
+				}
+				break; // legacy
+			case 3U: ApplyFieldWithSync(aData, aSize, [&](PortableSaveContext& c){ c.SyncEnum(thePlant.mSeedType);
+				if (c.mReading && !IsValidCustomSeedType(thePlant.mSeedType))
+				{
+					thePlant.mSeedType = SeedType::SEED_PEASHOOTER;
+				}
+			}); break; // legacy
+			case 4U: ApplyFieldWithSync(aData, aSize, [&](PortableSaveContext& c){ c.SyncEnum(thePlant.mImitaterType);
+				if (c.mReading && !IsValidCustomSeedType(thePlant.mImitaterType))
+				{
+					thePlant.mImitaterType = SeedType::SEED_NONE;
+				}
+			}); break; // legacy
 			case 5U: ApplyFieldWithSync(aData, aSize, [&](PortableSaveContext& c){ c.SyncInt32(thePlant.mPottedPlantIndex); }); break; // legacy
 			case PORTABLE_FIELD_TAIL: ApplyFieldWithSync(aData, aSize, [&](PortableSaveContext& c){ SyncPlantTailPortable(c, thePlant); }); break;
 			default: break;

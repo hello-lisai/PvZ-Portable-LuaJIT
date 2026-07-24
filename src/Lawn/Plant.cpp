@@ -23,6 +23,7 @@
 #include "Plant.h"
 #include "Board.h"
 
+#include <cstdio>  // Mod API: std::fprintf for fallback warnings
 #include <vector>  // Mod API: gCustomPlantDefs
 #include <algorithm>  // Mod API: std::stable_sort for seed display order
 #include "Zombie.h"
@@ -5393,9 +5394,27 @@ const PlantDefinition& GetPlantDefinition(SeedType theSeedType)
     for (auto& def : gCustomPlantDefs) {
         if (def.mSeedType == theSeedType) return def;
     }
-    // 未找到：返回第一个作为 fallback（不应发生）
-    TOD_ASSERT(false && "GetPlantDefinition: invalid SeedType");
+    // Mod API: 未找到定义（可能是 mod 已禁用但存档中残留旧 ID）
+    // 不再断言崩溃，降级为 SEED_PEASHOOTER（gPlantDefs[0]），避免存档加载/关卡进入时崩溃
+    // 注意：不能用 SEED_NONE，因为 SEED_NONE = -1 会导致 gPlantDefs[-1] 越界访问
+    static bool s_warned = false;
+    if (!s_warned) {
+        std::fprintf(stdout, "[WARN] GetPlantDefinition: SeedType %d not found (mod disabled?), falling back to SEED_PEASHOOTER\n", idx);
+        std::fflush(stdout);
+        s_warned = true;
+    }
     return gPlantDefs[0];
+}
+
+// Mod API: 检查自定义植物类型是否有效（mod 是否已注册该类型）
+bool IsValidCustomSeedType(SeedType s)
+{
+    int idx = static_cast<int>(s);
+    if (idx < static_cast<int>(SeedType::NUM_SEED_TYPES)) return true;  // 内置类型总是有效
+    for (auto& def : gCustomPlantDefs) {
+        if (def.mSeedType == s) return true;
+    }
+    return false;
 }
 
 // Mod API: 动态注册新植物类型

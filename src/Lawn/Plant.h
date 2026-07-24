@@ -449,6 +449,9 @@ inline int GetTotalPlantCount() { return static_cast<int>(SeedType::NUM_SEED_TYP
 // 把自定义植物的 SeedType 转换为 gCustomPlantDefs 的索引（0-based）
 inline int CustomSeedTypeToIndex(SeedType s) { return static_cast<int>(s) - static_cast<int>(SeedType::NUM_SEED_TYPES); }
 inline bool IsCustomSeedType(SeedType s) { return static_cast<int>(s) >= static_cast<int>(SeedType::NUM_SEED_TYPES); }
+// Mod API: 检查自定义植物类型是否有效（mod 是否已注册该类型）
+// 内置类型总是有效；自定义类型需在 gCustomPlantDefs 中找到才算有效
+bool IsValidCustomSeedType(SeedType s);
 // Mod API: 隐藏植物（保龄球/禅境花园专用）不在图鉴和选种界面显示
 // SEED_EXPLODE_O_NUT(49)/SEED_GIANT_WALLNUT(50)/SEED_SPROUT(51)/SEED_LEFTPEATER(52)
 inline bool IsHiddenSeed(SeedType s)

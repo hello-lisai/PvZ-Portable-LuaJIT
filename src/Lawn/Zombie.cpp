@@ -135,9 +135,26 @@ const ZombieDefinition& GetZombieDefinition(ZombieType theZombieType)
     for (auto& def : gCustomZombieDefs) {
         if (def.mZombieType == theZombieType) return def;
     }
-    // 未找到：返回第一个作为 fallback（不应发生）
-    TOD_ASSERT(false && "GetZombieDefinition: invalid ZombieType");
-    return gZombieDefs[0];
+    // Mod API: 未找到定义（可能是 mod 已禁用但存档中残留旧 ID）
+    // 不再断言崩溃，降级为普通僵尸，避免存档加载/关卡进入时崩溃
+    static bool s_warned = false;
+    if (!s_warned) {
+        std::fprintf(stdout, "[WARN] GetZombieDefinition: ZombieType %d not found (mod disabled?), falling back to ZOMBIE_NORMAL\n", idx);
+        std::fflush(stdout);
+        s_warned = true;
+    }
+    return gZombieDefs[static_cast<int>(ZombieType::ZOMBIE_NORMAL)];
+}
+
+// Mod API: 检查自定义僵尸类型是否有效（mod 是否已注册该类型）
+bool IsValidCustomZombieType(ZombieType theZombieType)
+{
+    int idx = static_cast<int>(theZombieType);
+    if (idx < static_cast<int>(ZombieType::NUM_CACHED_ZOMBIE_TYPES)) return true;  // 内置类型总是有效
+    for (auto& def : gCustomZombieDefs) {
+        if (def.mZombieType == theZombieType) return true;
+    }
+    return false;
 }
 
 // Mod API: 动态注册新僵尸类型
@@ -1117,11 +1134,23 @@ void Zombie::ZombieInitialize(int theRow, ZombieType theType, bool theVariant, Z
         // 从 ZombieDefinition 读取血量/能力位/护甲等字段初始化
         if (theType >= ZombieType::NUM_CACHED_ZOMBIE_TYPES)
         {
-            std::fprintf(stdout, "[TRACE] ZombieInitialize: default branch, calling InitZombieTypeCustom type=%d\n", static_cast<int>(theType));
-            std::fflush(stdout);
-            InitZombieTypeCustom();
-            std::fprintf(stdout, "[TRACE] ZombieInitialize: InitZombieTypeCustom returned OK\n");
-            std::fflush(stdout);
+            // Mod API: 检查自定义类型是否有效（mod 可能已禁用，存档残留旧 ID）
+            if (!IsValidCustomZombieType(theType))
+            {
+                std::fprintf(stdout, "[WARN] ZombieInitialize: ZombieType %d not registered (mod disabled?), falling back to ZOMBIE_NORMAL\n", static_cast<int>(theType));
+                std::fflush(stdout);
+                mZombieType = ZombieType::ZOMBIE_NORMAL;
+                // 走普通僵尸初始化分支
+                InitZombieTypeNormal();
+            }
+            else
+            {
+                std::fprintf(stdout, "[TRACE] ZombieInitialize: default branch, calling InitZombieTypeCustom type=%d\n", static_cast<int>(theType));
+                std::fflush(stdout);
+                InitZombieTypeCustom();
+                std::fprintf(stdout, "[TRACE] ZombieInitialize: InitZombieTypeCustom returned OK\n");
+                std::fflush(stdout);
+            }
         }
         break;
     }
