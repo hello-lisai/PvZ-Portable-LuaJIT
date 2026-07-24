@@ -44,6 +44,9 @@ struct ModCtx {
     Zombie*     zombie      = nullptr;
     int32_t     damage      = 0;
     uint32_t    damageFlags = 0;
+    // 伤害来源（通过 thread_local DamageSource 传递，TakeDamage 内部读取）
+    // 三者最多有一个非空：plant=植物直接伤害，projectile=投射物命中，sourceZombie=僵尸互伤
+    Zombie*     sourceZombie = nullptr;  // 僵尸互伤时的攻击者
 
     // ====== 弹道撞击 (ON_PROJECTILE_IMPACT_PRE) ======
     Projectile* projectile  = nullptr;

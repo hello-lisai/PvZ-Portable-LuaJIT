@@ -819,6 +819,8 @@ void Plant::DoRowAreaDamage(int theDamage, unsigned int theDamageFlags)
                     }
                 }
 
+                // Mod API: 设置伤害来源为当前植物
+                ModBus::DamageSourceGuard _dsg(nullptr, this, nullptr);
                 aZombie->TakeDamage(aDamage, theDamageFlags);
                 mApp->PlayFoley(FoleyType::FOLEY_SPLAT);
             }
@@ -1532,6 +1534,8 @@ void Plant::DoSquashDamage()
             Rect aZombieRect = aZombie->GetZombieRect();
             if (GetRectOverlap(aAttackRect, aZombieRect) > (aZombie->mZombieType == ZombieType::ZOMBIE_FOOTBALL ? -20 : 0))
             {
+                // Mod API: 设置伤害来源为当前植物
+                ModBus::DamageSourceGuard _dsg(nullptr, this, nullptr);
                 aZombie->TakeDamage(1800, 18U);
             }
         }
@@ -1905,6 +1909,8 @@ void Plant::UpdateChomperBiting()
         if (doBite)
         {
             mApp->PlayFoley(FoleyType::FOLEY_SPLAT);
+            // Mod API: 设置伤害来源为当前植物
+            ModBus::DamageSourceGuard _dsg(nullptr, this, nullptr);
             aZombie->TakeDamage(40, 0U);
             mState = PlantState::STATE_CHOMPER_BITING_MISSED;
         }
@@ -2609,6 +2615,9 @@ bool Plant::HandleBowlingZombieImpact(PlantState& aNewState)
 
     mApp->PlayFoley(FoleyType::FOLEY_BOWLINGIMPACT);
     mBoard->ShakeBoard(1, -2);
+
+    // Mod API: 设置伤害来源为当前植物（覆盖下方所有 TakeDamage 分支）
+    ModBus::DamageSourceGuard _dsg(nullptr, this, nullptr);
 
     if (mSeedType == SeedType::SEED_GIANT_WALLNUT)
     {

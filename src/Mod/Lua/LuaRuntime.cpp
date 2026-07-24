@@ -1641,10 +1641,17 @@ void DispatchEvent(ModCtx& ctx) {
             nargs = 1;
             break;
         case ModEvent::ON_ZOMBIE_TAKE_DAMAGE_PRE:
+            // 参数：zombie, damage, damageFlags, source
+            // source 是一个表：{plant=..., projectile=..., zombie=...}
+            // 三者最多有一个非 nil，表示伤害来源；全为 nil 表示来源未知（如范围秒杀）
             PushZombie(g_L, ctx.zombie);
             lua_pushinteger(g_L, ctx.damage);
             lua_pushinteger(g_L, ctx.damageFlags);
-            nargs = 3;
+            lua_newtable(g_L);
+            if (ctx.plant)       { PushPlant(g_L, ctx.plant);       lua_setfield(g_L, -2, "plant"); }
+            if (ctx.projectile)  { PushProjectile(g_L, ctx.projectile); lua_setfield(g_L, -2, "projectile"); }
+            if (ctx.sourceZombie){ PushZombie(g_L, ctx.sourceZombie); lua_setfield(g_L, -2, "zombie"); }
+            nargs = 4;
             break;
         case ModEvent::ON_PLANT_TAKE_DAMAGE_PRE:
             PushPlant(g_L, ctx.plant);

@@ -54,6 +54,20 @@ void RegisterLuaListener() {
 
 namespace ModBus {
 
+// thread_local 伤害来源（支持嵌套调用，如溅射伤害中 TakeDamage 触发的新伤害）
+thread_local DamageSource g_damageSource;
+
+DamageSourceGuard::DamageSourceGuard(Zombie* z, Plant* p, Projectile* pr) {
+    prev = g_damageSource;
+    g_damageSource.zombie = z;
+    g_damageSource.plant = p;
+    g_damageSource.projectile = pr;
+}
+
+DamageSourceGuard::~DamageSourceGuard() {
+    g_damageSource = prev;
+}
+
 void Initialize() {
     if (g_initialized.load(std::memory_order_acquire)) return;
 

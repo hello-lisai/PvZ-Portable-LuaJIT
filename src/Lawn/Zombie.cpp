@@ -2532,6 +2532,8 @@ void Zombie::GargantuarSmashAttack()
         if (aZombie)
         {
             int aDamage = mZombieType == ZombieType::ZOMBIE_REDEYE_GARGANTUAR ? 1000 : 500;
+            // Mod API: 设置伤害来源为当前僵尸（巨人砸同族）
+            ModBus::DamageSourceGuard _dsg(this, nullptr, nullptr);
             aZombie->TakeDamage(aDamage, 0U);
         }
     }
@@ -7835,6 +7837,8 @@ void Zombie::EatPlant(Plant* thePlant)
 
 void Zombie::EatZombie(Zombie* theZombie)
 {
+    // Mod API: 设置伤害来源为当前僵尸（僵尸互伤）
+    ModBus::DamageSourceGuard _dsg(this, nullptr, nullptr);
     theZombie->TakeDamage(DAMAGE_PER_EAT, 9U);
     StartEating();
     if (theZombie->mBodyHealth <= 0)
@@ -8744,6 +8748,10 @@ void Zombie::TakeDamage(int theDamage, unsigned int theDamageFlags)
         _ctx.zombie = this;
         _ctx.damage = theDamage;
         _ctx.damageFlags = theDamageFlags;
+        // 读取 thread_local 伤害来源（由调用方通过 DamageSourceGuard 设置）
+        _ctx.plant = ModBus::g_damageSource.plant;
+        _ctx.projectile = ModBus::g_damageSource.projectile;
+        _ctx.sourceZombie = ModBus::g_damageSource.zombie;
         ModBus::Fire(ModEvent::ON_ZOMBIE_TAKE_DAMAGE_PRE, _ctx);
         if (_ctx.cancel) return;
         if (_ctx.newDamage >= 0) theDamage = _ctx.newDamage;

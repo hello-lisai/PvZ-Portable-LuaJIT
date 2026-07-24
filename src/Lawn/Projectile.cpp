@@ -500,6 +500,8 @@ void Projectile::DoSplashDamage(Zombie* theZombie)
 		aSplashDamage = std::max(aSplashDamage, 1);
 	}
 
+	// Mod API: 设置伤害来源为当前投射物（覆盖整个溅射范围）
+	ModBus::DamageSourceGuard _dsg(nullptr, nullptr, this);
 	aZombie = nullptr;
 	while (mBoard->IterateZombies(aZombie))
 	{
@@ -876,6 +878,8 @@ void Projectile::DoImpact(Zombie* theZombie)
 	else if (theZombie)
 	{
 		unsigned int aDamageFlags = GetDamageFlags(theZombie);
+		// Mod API: 设置伤害来源为当前投射物
+		ModBus::DamageSourceGuard _dsg(nullptr, nullptr, this);
 		theZombie->TakeDamage(GetProjectileDef().mDamage, aDamageFlags);
 	}
 
