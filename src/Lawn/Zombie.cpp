@@ -868,6 +868,24 @@ void Zombie::InitZombieTypeCustom()
     std::fprintf(stdout, "[TRACE] InitZombieTypeCustom: got def, body_health=%d helm_type=%d helm_health=%d shield_type=%d shield_health=%d\n",
         aDef.mBodyHealth, static_cast<int>(aDef.mHelmType), aDef.mHelmHealth, static_cast<int>(aDef.mShieldType), aDef.mShieldHealth);
     std::fflush(stdout);
+
+    // Mod API: 根据 mBaseZombieType 复用原版初始化逻辑
+    // 原版 InitZombieType* 函数会设置 mZombieRect / 隐藏特定轨道（如 anim_hair）/
+    // mAnimTicksPerFrame / mVariant 等特殊字段，这些在 ZombieDefinition 里没有对应字段，
+    // 必须通过调用原版函数才能获得"和原版一模一样"的表现（如橄榄球僵尸隐藏头发、
+    // 碰撞框尺寸、动画帧率等）。
+    // 注意：只调用不内部触发 LoadPlainZombieReanim 的函数（本函数末尾会统一调用一次）。
+    // 下面的 def 字段覆盖会重设 mAbilities/mHelmType/mHelmHealth 等，让 mod 保留对
+    // 这些数值的控制权（原版函数设置的对应字段会被 def 覆盖）。
+    switch (aDef.mBaseZombieType)
+    {
+    case ZombieType::ZOMBIE_FOOTBALL:
+        InitZombieTypeFootball();  // 隐藏 anim_hair + 设置 rect/anim_ticks/variant
+        break;
+    default:
+        break;
+    }
+
     mBodyHealth   = aDef.mBodyHealth;
     mAbilities    = aDef.mAbilities;
     mHelmType     = aDef.mHelmType;
@@ -4337,7 +4355,16 @@ void Zombie::SetupLostArmParticleImage(unsigned int theDamageFlags, float aPosX,
 
         if (aParticle)
         {
-            switch (mZombieType)
+            // Mod API: 自定义僵尸使用 mBaseZombieType 选择断臂粒子图像
+            // 与 HideLostArmTracks / SetupLostArmImageOverride 保持一致
+            ZombieType aSwitchType = mZombieType;
+            if (IsCustomZombieType(mZombieType))
+            {
+                const ZombieDefinition& aDef = GetZombieDefinition(mZombieType);
+                aSwitchType = aDef.mBaseZombieType;
+            }
+
+            switch (aSwitchType)
             {
             case ZombieType::ZOMBIE_FOOTBALL:
                 aParticle->OverrideImage(nullptr, IMAGE_REANIM_ZOMBIE_FOOTBALL_LEFTARM_HAND);
