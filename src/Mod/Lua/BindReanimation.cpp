@@ -1,10 +1,18 @@
 #include "LuaBindUtil.h"
 #include "../../Sexy.TodLib/Reanimator.h"
 #include "../../LawnApp.h"
+#include "../../SexyAppFramework/graphics/Image.h"
 
 namespace ModLua {
 
 namespace {
+
+// 从栈索引 idx 取出 Image*，接受 MT_IMAGE userdata 或 nil（返回 nullptr）
+Image* OptImage(lua_State* L, int idx) {
+    if (lua_isnil(L, idx) || lua_isnone(L, idx)) return nullptr;
+    Image** pp = static_cast<Image**>(luaL_checkudata(L, idx, MT_IMAGE));
+    return pp ? *pp : nullptr;
+}
 
 // === Reanimation 属性 getter ===
 
@@ -167,6 +175,77 @@ int l_reanim_find_sub_reanim(lua_State* L) {
     return 1;
 }
 
+// reanim:set_image_override(track_name, image_or_nil)
+// 设置指定轨道的图像覆盖。image 传 nil 可清除覆盖。
+// 这是实现"头盔损坏"等动态受损表现的核心 API。
+// 例：r:set_image_override("zombie_football_helmet", pvz.images.ZOMBIE_FOOTBALL_HELMET2)
+//     r:set_image_override("zombie_football_helmet", nil)  -- 还原默认
+int l_reanim_set_image_override(lua_State* L) {
+    Reanimation* r = CheckUserdata<Reanimation>(L, 1, MT_REANIMATION);
+    if (!r) return 0;
+    const char* track = luaL_checkstring(L, 2);
+    Image* img = OptImage(L, 3);
+    r->SetImageOverride(track, img);
+    return 0;
+}
+
+// reanim:get_image_override(track_name) → Image or nil
+// 读取指定轨道当前的图像覆盖（无覆盖时返回 nil）
+int l_reanim_get_image_override(lua_State* L) {
+    Reanimation* r = CheckUserdata<Reanimation>(L, 1, MT_REANIMATION);
+    if (!r) { lua_pushnil(L); return 1; }
+    const char* track = luaL_checkstring(L, 2);
+    Image* img = r->GetImageOverride(track);
+    if (!img) { lua_pushnil(L); return 1; }
+    NewUserdata(L, img, MT_IMAGE);
+    return 1;
+}
+
+// reanim:assign_render_group_to_track(track_name, render_group)
+// 设置单个轨道的渲染组（RENDER_GROUP_HIDDEN=-1 隐藏，RENDER_GROUP_NORMAL=0 显示）
+// 这是实现"掉胳膊"等动态隐藏身体部位表现的核心 API。
+// 例：r:assign_render_group_to_track("Zombie_football_leftarm_lower", pvz.RenderGroup.HIDDEN)
+int l_reanim_assign_render_group_to_track(lua_State* L) {
+    Reanimation* r = CheckUserdata<Reanimation>(L, 1, MT_REANIMATION);
+    if (!r) return 0;
+    const char* track = luaL_checkstring(L, 2);
+    int group = static_cast<int>(luaL_checkinteger(L, 3));
+    r->AssignRenderGroupToTrack(track, group);
+    return 0;
+}
+
+// reanim:assign_render_group_to_prefix(prefix, render_group)
+// 按名称前缀批量设置轨道渲染组（如 "Zombie_football_leftarm_" 会匹配所有以此开头的轨道）
+// 例：r:assign_render_group_to_prefix("Zombie_football_leftarm_", pvz.RenderGroup.HIDDEN)
+int l_reanim_assign_render_group_to_prefix(lua_State* L) {
+    Reanimation* r = CheckUserdata<Reanimation>(L, 1, MT_REANIMATION);
+    if (!r) return 0;
+    const char* prefix = luaL_checkstring(L, 2);
+    int group = static_cast<int>(luaL_checkinteger(L, 3));
+    r->AssignRenderGroupToPrefix(prefix, group);
+    return 0;
+}
+
+// reanim:is_track_showing(track_name) → bool
+// 判断指定轨道当前是否可见（渲染组不为 HIDDEN）
+int l_reanim_is_track_showing(lua_State* L) {
+    Reanimation* r = CheckUserdata<Reanimation>(L, 1, MT_REANIMATION);
+    if (!r) { lua_pushboolean(L, 0); return 1; }
+    const char* track = luaL_checkstring(L, 2);
+    lua_pushboolean(L, r->IsTrackShowing(track) ? 1 : 0);
+    return 1;
+}
+
+// reanim:show_only_track(track_name)
+// 仅显示指定轨道，其余全部隐藏
+int l_reanim_show_only_track(lua_State* L) {
+    Reanimation* r = CheckUserdata<Reanimation>(L, 1, MT_REANIMATION);
+    if (!r) return 0;
+    const char* track = luaL_checkstring(L, 2);
+    r->ShowOnlyTrack(track);
+    return 0;
+}
+
 // reanim:get_ptr() — 返回原始指针（light userdata），供 LuaJIT FFI 使用
 int l_reanim_get_ptr(lua_State* L) {
     Reanimation* r = CheckUserdata<Reanimation>(L, 1, MT_REANIMATION);
@@ -197,13 +276,19 @@ int l_reanim_index(lua_State* L) {
     }
 
     struct { const char* name; lua_CFunction fn; } methods[] = {
-        {"play_reanim",      l_reanim_play_reanim},
-        {"is_anim_playing",  l_reanim_is_anim_playing},
-        {"track_exists",     l_reanim_track_exists},
-        {"set_position",     l_reanim_set_position},
-        {"override_scale",   l_reanim_override_scale},
-        {"find_sub_reanim",  l_reanim_find_sub_reanim},
-        {"get_ptr",          l_reanim_get_ptr},
+        {"play_reanim",                   l_reanim_play_reanim},
+        {"is_anim_playing",               l_reanim_is_anim_playing},
+        {"track_exists",                  l_reanim_track_exists},
+        {"set_position",                  l_reanim_set_position},
+        {"override_scale",                l_reanim_override_scale},
+        {"find_sub_reanim",               l_reanim_find_sub_reanim},
+        {"set_image_override",            l_reanim_set_image_override},
+        {"get_image_override",            l_reanim_get_image_override},
+        {"assign_render_group_to_track",  l_reanim_assign_render_group_to_track},
+        {"assign_render_group_to_prefix", l_reanim_assign_render_group_to_prefix},
+        {"is_track_showing",              l_reanim_is_track_showing},
+        {"show_only_track",               l_reanim_show_only_track},
+        {"get_ptr",                       l_reanim_get_ptr},
     };
     for (auto& m : methods) {
         if (strcmp(key, m.name) == 0) {

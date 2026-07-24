@@ -1375,6 +1375,14 @@ void Initialize() {
     ModLua::SetIntField(g_L, "PLAY_ONCE_FULL_LAST_FRAME_AND_HOLD", static_cast<lua_Integer>(REANIM_PLAY_ONCE_FULL_LAST_FRAME_AND_HOLD));
     lua_setfield(g_L, -2, "ReanimLoop");
 
+    // pvz.RenderGroup 子表：轨道渲染组常量
+    // mod 在 reanim_show_prefix / reanim_show_track / assign_render_group_to_track 等调用中使用
+    // 用于动态显示/隐藏动画轨道（如掉胳膊、头盔损坏等受损表现）
+    lua_newtable(g_L);
+    ModLua::SetIntField(g_L, "HIDDEN",  RENDER_GROUP_HIDDEN);
+    ModLua::SetIntField(g_L, "NORMAL",  RENDER_GROUP_NORMAL);
+    lua_setfield(g_L, -2, "RenderGroup");
+
     // pvz.get_reanimation(reanim_id) → 通过 ReanimationID 获取 Reanimation userdata
     // 用于从 zombie.body_reanim_id / plant.body_reanim_id 获取动画对象
     lua_pushcfunction(g_L, l_get_reanimation);
@@ -1492,6 +1500,10 @@ void Initialize() {
     push_img("LOCK_OPEN",            IMAGE_LOCK_OPEN);
     push_img("ALMANAC_PLANTCARD",    IMAGE_ALMANAC_PLANTCARD);
     push_img("ALMANAC_ZOMBIECARD",   IMAGE_ALMANAC_ZOMBIECARD);
+    // 橄榄球僵尸头盔受损三阶段（用于 set_image_override 实现动态受损表现）
+    push_img("ZOMBIE_FOOTBALL_HELMET",  IMAGE_REANIM_ZOMBIE_FOOTBALL_HELMET);
+    push_img("ZOMBIE_FOOTBALL_HELMET2", IMAGE_REANIM_ZOMBIE_FOOTBALL_HELMET2);
+    push_img("ZOMBIE_FOOTBALL_HELMET3", IMAGE_REANIM_ZOMBIE_FOOTBALL_HELMET3);
     lua_setfield(g_L, -2, "images");
 
     lua_setglobal(g_L, "pvz");

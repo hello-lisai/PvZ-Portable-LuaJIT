@@ -250,6 +250,35 @@ int l_zombie_play_zombie_reanim(lua_State* L) {
     return 0;
 }
 
+// zombie:reanim_show_prefix(prefix, render_group)
+// 按名称前缀批量设置身体动画轨道的渲染组（封装 Zombie::ReanimShowPrefix）
+// 用于实现"掉胳膊"等动态隐藏身体部位表现。
+//   prefix       : 轨道名前缀（如 "Zombie_football_leftarm_lower"）
+//   render_group : pvz.RenderGroup.HIDDEN(-1) 隐藏 / pvz.RenderGroup.NORMAL(0) 显示
+// 例：zombie:reanim_show_prefix("Zombie_football_leftarm_lower", pvz.RenderGroup.HIDDEN)
+int l_zombie_reanim_show_prefix(lua_State* L) {
+    Zombie* z = CheckUserdata<Zombie>(L, 1, MT_ZOMBIE);
+    if (!z) return 0;
+    const char* prefix = luaL_checkstring(L, 2);
+    int group = static_cast<int>(luaL_checkinteger(L, 3));
+    z->ReanimShowPrefix(prefix, group);
+    return 0;
+}
+
+// zombie:reanim_show_track(track_name, render_group)
+// 设置单个身体动画轨道的渲染组（封装 Zombie::ReanimShowTrack）
+//   track_name   : 轨道名（如 "Zombie_football_leftarm_lower"）
+//   render_group : pvz.RenderGroup.HIDDEN(-1) 隐藏 / pvz.RenderGroup.NORMAL(0) 显示
+// 例：zombie:reanim_show_track("Zombie_football_leftarm_lower", pvz.RenderGroup.HIDDEN)
+int l_zombie_reanim_show_track(lua_State* L) {
+    Zombie* z = CheckUserdata<Zombie>(L, 1, MT_ZOMBIE);
+    if (!z) return 0;
+    const char* track = luaL_checkstring(L, 2);
+    int group = static_cast<int>(luaL_checkinteger(L, 3));
+    z->ReanimShowTrack(track, group);
+    return 0;
+}
+
 // zombie:__index
 int l_zombie_index(lua_State* L) {
     Zombie* z = CheckUserdata<Zombie>(L, 1, MT_ZOMBIE);
@@ -292,6 +321,8 @@ int l_zombie_index(lua_State* L) {
         {"get_ptr",             l_zombie_get_ptr},
         {"set_phase",           l_zombie_set_phase},
         {"play_zombie_reanim",  l_zombie_play_zombie_reanim},
+        {"reanim_show_prefix",  l_zombie_reanim_show_prefix},
+        {"reanim_show_track",   l_zombie_reanim_show_track},
     };
     for (auto& m : methods) {
         if (strcmp(key, m.name) == 0) {
