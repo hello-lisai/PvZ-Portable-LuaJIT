@@ -1590,6 +1590,16 @@ void DispatchEvent(ModCtx& ctx) {
             }
             nargs = 2;
             break;
+        case ModEvent::ON_ZOMBIE_UPDATE_PRE:
+            // 参数：zombie。返回 {cancel=true} 可完全接管原版 Update
+            PushZombie(g_L, ctx.zombie);
+            nargs = 1;
+            break;
+        case ModEvent::ON_PLANT_UPDATE_PRE:
+            // 参数：plant。返回 {cancel=true} 可完全接管原版 Update
+            PushPlant(g_L, ctx.plant);
+            nargs = 1;
+            break;
         case ModEvent::ON_ZOMBIE_TAKE_DAMAGE_PRE:
             PushZombie(g_L, ctx.zombie);
             lua_pushinteger(g_L, ctx.damage);

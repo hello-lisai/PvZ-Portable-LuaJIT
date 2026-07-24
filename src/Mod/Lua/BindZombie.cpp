@@ -179,6 +179,18 @@ int l_zombie_get_ptr(lua_State* L) {
     return 1;
 }
 
+// zombie:set_phase(phase) — 设置僵尸阶段（ZombiePhase 枚举值）
+// 仅修改 mZombiePhase 字段，不自动播放动画。如需播放对应动画，mod 应自行调用
+// zombie:play_zombie_reanim(track_name, loop_type, blend_time, anim_rate)
+// 例：zombie:set_phase(PHASE_ZOMBIE_NORMAL)
+int l_zombie_set_phase(lua_State* L) {
+    Zombie* z = CheckUserdata<Zombie>(L, 1, MT_ZOMBIE);
+    if (!z) return 0;
+    int phase = static_cast<int>(luaL_checkinteger(L, 2));
+    z->mZombiePhase = static_cast<ZombiePhase>(phase);
+    return 0;
+}
+
 // zombie:__index
 int l_zombie_index(lua_State* L) {
     Zombie* z = CheckUserdata<Zombie>(L, 1, MT_ZOMBIE);
@@ -216,6 +228,7 @@ int l_zombie_index(lua_State* L) {
         {"die",              l_zombie_die},
         {"die_with_loot",    l_zombie_die_with_loot},
         {"get_ptr",          l_zombie_get_ptr},
+        {"set_phase",        l_zombie_set_phase},
     };
     for (auto& m : methods) {
         if (strcmp(key, m.name) == 0) {

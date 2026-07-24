@@ -95,6 +95,18 @@ int l_plant_get_ptr(lua_State* L) {
     return 1;
 }
 
+// plant:set_state(state) — 设置植物状态（PlantState 枚举值）
+// 仅修改 mState 字段，不自动播放动画。如需播放对应动画，mod 应自行调用
+// plant:play_body_reanim(track_name, loop_type, blend_time, anim_rate)
+// 例：plant:set_state(STATE_POTATO_ARMED)
+int l_plant_set_state(lua_State* L) {
+    Plant* p = CheckUserdata<Plant>(L, 1, MT_PLANT);
+    if (!p) return 0;
+    int state = static_cast<int>(luaL_checkinteger(L, 2));
+    p->mState = static_cast<PlantState>(state);
+    return 0;
+}
+
 int l_plant_index(lua_State* L) {
     Plant* p = CheckUserdata<Plant>(L, 1, MT_PLANT);
     if (!p) { lua_pushnil(L); return 1; }
@@ -121,6 +133,7 @@ int l_plant_index(lua_State* L) {
         {"do_special",  l_plant_do_special},
         {"squish",      l_plant_squish},
         {"get_ptr",     l_plant_get_ptr},
+        {"set_state",   l_plant_set_state},
     };
     for (auto& m : methods) {
         if (strcmp(key, m.name) == 0) {
