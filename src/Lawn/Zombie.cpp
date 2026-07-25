@@ -636,7 +636,7 @@ void Zombie::InitZombieTypeDancing()
 // 提取自 ZombieInitialize switch(ZOMBIE_BACKUP_DANCER) 分支
 void Zombie::InitZombieTypeBackupDancer()
 {
-    mAbilities = ABILITY_WALK | ABILITY_DANCER;
+    mAbilities = ABILITY_WALK;
     mScaleZombie = 0.8f;
     if (!IsOnBoard())
     {
