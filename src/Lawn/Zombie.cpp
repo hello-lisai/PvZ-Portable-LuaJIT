@@ -5973,6 +5973,11 @@ void Zombie::UpdateReanimShakeAndScale(Reanimation* aBodyReanim, float& anOffset
     {
         anOffsetY += 20.0f - mScaleZombie * 20.0f;
     }
+    // BackupDancer/Dancer 的 mScaleZombie=0.8，同样需要 scale 补偿，否则渲染位置偏下
+    if ((mZombieType == ZombieType::ZOMBIE_DANCER || mZombieType == ZombieType::ZOMBIE_BACKUP_DANCER) && mScaleZombie < 1.0f)
+    {
+        anOffsetY += 20.0f - mScaleZombie * 20.0f;
+    }
 }
 
 // 镜像处理（Dancer/BackupDancer）— 提取自 UpdateReanim
