@@ -6607,13 +6607,6 @@ void Zombie::GetDrawPos(ZombieDrawPosition& theDrawPos)
     case ZombieType::ZOMBIE_BOBSLED:
         theDrawPos.mImageOffsetY -= 12.0f;
         break;
-    // DANCER/BACKUP_DANCER 的 mScaleZombie=0.8，SetPosition 的 Y 公式
-    // (anOffsetY + 120 - mScaleZombie*120) 会向下偏移 24px，缺少 FOOTBALL 的
-    // -16px mImageOffsetY 补偿导致渲染位置偏下。应用相同补偿抵消大部分偏移。
-    case ZombieType::ZOMBIE_DANCER:
-    case ZombieType::ZOMBIE_BACKUP_DANCER:
-        theDrawPos.mImageOffsetY -= 16.0f;
-        break;
     default:
         break;
     }
