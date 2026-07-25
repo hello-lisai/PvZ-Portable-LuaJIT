@@ -5973,11 +5973,6 @@ void Zombie::UpdateReanimShakeAndScale(Reanimation* aBodyReanim, float& anOffset
     {
         anOffsetY += 20.0f - mScaleZombie * 20.0f;
     }
-    // BackupDancer/Dancer 的 mScaleZombie=0.8，同样需要 scale 补偿，否则渲染位置偏下
-    if ((mZombieType == ZombieType::ZOMBIE_DANCER || mZombieType == ZombieType::ZOMBIE_BACKUP_DANCER) && mScaleZombie < 1.0f)
-    {
-        anOffsetY += 20.0f - mScaleZombie * 20.0f;
-    }
 }
 
 // 镜像处理（Dancer/BackupDancer）— 提取自 UpdateReanim
@@ -6611,6 +6606,13 @@ void Zombie::GetDrawPos(ZombieDrawPosition& theDrawPos)
         break;
     case ZombieType::ZOMBIE_BOBSLED:
         theDrawPos.mImageOffsetY -= 12.0f;
+        break;
+    // DANCER/BACKUP_DANCER 的 mScaleZombie=0.8，SetPosition 的 Y 公式
+    // (anOffsetY + 120 - mScaleZombie*120) 会向下偏移 24px，缺少 FOOTBALL 的
+    // -16px mImageOffsetY 补偿导致渲染位置偏下。应用相同补偿抵消大部分偏移。
+    case ZombieType::ZOMBIE_DANCER:
+    case ZombieType::ZOMBIE_BACKUP_DANCER:
+        theDrawPos.mImageOffsetY -= 16.0f;
         break;
     default:
         break;
