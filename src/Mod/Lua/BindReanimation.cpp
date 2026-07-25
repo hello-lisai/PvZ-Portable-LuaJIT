@@ -153,6 +153,17 @@ int l_reanim_set_position(lua_State* L) {
     return 0;
 }
 
+// reanim:get_position() -> x, y —— 读取当前动画渲染位置
+// 引擎在 UpdateReanim 中通过 SetPosition 设置，mod 可在 on_board_update_post
+// 中读取后调整偏移（如自定义僵尸继承基础类型的渲染偏移）
+int l_reanim_get_position(lua_State* L) {
+    Reanimation* r = CheckUserdata<Reanimation>(L, 1, MT_REANIMATION);
+    if (!r) { lua_pushnil(L); lua_pushnil(L); return 2; }
+    lua_pushnumber(L, r->mOverlayMatrix.m02);
+    lua_pushnumber(L, r->mOverlayMatrix.m12);
+    return 2;
+}
+
 // reanim:override_scale(scale_x, scale_y) —— 覆盖动画整体缩放
 int l_reanim_override_scale(lua_State* L) {
     Reanimation* r = CheckUserdata<Reanimation>(L, 1, MT_REANIMATION);
@@ -280,6 +291,7 @@ int l_reanim_index(lua_State* L) {
         {"is_anim_playing",               l_reanim_is_anim_playing},
         {"track_exists",                  l_reanim_track_exists},
         {"set_position",                  l_reanim_set_position},
+        {"get_position",                  l_reanim_get_position},
         {"override_scale",                l_reanim_override_scale},
         {"find_sub_reanim",               l_reanim_find_sub_reanim},
         {"set_image_override",            l_reanim_set_image_override},
