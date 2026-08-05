@@ -1699,6 +1699,15 @@ void Board::InitLevel()
 	}
 	// 关卡玩法相关的初始化
 	mChallenge->InitLevel();
+
+	// Mod API: 关卡初始化完成事件
+	// 在 InitLevel 末尾触发，早于 CutScene（戴夫对话、选卡界面），
+	// 让 mod 能在戴夫对话前设置自定义背景等
+	if (ModBus::HasListenersFor(ModEvent::ON_LEVEL_INIT_POST)) {
+		ModCtx _ctx = MakeCtx(ModEvent::ON_LEVEL_INIT_POST);
+		_ctx.app = gLawnApp; _ctx.board = this;
+		ModBus::Fire(ModEvent::ON_LEVEL_INIT_POST, _ctx);
+	}
 }
 
 Reanimation* Board::CreateRakeReanim(float theRakeX, float theRakeY, int theRenderOrder)
@@ -1781,13 +1790,6 @@ void Board::InitLawnMowers()
 			aLawnMower->LawnMowerInitialize(aRow);
 			aLawnMower->mVisible = false;
 		}
-	}
-
-	// Mod API: 关卡初始化完成事件
-	if (ModBus::HasListenersFor(ModEvent::ON_LEVEL_INIT_POST)) {
-		ModCtx _ctx = MakeCtx(ModEvent::ON_LEVEL_INIT_POST);
-		_ctx.app = gLawnApp; _ctx.board = this;
-		ModBus::Fire(ModEvent::ON_LEVEL_INIT_POST, _ctx);
 	}
 }
 

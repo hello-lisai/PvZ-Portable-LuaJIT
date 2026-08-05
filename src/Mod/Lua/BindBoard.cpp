@@ -1,6 +1,8 @@
 #include "LuaBindUtil.h"
 #include "../../Lawn/Board.h"
 #include "../../Lawn/SeedPacket.h"
+#include "../../Lawn/GridItem.h"
+#include "../../Lawn/Zombie.h"
 #include "../../LawnApp.h"
 #include "../../Resources.h"            // IMAGE_SEEDBANK（set_seed_packet 更新 SeedBank 宽度）
 #include "../../SexyAppFramework/graphics/MemoryImage.h"
@@ -14,6 +16,7 @@ void PushZombie(lua_State* L, Zombie* z);
 void PushPlant(lua_State* L, Plant* p);
 void PushProjectile(lua_State* L, Projectile* p);
 void PushCoin(lua_State* L, Coin* c);
+void PushGridItem(lua_State* L, GridItem* g);
 
 namespace {
 
@@ -554,6 +557,96 @@ int l_board_clear_background_image(lua_State* L) {
     return 0;
 }
 
+// ===== 场地控制 API =====
+
+// board:add_crater(grid_x, grid_y) — 在指定格子创建弹坑（阻止种植，类似末日蘑菇爆炸后的坑）
+int l_board_add_crater(lua_State* L) {
+    Board* b = CheckUserdata<Board>(L, 1, MT_BOARD);
+    if (!b) return 0;
+    int gx = static_cast<int>(luaL_checkinteger(L, 2));
+    int gy = static_cast<int>(luaL_checkinteger(L, 3));
+    GridItem* crater = b->AddACrater(gx, gy);
+    PushGridItem(L, crater);
+    return 1;
+}
+
+// board:remove_crater(grid_x, grid_y) — 移除指定格子的弹坑
+int l_board_remove_crater(lua_State* L) {
+    Board* b = CheckUserdata<Board>(L, 1, MT_BOARD);
+    if (!b) return 0;
+    int gx = static_cast<int>(luaL_checkinteger(L, 2));
+    int gy = static_cast<int>(luaL_checkinteger(L, 3));
+    GridItem* crater = b->GetCraterAt(gx, gy);
+    if (crater) {
+        crater->GridItemDie();
+        lua_pushboolean(L, 1);
+    } else {
+        lua_pushboolean(L, 0);
+    }
+    return 1;
+}
+
+// board:add_gravestone(grid_x, grid_y) — 在指定格子创建墓碑（阻止种植，可被墓碑吞噬者清除）
+int l_board_add_gravestone(lua_State* L) {
+    Board* b = CheckUserdata<Board>(L, 1, MT_BOARD);
+    if (!b) return 0;
+    int gx = static_cast<int>(luaL_checkinteger(L, 2));
+    int gy = static_cast<int>(luaL_checkinteger(L, 3));
+    GridItem* grave = b->AddAGraveStone(gx, gy);
+    PushGridItem(L, grave);
+    return 1;
+}
+
+// board:bungee_drop_zombie(zombie_type, grid_x, grid_y) — 蹦极僵尸空降指定僵尸到指定位置
+// 效果与蹦极僵尸关（Bungee Blitz）相同：蹦极僵尸从天而降，将指定僵尸放在目标格子
+int l_board_bungee_drop_zombie(lua_State* L) {
+    Board* b = CheckUserdata<Board>(L, 1, MT_BOARD);
+    if (!b) return 0;
+    ZombieType zt = static_cast<ZombieType>(luaL_checkinteger(L, 2));
+    int gx = static_cast<int>(luaL_checkinteger(L, 3));
+    int gy = static_cast<int>(luaL_checkinteger(L, 4));
+
+    Zombie* aBungee = b->AddZombie(ZombieType::ZOMBIE_BUNGEE, b->mCurrentWave);
+    Zombie* aDropped = b->AddZombie(zt, b->mCurrentWave);
+    if (aBungee && aDropped) {
+        aBungee->BungeeDropZombie(aDropped, gx, gy);
+    }
+    PushZombie(L, aDropped);
+    return 1;
+}
+
+// board:spawn_zombie_at(zombie_type, grid_x, grid_y) — 在指定格子直接生成僵尸（无蹦极动画）
+// 僵尸会出现在指定格子的像素坐标，适合墓碑冒僵尸等场景
+int l_board_spawn_zombie_at(lua_State* L) {
+    Board* b = CheckUserdata<Board>(L, 1, MT_BOARD);
+    if (!b) return 0;
+    ZombieType zt = static_cast<ZombieType>(luaL_checkinteger(L, 2));
+    int gx = static_cast<int>(luaL_checkinteger(L, 3));
+    int gy = static_cast<int>(luaL_checkinteger(L, 4));
+
+    Zombie* z = b->AddZombieInRow(zt, gy, b->mCurrentWave);
+    if (z) {
+        // 设置到指定格子的 X 坐标
+        z->mPosX = b->GridToPixelX(gx, gy);
+        z->mPosY = b->GridToPixelY(gx, gy);
+    }
+    PushZombie(L, z);
+    return 1;
+}
+
+// board:can_plant_at(grid_x, grid_y, seed_type) -> bool — 查询能否在指定格子种植指定植物
+int l_board_can_plant_at(lua_State* L) {
+    Board* b = CheckUserdata<Board>(L, 1, MT_BOARD);
+    if (!b) return 0;
+    int gx = static_cast<int>(luaL_checkinteger(L, 2));
+    int gy = static_cast<int>(luaL_checkinteger(L, 3));
+    SeedType st = static_cast<SeedType>(luaL_checkinteger(L, 4));
+    PlantingReason reason = b->CanPlantAt(gx, gy, st);
+    lua_pushboolean(L, reason == PlantingReason::PLANTING_OK);
+    return 1;
+}
+
+
 // board:__index 分发
 int l_board_index(lua_State* L) {
     Board* b = CheckUserdata<Board>(L, 1, MT_BOARD);
@@ -609,6 +702,13 @@ int l_board_index(lua_State* L) {
         // 自定义背景图片
         {"set_background_image",       l_board_set_background_image},
         {"clear_background_image",     l_board_clear_background_image},
+        // 场地控制
+        {"add_crater",                 l_board_add_crater},
+        {"remove_crater",              l_board_remove_crater},
+        {"add_gravestone",             l_board_add_gravestone},
+        {"bungee_drop_zombie",         l_board_bungee_drop_zombie},
+        {"spawn_zombie_at",            l_board_spawn_zombie_at},
+        {"can_plant_at",               l_board_can_plant_at},
     };
     for (auto& m : methods) {
         if (strcmp(key, m.name) == 0) {
