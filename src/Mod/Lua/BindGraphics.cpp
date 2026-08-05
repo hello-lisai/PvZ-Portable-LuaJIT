@@ -13,6 +13,7 @@
 #include "../../SexyAppFramework/graphics/SysFont.h"  // SysFont (stb_truetype)
 #include "../../Sexy.TodLib/TodCommon.h"  // TodDrawString
 #include "../../Resources.h"              // FONT_* / IMAGE_* 全局指针
+#include "../../LawnApp.h"                // gLawnApp（pvz.create_sys_font 需要）
 
 #include <cstring>
 
