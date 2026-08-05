@@ -2495,6 +2495,26 @@ void LawnApp::RemoveParticle(ParticleSystemID theParticleID)
 
 bool LawnApp::AdvanceCrazyDaveText()
 {
+	// === Mod API: ON_CRAZY_DAVE_ADVANCE —— 允许 mod 控制对话推进 ===
+	if (ModBus::HasListenersFor(ModEvent::ON_CRAZY_DAVE_ADVANCE))
+	{
+		ModCtx _ctx = MakeCtx(ModEvent::ON_CRAZY_DAVE_ADVANCE);
+		_ctx.app = this;
+		_ctx.daveMessageIndex = mCrazyDaveMessageIndex;
+		ModBus::Fire(ModEvent::ON_CRAZY_DAVE_ADVANCE, _ctx);
+		if (_ctx.daveEndDialog)
+		{
+			return false;  // mod 要求结束对话
+		}
+		if (_ctx.daveNextIndex >= 0)
+		{
+			CrazyDaveTalkIndex(_ctx.daveNextIndex);
+			return true;
+		}
+		// mod 没有覆盖，继续用原版逻辑
+	}
+
+	// === 原版逻辑 ===
 	std::string aMessageName = StrFormat("[CRAZY_DAVE_%d]", mCrazyDaveMessageIndex + 1);
 	if (!TodStringListExists(aMessageName))
 	{
@@ -2507,6 +2527,20 @@ bool LawnApp::AdvanceCrazyDaveText()
 
 std::string LawnApp::GetCrazyDaveText(int theMessageIndex)
 {
+	// === Mod API: ON_CRAZY_DAVE_GET_TEXT —— 允许 mod 覆盖戴夫对话文本 ===
+	if (ModBus::HasListenersFor(ModEvent::ON_CRAZY_DAVE_GET_TEXT))
+	{
+		ModCtx _ctx = MakeCtx(ModEvent::ON_CRAZY_DAVE_GET_TEXT);
+		_ctx.app = this;
+		_ctx.daveMessageIndex = theMessageIndex;
+		ModBus::Fire(ModEvent::ON_CRAZY_DAVE_GET_TEXT, _ctx);
+		if (_ctx.daveTextOverridden)
+		{
+			return _ctx.daveTextOverride;
+		}
+	}
+
+	// === 原版逻辑 ===
 	std::string aMessage = StrFormat("[CRAZY_DAVE_%d]", theMessageIndex);
 	aMessage = TodReplaceString(aMessage, "{PLAYER_NAME}", mPlayerInfo->mName);
 	aMessage = TodReplaceString(aMessage, "{MONEY}", GetMoneyString(mPlayerInfo->mCoins));

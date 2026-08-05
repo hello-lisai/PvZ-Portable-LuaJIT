@@ -29,6 +29,7 @@
 #include "LawnMower.h"
 #include "SeedPacket.h"
 #include "../LawnApp.h"
+#include "../Mod/ModBus.h"  // Mod API: ON_CRAZY_DAVE_DIALOG_START hook
 #include "System/Music.h"
 #include "../Resources.h"
 #include "MessageWidget.h"
@@ -917,6 +918,26 @@ void CutScene::StartLevelIntro()
 			mBoard->mStoreButton->mBtnNoDraw = true;
 		}
 	}
+
+	// === Mod API: ON_CRAZY_DAVE_DIALOG_START —— 允许 mod 覆盖戴夫起始对话索引或跳过 ===
+	if (ModBus::HasListenersFor(ModEvent::ON_CRAZY_DAVE_DIALOG_START))
+	{
+		ModCtx _ctx = MakeCtx(ModEvent::ON_CRAZY_DAVE_DIALOG_START);
+		_ctx.app = mApp;
+		_ctx.board = mBoard;
+		_ctx.level = mBoard->mLevel;
+		_ctx.daveDialogStart = mCrazyDaveDialogStart;
+		ModBus::Fire(ModEvent::ON_CRAZY_DAVE_DIALOG_START, _ctx);
+		if (_ctx.daveSkipDialog)
+		{
+			mCrazyDaveDialogStart = -1;
+		}
+		else if (_ctx.daveDialogStart != -1)
+		{
+			mCrazyDaveDialogStart = _ctx.daveDialogStart;
+		}
+	}
+
 	if (mCrazyDaveDialogStart != -1)
 	{
 		mCrazyDaveTime = TimeEarlyDaveLeaveEnd - TimePanRightStart;

@@ -39,6 +39,7 @@
 // 对象绑定（在各自 Bind*.cpp 中实现）
 namespace ModLua {
     void BindBoard(lua_State* L);
+    void BindApp(lua_State* L);   // LawnApp（戴夫对话控制）
     void BindZombie(lua_State* L);
     void BindPlant(lua_State* L);
     void BindProjectile(lua_State* L);
@@ -158,6 +159,9 @@ const char* EventToLuaName(ModEvent e) {
     case ModEvent::ON_MOUSE_UP_PRE:            return "on_mouse_up";
     case ModEvent::ON_SUN_CHANGED:             return "on_sun_changed";
     case ModEvent::ON_BOARD_DRAW_HUD:          return "on_board_draw_hud";
+    case ModEvent::ON_CRAZY_DAVE_DIALOG_START: return "on_crazy_dave_dialog_start";
+    case ModEvent::ON_CRAZY_DAVE_GET_TEXT:     return "on_crazy_dave_get_text";
+    case ModEvent::ON_CRAZY_DAVE_ADVANCE:      return "on_crazy_dave_advance";
     default: return nullptr;
     }
 }
@@ -1313,6 +1317,7 @@ void Initialize() {
 
     // 注册全局 pvz 表 + 各对象绑定
     BindEnums(g_L);
+    BindApp(g_L);
     BindBoard(g_L);
     BindZombie(g_L);
     BindPlant(g_L);
@@ -1776,6 +1781,24 @@ void DispatchEvent(ModCtx& ctx) {
             PushGraphics(g_L, static_cast<Graphics*>(ctx.graphics));
             nargs = 2;
             break;
+        case ModEvent::ON_CRAZY_DAVE_DIALOG_START:
+            // 参数：level, game_mode, dialog_start
+            // game_mode 取自 ctx.app->mGameMode（GameMode 枚举值）
+            lua_pushinteger(g_L, ctx.level);
+            lua_pushinteger(g_L, ctx.app ? static_cast<lua_Integer>(ctx.app->mGameMode) : 0);
+            lua_pushinteger(g_L, ctx.daveDialogStart);
+            nargs = 3;
+            break;
+        case ModEvent::ON_CRAZY_DAVE_GET_TEXT:
+            // 参数：message_index
+            lua_pushinteger(g_L, ctx.daveMessageIndex);
+            nargs = 1;
+            break;
+        case ModEvent::ON_CRAZY_DAVE_ADVANCE:
+            // 参数：message_index
+            lua_pushinteger(g_L, ctx.daveMessageIndex);
+            nargs = 1;
+            break;
         default:
             nargs = 0;
             break;
@@ -1931,6 +1954,46 @@ void DispatchEvent(ModCtx& ctx) {
                     }
                 }
                 lua_pop(g_L, 1);  // 弹出 hide_from_preview
+            }
+
+            // ON_CRAZY_DAVE_DIALOG_START: 返回 {dialog_start=N} 覆盖起始索引，或 {skip=true} 跳过戴夫
+            if (ctx.event == ModEvent::ON_CRAZY_DAVE_DIALOG_START) {
+                lua_getfield(g_L, retIdx, "skip");
+                if (lua_toboolean(g_L, -1)) ctx.daveSkipDialog = true;
+                lua_pop(g_L, 1);
+
+                lua_getfield(g_L, retIdx, "dialog_start");
+                if (lua_isinteger(g_L, -1)) {
+                    ctx.daveDialogStart = static_cast<int32_t>(lua_tointeger(g_L, -1));
+                }
+                lua_pop(g_L, 1);
+            }
+
+            // ON_CRAZY_DAVE_GET_TEXT: 返回 {text="..."} 覆盖戴夫对话文本
+            if (ctx.event == ModEvent::ON_CRAZY_DAVE_GET_TEXT) {
+                lua_getfield(g_L, retIdx, "text");
+                if (lua_isstring(g_L, -1)) {
+                    size_t len = 0;
+                    const char* s = lua_tolstring(g_L, -1, &len);
+                    if (s) {
+                        ctx.daveTextOverride.assign(s, len);
+                        ctx.daveTextOverridden = true;
+                    }
+                }
+                lua_pop(g_L, 1);
+            }
+
+            // ON_CRAZY_DAVE_ADVANCE: 返回 {next_index=N} 指定下一条，或 {end_dialog=true} 结束对话
+            if (ctx.event == ModEvent::ON_CRAZY_DAVE_ADVANCE) {
+                lua_getfield(g_L, retIdx, "end_dialog");
+                if (lua_toboolean(g_L, -1)) ctx.daveEndDialog = true;
+                lua_pop(g_L, 1);
+
+                lua_getfield(g_L, retIdx, "next_index");
+                if (lua_isinteger(g_L, -1)) {
+                    ctx.daveNextIndex = static_cast<int32_t>(lua_tointeger(g_L, -1));
+                }
+                lua_pop(g_L, 1);
             }
         }
         lua_pop(g_L, 1); // 弹出返回值

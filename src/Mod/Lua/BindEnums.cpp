@@ -205,6 +205,20 @@ void BindEnums(lua_State* L) {
     RegisterEnum(L, background_types, sizeof(background_types)/sizeof(background_types[0]));
     lua_setfield(L, -2, "BackgroundType");
 
+    // === CrazyDaveState ===
+    lua_newtable(L);
+    static const EnumEntry dave_states[] = {
+        {"OFF",             static_cast<lua_Integer>(CrazyDaveState::CRAZY_DAVE_OFF)},
+        {"ENTERING",        static_cast<lua_Integer>(CrazyDaveState::CRAZY_DAVE_ENTERING)},
+        {"LEAVING",         static_cast<lua_Integer>(CrazyDaveState::CRAZY_DAVE_LEAVING)},
+        {"IDLING",          static_cast<lua_Integer>(CrazyDaveState::CRAZY_DAVE_IDLING)},
+        {"TALKING",         static_cast<lua_Integer>(CrazyDaveState::CRAZY_DAVE_TALKING)},
+        {"HANDING_TALKING", static_cast<lua_Integer>(CrazyDaveState::CRAZY_DAVE_HANDING_TALKING)},
+        {"HANDING_IDLING",  static_cast<lua_Integer>(CrazyDaveState::CRAZY_DAVE_HANDING_IDLING)},
+    };
+    RegisterEnum(L, dave_states, sizeof(dave_states)/sizeof(dave_states[0]));
+    lua_setfield(L, -2, "CrazyDaveState");
+
     // 设置全局 pvz 表
     lua_setglobal(L, "pvz");
 }

@@ -81,6 +81,15 @@ struct ModCtx {
     bool        useAppendWaves      = false;   // true = 有追加数据需要应用
     ZombieType  appendWaves[MAX_CUSTOM_WAVES][MAX_CUSTOM_PER_WAVE];
     int32_t     appendWaveLengths[MAX_CUSTOM_WAVES];
+
+    // ====== 戴夫对话事件 (ON_CRAZY_DAVE_*) ======
+    int32_t     daveMessageIndex  = 0;      // 当前消息索引
+    int32_t     daveDialogStart   = -1;     // ON_CRAZY_DAVE_DIALOG_START: 原版起始索引（mod 可覆盖）
+    bool        daveSkipDialog    = false;  // ON_CRAZY_DAVE_DIALOG_START: mod 要求跳过戴夫
+    std::string daveTextOverride;           // ON_CRAZY_DAVE_GET_TEXT: mod 提供的自定义文本
+    bool        daveTextOverridden = false; // ON_CRAZY_DAVE_GET_TEXT: mod 是否提供了自定义文本
+    int32_t     daveNextIndex     = -1;     // ON_CRAZY_DAVE_ADVANCE: mod 指定的下一条索引
+    bool        daveEndDialog     = false;  // ON_CRAZY_DAVE_ADVANCE: mod 要求结束对话
 };
 
 // 可拦截事件的便捷构造

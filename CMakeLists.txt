@@ -71,6 +71,7 @@ if(PVZ_MOD_API)
 		${CMAKE_CURRENT_SOURCE_DIR}/src/Mod/ModBus.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/src/Mod/Lua/LuaRuntime.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/src/Mod/Lua/BindEnums.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/src/Mod/Lua/BindApp.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/src/Mod/Lua/BindBoard.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/src/Mod/Lua/BindZombie.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/src/Mod/Lua/BindPlant.cpp

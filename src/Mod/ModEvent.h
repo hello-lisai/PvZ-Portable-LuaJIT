@@ -73,6 +73,11 @@ enum class ModEvent : int32_t {
     // ====== 绘制（只读 POST 事件，mod 可在 HUD 上画自定义内容）======
     ON_BOARD_DRAW_HUD,          // Board::DrawUITop 末尾，ctx.graphics 指向 Graphics*
 
+    // ====== 疯狂戴夫对话 ======
+    ON_CRAZY_DAVE_DIALOG_START, // CutScene 决定 mCrazyDaveDialogStart 时，mod 可覆盖起始索引或跳过
+    ON_CRAZY_DAVE_GET_TEXT,     // GetCrazyDaveText 被调用时，mod 可覆盖文本
+    ON_CRAZY_DAVE_ADVANCE,      // AdvanceCrazyDaveText 被调用时，mod 可控制下一条或结束
+
     // 事件总数（用于静态数组大小）
     COUNT,
 };
@@ -121,6 +126,9 @@ inline const char* ModEventName(ModEvent e) {
     case ModEvent::ON_MOUSE_UP_PRE:            return "ON_MOUSE_UP_PRE";
     case ModEvent::ON_SUN_CHANGED:             return "ON_SUN_CHANGED";
     case ModEvent::ON_BOARD_DRAW_HUD:          return "ON_BOARD_DRAW_HUD";
+    case ModEvent::ON_CRAZY_DAVE_DIALOG_START: return "ON_CRAZY_DAVE_DIALOG_START";
+    case ModEvent::ON_CRAZY_DAVE_GET_TEXT:     return "ON_CRAZY_DAVE_GET_TEXT";
+    case ModEvent::ON_CRAZY_DAVE_ADVANCE:      return "ON_CRAZY_DAVE_ADVANCE";
     default: return "UNKNOWN";
     }
 }
