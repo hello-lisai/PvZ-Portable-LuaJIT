@@ -169,6 +169,7 @@ public:
 	int32_t							mShakeAmountX;
 	int32_t							mShakeAmountY;
 	BackgroundType					mBackground;
+	Image*							mCustomBackgroundImage = nullptr;  // Mod API: 自定义背景图片（非 null 时覆盖原版背景）
 	int32_t							mLevel;
 	int32_t							mSodPosition;
 	int32_t							mPrevMouseX;
