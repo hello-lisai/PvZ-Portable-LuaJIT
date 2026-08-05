@@ -1,5 +1,6 @@
 #include "LuaBindUtil.h"
 #include "../../Lawn/Zombie.h"
+#include "../../Lawn/Board.h"            // Board::MakeRenderOrder
 #include "../../Sexy.TodLib/Reanimator.h"
 #include "../../LawnApp.h"
 
@@ -286,6 +287,37 @@ int l_zombie_reanim_show_track(lua_State* L) {
     return 0;
 }
 
+// zombie:rise_from_grave(frames?)
+// 让僵尸从地下升起（冒土效果 + 延迟出现），与原版墓碑冒僵尸机制一致
+//   frames: 可选 int, 升起动画帧数（默认150，约2.5秒@60fps）
+// 调用后僵尸立即隐藏在地下，期间播放冒土粒子+音效，frames帧后完全升起并可行动
+// 例：zombie:rise_from_grave()        -- 默认150帧
+//     zombie:rise_from_grave(300)     -- 慢速升起，5秒
+int l_zombie_rise_from_grave(lua_State* L) {
+    Zombie* z = CheckUserdata<Zombie>(L, 1, MT_ZOMBIE);
+    if (!z) return 0;
+    int frames = static_cast<int>(luaL_optinteger(L, 2, 150));
+
+    // 冒土粒子效果（与 Zombie::RiseFromGraveOnLand 一致）
+    Board* b = z->mBoard;
+    if (b) {
+        int aParticleX = static_cast<int>(z->mPosX) + 60;
+        int aParticleY = static_cast<int>(z->mPosY) + 110;
+        if (z->IsOnHighGround()) {
+            aParticleY -= HIGH_GROUND_HEIGHT;
+        }
+        int aRenderOrder = Board::MakeRenderOrder(RenderLayer::RENDER_LAYER_PARTICLE, z->mRow, 0);
+        gLawnApp->AddTodParticle(aParticleX, aParticleY, aRenderOrder, ParticleEffect::PARTICLE_ZOMBIE_RISE);
+        gLawnApp->PlayFoley(FoleyType::FOLEY_GRAVESTONE_RUMBLE);
+    }
+
+    // 设置从墓碑升起的状态（与 Zombie::RiseFromGrave 一致）
+    z->mZombiePhase = ZombiePhase::PHASE_RISING_FROM_GRAVE;
+    z->mPhaseCounter = frames;
+    z->mAltitude = CLIP_HEIGHT_OFF;
+    return 0;
+}
+
 // zombie:__index
 int l_zombie_index(lua_State* L) {
     Zombie* z = CheckUserdata<Zombie>(L, 1, MT_ZOMBIE);
@@ -331,6 +363,7 @@ int l_zombie_index(lua_State* L) {
         {"play_zombie_reanim",  l_zombie_play_zombie_reanim},
         {"reanim_show_prefix",  l_zombie_reanim_show_prefix},
         {"reanim_show_track",   l_zombie_reanim_show_track},
+        {"rise_from_grave",     l_zombie_rise_from_grave},
     };
     for (auto& m : methods) {
         if (strcmp(key, m.name) == 0) {

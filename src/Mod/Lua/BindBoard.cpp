@@ -639,40 +639,19 @@ int l_board_bungee_drop_zombie(lua_State* L) {
     return 1;
 }
 
-// board:spawn_zombie_at(zombie_type, grid_x, grid_y, with_rise_effect?) — 在指定格子直接生成僵尸
-// with_rise_effect: 可选 bool, true 时显示冒土效果并从地下升起（与墓碑冒僵尸相同），默认 false
+// board:spawn_zombie_at(zombie_type, grid_x, grid_y) — 在指定格子直接生成僵尸（无动画）
+// 如需冒土效果，调用返回的 zombie 对象的 rise_from_grave() 方法
 int l_board_spawn_zombie_at(lua_State* L) {
     Board* b = CheckUserdata<Board>(L, 1, MT_BOARD);
     if (!b) return 0;
     ZombieType zt = static_cast<ZombieType>(luaL_checkinteger(L, 2));
     int gx = static_cast<int>(luaL_checkinteger(L, 3));
     int gy = static_cast<int>(luaL_checkinteger(L, 4));
-    bool withRise = lua_toboolean(L, 5) != 0;
 
     Zombie* z = b->AddZombieInRow(zt, gy, b->mCurrentWave);
     if (z) {
         z->mPosX = b->GridToPixelX(gx, gy);
         z->mPosY = b->GridToPixelY(gx, gy);
-
-        if (withRise) {
-            // 冒土效果（与 Zombie::RiseFromGraveOnLand 一致）
-            int aParticleX = static_cast<int>(z->mPosX) + 60;
-            int aParticleY = static_cast<int>(z->mPosY) + 110;
-            if (z->IsOnHighGround()) {
-                aParticleY -= HIGH_GROUND_HEIGHT;
-            }
-            int aRenderOrder = Board::MakeRenderOrder(RenderLayer::RENDER_LAYER_PARTICLE, gy, 0);
-            gLawnApp->AddTodParticle(aParticleX, aParticleY, aRenderOrder, ParticleEffect::PARTICLE_ZOMBIE_RISE);
-            gLawnApp->PlayFoley(FoleyType::FOLEY_GRAVESTONE_RUMBLE);
-
-            // 设置从墓碑升起的状态（与 Zombie::RiseFromGrave 一致）
-            // 僵尸先隐藏在地下(mAltitude=-200), 然后用 150 帧(约2.5秒@60fps)逐渐升起
-            // 期间 mPhaseCounter 每帧由 Zombie::Update 递减, UpdateZombieRiseFromGrave 处理升起动画
-            // mPhaseCounter==0 时切换到 PHASE_ZOMBIE_NORMAL, 僵尸完全可见并可行动
-            z->mZombiePhase = ZombiePhase::PHASE_RISING_FROM_GRAVE;
-            z->mPhaseCounter = 150;
-            z->mAltitude = CLIP_HEIGHT_OFF;  // -200, 完全隐藏在地下
-        }
     }
     PushZombie(L, z);
     return 1;
