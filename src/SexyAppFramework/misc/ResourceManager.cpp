@@ -29,7 +29,7 @@
 #include "graphics/GLImage.h"
 #include "graphics/GLInterface.h"
 #include "graphics/ImageFont.h"
-//#include "graphics/SysFont.h"
+#include "graphics/SysFont.h"
 #include "imagelib/ImageLib.h"
 #include "../../Sexy.TodLib/TodCommon.h"
 //#define SEXY_PERF_ENABLED
@@ -829,9 +829,18 @@ bool ResourceManager::DoLoadFont(FontRes* theRes)
 
 	if (theRes->mSysFont)
 	{
-		// System fonts not supported
+		// SysFont: 基于 stb_truetype 的矢量字体，从 TTF/OTF 文件加载
+		// theRes->mPath 已去掉 "!sys:" 前缀，是 TTF 文件路径
+		SysFont* aSysFont = new SysFont(mApp, theRes->mPath, theRes->mSize,
+			theRes->mBold, theRes->mItalic, theRes->mShadow, theRes->mUnderline);
+		if (!aSysFont->IsValid())
+		{
+			delete aSysFont;
+			return Fail(StrFormat("Failed to load SysFont: %s", theRes->mPath.c_str()));
+		}
+		aFont = aSysFont;
 	}
-	else if (theRes->mImagePath.empty())	
+	else if (theRes->mImagePath.empty())
 	{
 		if (strncmp(theRes->mPath.c_str(),"!ref:",5)==0)
 		{

@@ -10,6 +10,7 @@
 #include "../../SexyAppFramework/graphics/Graphics.h"
 #include "../../SexyAppFramework/graphics/Image.h"
 #include "../../SexyAppFramework/graphics/Font.h"
+#include "../../SexyAppFramework/graphics/SysFont.h"  // SysFont (stb_truetype)
 #include "../../Sexy.TodLib/TodCommon.h"  // TodDrawString
 #include "../../Resources.h"              // FONT_* / IMAGE_* 全局指针
 
@@ -158,10 +159,19 @@ int l_gfx_set_color(lua_State* L) {
 }
 
 // g:set_font(font)
+// font 可以是 ImageFont（MT_FONT，全局指针，不 GC）或 SysFont（MT_SYSFONT，mod 创建，带 __gc）
 int l_gfx_set_font(lua_State* L) {
     Graphics* g = CheckGfx(L, 1); if (!g) return 0;
-    _Font** pp = static_cast<_Font**>(luaL_checkudata(L, 2, MT_FONT));
-    if (!pp || !*pp) return 0;
+    // 先尝试 MT_FONT（ImageFont）
+    _Font** pp = static_cast<_Font**>(luaL_testudata(L, 2, MT_FONT));
+    if (!pp) {
+        // 再尝试 MT_SYSFONT（SysFont）
+        pp = static_cast<_Font**>(luaL_testudata(L, 2, MT_SYSFONT));
+    }
+    if (!pp || !*pp) {
+        luaL_error(L, "expected Font or SysFont");
+        return 0;
+    }
     g->SetFont(*pp);
     return 0;
 }
@@ -284,6 +294,45 @@ int l_font_get_line_spacing(lua_State* L) {
     return 1;
 }
 
+// pvz.create_sys_font(ttf_path, size, bold?, italic?, shadow?, underline?) -> Font userdata
+// 创建基于 stb_truetype 的矢量字体，支持任意 Unicode 字符（含中文）
+// ttf_path: 相对资源目录的 TTF 文件路径（如 "fonts/SourceHanSansCN.ttf"）
+// 返回的 Font userdata 可传给 g:set_font(font) 使用
+// 注意：返回的字体由 Lua GC 管理（通过 __gc 元方法），mod 应保持引用避免提前释放
+int l_create_sys_font(lua_State* L) {
+    extern LawnApp* gLawnApp;  // 来自 LawnApp.h
+    if (!gLawnApp) { lua_pushnil(L); return 1; }
+
+    const char* path = luaL_checkstring(L, 1);
+    int size = static_cast<int>(luaL_checkinteger(L, 2));
+    bool bold = lua_toboolean(L, 3) != 0;
+    bool italic = lua_toboolean(L, 4) != 0;
+    bool shadow = lua_toboolean(L, 5) != 0;
+    bool underline = lua_toboolean(L, 6) != 0;
+
+    SysFont* font = new SysFont(gLawnApp, path, size, bold, italic, shadow, underline);
+    if (!font->IsValid())
+    {
+        delete font;
+        lua_pushnil(L);
+        return 1;
+    }
+    // 用 MT_SYSFONT 元表（带 __gc），方法与 MT_FONT 相同
+    NewUserdata(L, font, MT_SYSFONT);
+    return 1;
+}
+
+// SysFont 的 __gc：释放 mod 创建的矢量字体
+int l_sysfont_gc(lua_State* L) {
+    _Font** pp = static_cast<_Font**>(luaL_testudata(L, 1, MT_SYSFONT));
+    if (pp && *pp)
+    {
+        delete *pp;
+        *pp = nullptr;
+    }
+    return 0;
+}
+
 // ====== Graphics __index 分发 ======
 
 int l_gfx_index(lua_State* L) {
@@ -355,6 +404,21 @@ void BindGraphics(lua_State* L) {
 
     CreateMetatable(L, MT_FONT);
     SetFuncField(L, "__index", l_font_index);
+    lua_pop(L, 1);
+
+    // SysFont 元表：与 MT_FONT 方法相同（复用 l_font_index），但带 __gc 释放
+    CreateMetatable(L, MT_SYSFONT);
+    SetFuncField(L, "__index", l_font_index);
+    SetFuncField(L, "__gc", l_sysfont_gc);
+    lua_pop(L, 1);
+
+    // pvz.create_sys_font(path, size, ...) -> Font userdata
+    // 创建基于 stb_truetype 的矢量字体（支持中文），与 ImageFont 并存
+    lua_getglobal(L, "pvz");
+    if (lua_istable(L, -1)) {
+        lua_pushcfunction(L, l_create_sys_font);
+        lua_setfield(L, -2, "create_sys_font");
+    }
     lua_pop(L, 1);
 }
 

@@ -119,3 +119,4 @@ inline void RegisterEnum(lua_State* L, const EnumEntry* entries, size_t count) {
 #define MT_FONT        "PvZ.Font"
 #define MT_REANIMATION "PvZ.Reanimation"
 #define MT_APP         "PvZ.App"
+#define MT_SYSFONT     "PvZ.SysFont"  // SysFont: mod 创建的矢量字体，带 __gc 释放
