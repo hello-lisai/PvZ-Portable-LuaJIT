@@ -301,8 +301,8 @@ int l_font_get_line_spacing(lua_State* L) {
 // 返回的 Font userdata 可传给 g:set_font(font) 使用
 // 注意：返回的字体由 Lua GC 管理（通过 __gc 元方法），mod 应保持引用避免提前释放
 int l_create_sys_font(lua_State* L) {
-    extern LawnApp* gLawnApp;  // 来自 LawnApp.h
-    if (!gLawnApp) { lua_pushnil(L); return 1; }
+    // gLawnApp 来自 LawnApp.h 的全局声明（::gLawnApp）
+    if (!::gLawnApp) { lua_pushnil(L); return 1; }
 
     const char* path = luaL_checkstring(L, 1);
     int size = static_cast<int>(luaL_checkinteger(L, 2));
@@ -311,7 +311,7 @@ int l_create_sys_font(lua_State* L) {
     bool shadow = lua_toboolean(L, 5) != 0;
     bool underline = lua_toboolean(L, 6) != 0;
 
-    SysFont* font = new SysFont(gLawnApp, path, size, bold, italic, shadow, underline);
+    SysFont* font = new SysFont(::gLawnApp, path, size, bold, italic, shadow, underline);
     if (!font->IsValid())
     {
         delete font;
