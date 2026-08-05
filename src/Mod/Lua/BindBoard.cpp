@@ -579,6 +579,11 @@ int l_board_add_crater(lua_State* L) {
     int gx = static_cast<int>(luaL_checkinteger(L, 2));
     int gy = static_cast<int>(luaL_checkinteger(L, 3));
     GridItem* crater = b->AddACrater(gx, gy);
+    if (crater) {
+        // AddACrater 不设置 mGridItemCounter（默认0），Board::Update 会在 counter==0 时 GridItemDie
+        // 原版 Plant.cpp 调用后手动设置为 18000（约5分钟@60fps），这里保持一致
+        crater->mGridItemCounter = 18000;
+    }
     PushGridItem(L, crater);
     return 1;
 }
@@ -606,6 +611,12 @@ int l_board_add_gravestone(lua_State* L) {
     int gx = static_cast<int>(luaL_checkinteger(L, 2));
     int gy = static_cast<int>(luaL_checkinteger(L, 3));
     GridItem* grave = b->AddAGraveStone(gx, gy);
+    if (grave) {
+        // AddAGraveStone 设置 mGridItemCounter = -Rand(50)（负数），DrawGraveStone 在 counter<=0 时不绘制
+        // 原版靠 Board::Update 在 mEnableGraveStones==true 时递增，但非夜间关卡该标志为 false
+        // 直接设置为 100（完全升起状态），跳过升起动画，立即可见
+        grave->mGridItemCounter = 100;
+    }
     PushGridItem(L, grave);
     return 1;
 }
