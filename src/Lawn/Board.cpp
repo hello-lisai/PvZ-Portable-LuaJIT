@@ -235,6 +235,12 @@ Board::Board(LawnApp* theApp)
 
 Board::~Board()
 {
+	// Mod API: 释放自定义背景图片
+	if (mCustomBackgroundImage)
+	{
+		delete mCustomBackgroundImage;
+		mCustomBackgroundImage = nullptr;
+	}
 	delete mAdvice;
 	delete mCursorObject;
 	delete mCursorPreview;
@@ -6235,6 +6241,10 @@ void Board::DrawBackdrop(Graphics* g)
 	case BackgroundType::BACKGROUND_TREEOFWISDOM:		aBgImage = nullptr;										break;
 	default:											TOD_ASSERT(false);											break;
 	}
+
+	// Mod API: 自定义背景图片覆盖原版背景
+	if (mCustomBackgroundImage)
+		aBgImage = mCustomBackgroundImage;
 
 	if (mLevel == 1 && mApp->IsFirstTimeAdventureMode())
 	{
