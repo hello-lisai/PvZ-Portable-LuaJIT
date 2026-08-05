@@ -27,6 +27,8 @@
 #include "../SeedPacket.h"
 #include "../../LawnApp.h"
 #include "AlmanacDialog.h"
+#include "../../Mod/ModBus.h"
+#include "../../Mod/Lua/LuaRuntime.h"
 #include "ImitaterDialog.h"
 #include "../System/Music.h"
 #include "../../Resources.h"
@@ -368,7 +370,10 @@ unsigned int SeedChooserScreen::SeedNotRecommendedToPick(SeedType theSeedType)
 
 bool SeedChooserScreen::SeedNotAllowedToPick(SeedType theSeedType)
 {
-	return mApp->mGameMode == GAMEMODE_CHALLENGE_LAST_STAND && (theSeedType == SEED_SUNFLOWER || theSeedType == SEED_SUNSHROOM || 
+	// Mod API: mod 禁用的植物不可选（通过 board:disable_seed 设置）
+	if (ModLua::IsSeedDisabled(static_cast<int>(theSeedType)))
+		return true;
+	return mApp->mGameMode == GAMEMODE_CHALLENGE_LAST_STAND && (theSeedType == SEED_SUNFLOWER || theSeedType == SEED_SUNSHROOM ||
 		theSeedType == SEED_TWINSUNFLOWER || theSeedType == SEED_SEASHROOM || theSeedType == SEED_PUFFSHROOM);
 }
 

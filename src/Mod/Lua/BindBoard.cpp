@@ -9,6 +9,7 @@
 #include "../../SexyAppFramework/imagelib/ImageLib.h"
 #include <cstdio>
 #include <cstring>
+#include <unordered_set>
 
 namespace ModLua {
 
@@ -17,6 +18,18 @@ void PushPlant(lua_State* L, Plant* p);
 void PushProjectile(lua_State* L, Projectile* p);
 void PushCoin(lua_State* L, Coin* c);
 void PushGridItem(lua_State* L, GridItem* g);
+
+// 植物禁用列表：mod 通过 board:disable_seed 设置，选卡界面通过 IsSeedDisabled 查询
+// 在 Board::InitLevel 中调用 ClearDisabledSeeds 清空，防止跨关卡残留
+static std::unordered_set<int> g_disabledSeeds;
+
+bool IsSeedDisabled(int seedType) {
+    return g_disabledSeeds.count(seedType) > 0;
+}
+
+void ClearDisabledSeeds() {
+    g_disabledSeeds.clear();
+}
 
 namespace {
 
@@ -646,6 +659,31 @@ int l_board_can_plant_at(lua_State* L) {
     return 1;
 }
 
+// ===== 植物禁用 API =====
+
+// board:disable_seed(seed_type) — 禁用某植物（选卡界面灰显且不可选）
+int l_board_disable_seed(lua_State* L) {
+    CheckUserdata<Board>(L, 1, MT_BOARD);
+    int st = static_cast<int>(luaL_checkinteger(L, 2));
+    g_disabledSeeds.insert(st);
+    return 0;
+}
+
+// board:enable_seed(seed_type) — 解禁某植物
+int l_board_enable_seed(lua_State* L) {
+    CheckUserdata<Board>(L, 1, MT_BOARD);
+    int st = static_cast<int>(luaL_checkinteger(L, 2));
+    g_disabledSeeds.erase(st);
+    return 0;
+}
+
+// board:clear_disabled_seeds() — 清空所有禁用植物
+int l_board_clear_disabled_seeds(lua_State* L) {
+    CheckUserdata<Board>(L, 1, MT_BOARD);
+    g_disabledSeeds.clear();
+    return 0;
+}
+
 
 // board:__index 分发
 int l_board_index(lua_State* L) {
@@ -709,6 +747,10 @@ int l_board_index(lua_State* L) {
         {"bungee_drop_zombie",         l_board_bungee_drop_zombie},
         {"spawn_zombie_at",            l_board_spawn_zombie_at},
         {"can_plant_at",               l_board_can_plant_at},
+        // 植物禁用
+        {"disable_seed",               l_board_disable_seed},
+        {"enable_seed",                l_board_enable_seed},
+        {"clear_disabled_seeds",       l_board_clear_disabled_seeds},
     };
     for (auto& m : methods) {
         if (strcmp(key, m.name) == 0) {

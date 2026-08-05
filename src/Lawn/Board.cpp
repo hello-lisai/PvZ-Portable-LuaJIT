@@ -61,6 +61,7 @@
 
 // Mod API 间谍层（PVZ_MOD_API_ENABLED 时编译为实际调用，否则为空宏）
 #include "../Mod/ModBus.h"
+#include "../Mod/Lua/LuaRuntime.h"  // ModLua::ClearDisabledSeeds
 
 bool gShownMoreSunTutorial = false;
 
@@ -1488,6 +1489,7 @@ void Board::InitLevel()
 	mSodPosition = 0;
 	mPrevBoardResult = mApp->mBoardResult;
 	mWavesPerFlagOverride = 0;  // Mod API: 重置旗帜间隔覆盖，防止跨关卡残留
+	ModLua::ClearDisabledSeeds();  // Mod API: 清空禁用植物列表，防止跨关卡残留
 	
 	GameMode aGameMode = mApp->mGameMode;
 	if (aGameMode != GameMode::GAMEMODE_TREE_OF_WISDOM && aGameMode != GameMode::GAMEMODE_CHALLENGE_ZEN_GARDEN)

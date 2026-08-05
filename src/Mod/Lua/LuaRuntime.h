@@ -51,4 +51,8 @@ struct ModInfo {
 };
 const std::vector<ModInfo>& GetLoadedMods();
 
+// 植物禁用列表（mod 通过 board:disable_seed 设置，选卡界面查询）
+bool IsSeedDisabled(int seedType);
+void ClearDisabledSeeds();
+
 } // namespace ModLua
