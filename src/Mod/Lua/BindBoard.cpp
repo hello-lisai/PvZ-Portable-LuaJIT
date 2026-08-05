@@ -3,6 +3,9 @@
 #include "../../Lawn/SeedPacket.h"
 #include "../../LawnApp.h"
 #include "../../Resources.h"            // IMAGE_SEEDBANK（set_seed_packet 更新 SeedBank 宽度）
+#include "../../SexyAppFramework/graphics/MemoryImage.h"
+#include "../../SexyAppFramework/imagelib/ImageLib.h"
+#include <cstring>
 
 namespace ModLua {
 
@@ -486,6 +489,59 @@ int l_board_get_ptr(lua_State* L) {
     return 1;
 }
 
+// board:set_background_image(image_path) — 加载图片文件并设为自定义背景
+// image_path: 相对资源目录的图片路径（如 "images/my_bg.png"），支持 mod overlay
+// 传入 nil 或空字符串则清除自定义背景，恢复原版
+// 图片在关卡退出时自动释放
+int l_board_set_background_image(lua_State* L) {
+    Board* b = CheckUserdata<Board>(L, 1, MT_BOARD);
+    if (!b) return 0;
+
+    // 释放旧的自定义背景
+    if (b->mCustomBackgroundImage) {
+        delete b->mCustomBackgroundImage;
+        b->mCustomBackgroundImage = nullptr;
+    }
+
+    // nil 或空字符串：清除自定义背景
+    if (lua_isnil(L, 2) || (lua_isstring(L, 2) && lua_tostring(L, 2)[0] == '\0')) {
+        return 0;
+    }
+
+    const char* path = luaL_checkstring(L, 2);
+
+    // 用 ImageLib 加载图片文件（支持 PNG/JPG/GIF/TGA，通过 PakInterface 支持 mod overlay）
+    ImageLib::Image* srcImg = ImageLib::GetImage(path, false);
+    if (!srcImg) {
+        luaL_error(L, "failed to load background image: %s", path);
+        return 0;
+    }
+
+    // 创建 MemoryImage 并拷贝像素数据
+    MemoryImage* memImg = new MemoryImage(gLawnApp);
+    memImg->Create(srcImg->mWidth, srcImg->mHeight);
+    uint32_t* bits = memImg->GetBits();
+    if (srcImg->mBits) {
+        std::memcpy(bits, srcImg->mBits, sizeof(uint32_t) * srcImg->mWidth * srcImg->mHeight);
+    }
+    memImg->BitsChanged();
+    delete srcImg;
+
+    b->mCustomBackgroundImage = memImg;
+    return 0;
+}
+
+// board:clear_background_image() — 清除自定义背景，恢复原版
+int l_board_clear_background_image(lua_State* L) {
+    Board* b = CheckUserdata<Board>(L, 1, MT_BOARD);
+    if (!b) return 0;
+    if (b->mCustomBackgroundImage) {
+        delete b->mCustomBackgroundImage;
+        b->mCustomBackgroundImage = nullptr;
+    }
+    return 0;
+}
+
 // board:__index 分发
 int l_board_index(lua_State* L) {
     Board* b = CheckUserdata<Board>(L, 1, MT_BOARD);
@@ -538,6 +594,9 @@ int l_board_index(lua_State* L) {
         {"is_puzzle",                  l_board_is_puzzle},
         {"is_final_boss",              l_board_is_final_boss},
         {"is_first_time_adventure",    l_board_is_first_time_adventure},
+        // 自定义背景图片
+        {"set_background_image",       l_board_set_background_image},
+        {"clear_background_image",     l_board_clear_background_image},
     };
     for (auto& m : methods) {
         if (strcmp(key, m.name) == 0) {
