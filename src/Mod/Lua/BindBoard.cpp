@@ -61,6 +61,16 @@ int l_board_get_num_waves(lua_State* L) {
     return 1;
 }
 
+// board.game_mode —— 当前游戏模式（GameMode 枚举值）
+// 用于判断关卡类型：冒险模式、生存模式、挑战模式（如 POGO_PARTY）等
+// mod 中可用 pvz.GameMode.POGO_PARTY 等常量进行比较
+int l_board_get_game_mode(lua_State* L) {
+    Board* b = CheckUserdata<Board>(L, 1, MT_BOARD);
+    if (!b || !b->mApp) { lua_pushinteger(L, 0); return 1; }
+    lua_pushinteger(L, static_cast<lua_Integer>(b->mApp->mGameMode));
+    return 1;
+}
+
 // board.paused
 int l_board_get_paused(lua_State* L) {
     Board* b = CheckUserdata<Board>(L, 1, MT_BOARD);
@@ -322,6 +332,7 @@ int l_board_index(lua_State* L) {
     if (strcmp(key, "frame") == 0)       return l_board_get_frame(L);
     if (strcmp(key, "wave") == 0)        return l_board_get_wave(L);
     if (strcmp(key, "num_waves") == 0)   return l_board_get_num_waves(L);
+    if (strcmp(key, "game_mode") == 0)   return l_board_get_game_mode(L);
     if (strcmp(key, "paused") == 0)      return l_board_get_paused(L);
 
     // 方法（push C 闭包）

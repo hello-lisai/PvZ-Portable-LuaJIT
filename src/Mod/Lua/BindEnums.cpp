@@ -150,6 +150,44 @@ void BindEnums(lua_State* L) {
     RegisterEnum(L, ability_flags, sizeof(ability_flags)/sizeof(ability_flags[0]));
     lua_setfield(L, -2, "ZombieAbility");
 
+    // === GameMode ===
+    lua_newtable(L);
+    static const EnumEntry game_modes[] = {
+        {"ADVENTURE",                 static_cast<lua_Integer>(GameMode::GAMEMODE_ADVENTURE)},
+        {"CHALLENGE_POGO_PARTY",      static_cast<lua_Integer>(GameMode::GAMEMODE_CHALLENGE_POGO_PARTY)},
+        {"CHALLENGE_LAST_STAND",      static_cast<lua_Integer>(GameMode::GAMEMODE_CHALLENGE_LAST_STAND)},
+        {"CHALLENGE_WHACK_A_ZOMBIE",  static_cast<lua_Integer>(GameMode::GAMEMODE_CHALLENGE_WHACK_A_ZOMBIE)},
+        {"CHALLENGE_WALLNUT_BOWLING", static_cast<lua_Integer>(GameMode::GAMEMODE_CHALLENGE_WALLNUT_BOWLING)},
+        {"CHALLENGE_BUNGEE_BLITZ",    static_cast<lua_Integer>(GameMode::GAMEMODE_CHALLENGE_BUNGEE_BLITZ)},
+        {"CHALLENGE_FINAL_BOSS",      static_cast<lua_Integer>(GameMode::GAMEMODE_CHALLENGE_FINAL_BOSS)},
+        {"CHALLENGE_SLOT_MACHINE",    static_cast<lua_Integer>(GameMode::GAMEMODE_CHALLENGE_SLOT_MACHINE)},
+        {"CHALLENGE_SEEING_STARS",    static_cast<lua_Integer>(GameMode::GAMEMODE_CHALLENGE_SEEING_STARS)},
+        {"CHALLENGE_PORTAL_COMBAT",   static_cast<lua_Integer>(GameMode::GAMEMODE_CHALLENGE_PORTAL_COMBAT)},
+        {"CHALLENGE_BOBSLED_BONANZA", static_cast<lua_Integer>(GameMode::GAMEMODE_CHALLENGE_BOBSLED_BONANZA)},
+        {"CHALLENGE_SPEED",           static_cast<lua_Integer>(GameMode::GAMEMODE_CHALLENGE_SPEED)},
+        {"CHALLENGE_COLUMN",          static_cast<lua_Integer>(GameMode::GAMEMODE_CHALLENGE_COLUMN)},
+        {"CHALLENGE_ZOMBIQUARIUM",    static_cast<lua_Integer>(GameMode::GAMEMODE_CHALLENGE_ZOMBIQUARIUM)},
+        {"CHALLENGE_LITTLE_TROUBLE",  static_cast<lua_Integer>(GameMode::GAMEMODE_CHALLENGE_LITTLE_TROUBLE)},
+        {"CHALLENGE_INVISIGHOUL",     static_cast<lua_Integer>(GameMode::GAMEMODE_CHALLENGE_INVISIGHOUL)},
+        {"CHALLENGE_BEGHOULED",       static_cast<lua_Integer>(GameMode::GAMEMODE_CHALLENGE_BEGHOULED)},
+        {"CHALLENGE_BEGHOULED_TWIST", static_cast<lua_Integer>(GameMode::GAMEMODE_CHALLENGE_BEGHOULED_TWIST)},
+        {"CHALLENGE_RAINING_SEEDS",   static_cast<lua_Integer>(GameMode::GAMEMODE_CHALLENGE_RAINING_SEEDS)},
+        {"CHALLENGE_WAR_AND_PEAS",    static_cast<lua_Integer>(GameMode::GAMEMODE_CHALLENGE_WAR_AND_PEAS)},
+        {"CHALLENGE_WAR_AND_PEAS_2",  static_cast<lua_Integer>(GameMode::GAMEMODE_CHALLENGE_WAR_AND_PEAS_2)},
+        {"CHALLENGE_AIR_RAID",        static_cast<lua_Integer>(GameMode::GAMEMODE_CHALLENGE_AIR_RAID)},
+        {"CHALLENGE_HIGH_GRAVITY",    static_cast<lua_Integer>(GameMode::GAMEMODE_CHALLENGE_HIGH_GRAVITY)},
+        {"CHALLENGE_GRAVE_DANGER",    static_cast<lua_Integer>(GameMode::GAMEMODE_CHALLENGE_GRAVE_DANGER)},
+        {"CHALLENGE_SHOVEL",          static_cast<lua_Integer>(GameMode::GAMEMODE_CHALLENGE_SHOVEL)},
+        {"CHALLENGE_STORMY_NIGHT",    static_cast<lua_Integer>(GameMode::GAMEMODE_CHALLENGE_STORMY_NIGHT)},
+        {"CHALLENGE_WALLNUT_BOWLING_2", static_cast<lua_Integer>(GameMode::GAMEMODE_CHALLENGE_WALLNUT_BOWLING_2)},
+        {"CHALLENGE_ICE",             static_cast<lua_Integer>(GameMode::GAMEMODE_CHALLENGE_ICE)},
+        {"CHALLENGE_SUNNY_DAY",       static_cast<lua_Integer>(GameMode::GAMEMODE_CHALLENGE_SUNNY_DAY)},
+        {"CHALLENGE_RESODDED",        static_cast<lua_Integer>(GameMode::GAMEMODE_CHALLENGE_RESODDED)},
+        {"CHALLENGE_BIG_TIME",        static_cast<lua_Integer>(GameMode::GAMEMODE_CHALLENGE_BIG_TIME)},
+    };
+    RegisterEnum(L, game_modes, sizeof(game_modes)/sizeof(game_modes[0]));
+    lua_setfield(L, -2, "GameMode");
+
     // 设置全局 pvz 表
     lua_setglobal(L, "pvz");
 }
