@@ -188,6 +188,23 @@ void BindEnums(lua_State* L) {
     RegisterEnum(L, game_modes, sizeof(game_modes)/sizeof(game_modes[0]));
     lua_setfield(L, -2, "GameMode");
 
+    // === BackgroundType ===
+    lua_newtable(L);
+    static const EnumEntry background_types[] = {
+        {"BACKGROUND_1_DAY",            static_cast<lua_Integer>(BackgroundType::BACKGROUND_1_DAY)},
+        {"BACKGROUND_2_NIGHT",          static_cast<lua_Integer>(BackgroundType::BACKGROUND_2_NIGHT)},
+        {"BACKGROUND_3_POOL",           static_cast<lua_Integer>(BackgroundType::BACKGROUND_3_POOL)},
+        {"BACKGROUND_4_FOG",            static_cast<lua_Integer>(BackgroundType::BACKGROUND_4_FOG)},
+        {"BACKGROUND_5_ROOF",           static_cast<lua_Integer>(BackgroundType::BACKGROUND_5_ROOF)},
+        {"BACKGROUND_6_BOSS",           static_cast<lua_Integer>(BackgroundType::BACKGROUND_6_BOSS)},
+        {"BACKGROUND_MUSHROOM_GARDEN",  static_cast<lua_Integer>(BackgroundType::BACKGROUND_MUSHROOM_GARDEN)},
+        {"BACKGROUND_GREENHOUSE",       static_cast<lua_Integer>(BackgroundType::BACKGROUND_GREENHOUSE)},
+        {"BACKGROUND_ZOMBIQUARIUM",     static_cast<lua_Integer>(BackgroundType::BACKGROUND_ZOMBIQUARIUM)},
+        {"BACKGROUND_TREEOFWISDOM",     static_cast<lua_Integer>(BackgroundType::BACKGROUND_TREEOFWISDOM)},
+    };
+    RegisterEnum(L, background_types, sizeof(background_types)/sizeof(background_types[0]));
+    lua_setfield(L, -2, "BackgroundType");
+
     // 设置全局 pvz 表
     lua_setglobal(L, "pvz");
 }

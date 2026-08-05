@@ -85,7 +85,173 @@ int l_board_set_paused(lua_State* L) {
     return 0;
 }
 
+// board.background —— 关卡背景类型（BackgroundType 枚举值）
+// 用于判断关卡场景：白天/黑夜/泳池/雾/屋顶/Boss 等
+// mod 中可用 pvz.BackgroundType.BACKGROUND_1_DAY 等常量进行比较
+int l_board_get_background(lua_State* L) {
+    Board* b = CheckUserdata<Board>(L, 1, MT_BOARD);
+    if (!b) return 0;
+    lua_pushinteger(L, static_cast<lua_Integer>(b->mBackground));
+    return 1;
+}
+int l_board_set_background(lua_State* L) {
+    Board* b = CheckUserdata<Board>(L, 1, MT_BOARD);
+    if (!b) return 0;
+    b->mBackground = static_cast<BackgroundType>(luaL_checkinteger(L, 2));
+    return 0;
+}
+
+// board.waves_per_flag —— 每多少波一个旗帜（0=用原版默认逻辑）
+// mod 可设置此值控制旗帜 UI 的数量和分布
+// 例：设为 8 时，32 波会有 4 面旗帜（第8/16/24/32波）
+int l_board_get_waves_per_flag(lua_State* L) {
+    Board* b = CheckUserdata<Board>(L, 1, MT_BOARD);
+    if (!b) return 0;
+    lua_pushinteger(L, b->mWavesPerFlagOverride);
+    return 1;
+}
+int l_board_set_waves_per_flag(lua_State* L) {
+    Board* b = CheckUserdata<Board>(L, 1, MT_BOARD);
+    if (!b) return 0;
+    b->mWavesPerFlagOverride = static_cast<int32_t>(luaL_checkinteger(L, 2));
+    return 0;
+}
+
+// board.num_waves_per_flag —— 当前生效的每多少波一个旗帜（只读）
+// 返回 GetNumWavesPerFlag() 的结果（考虑 override 后的实际值）
+int l_board_get_num_waves_per_flag(lua_State* L) {
+    Board* b = CheckUserdata<Board>(L, 1, MT_BOARD);
+    if (!b) return 0;
+    lua_pushinteger(L, b->GetNumWavesPerFlag());
+    return 1;
+}
+
+// board.progress_meter_width —— 进度条宽度（0-150，只读）
+// 反映当前关卡进度，用于自定义 HUD 绘制
+int l_board_get_progress_meter_width(lua_State* L) {
+    Board* b = CheckUserdata<Board>(L, 1, MT_BOARD);
+    if (!b) return 0;
+    lua_pushinteger(L, b->mProgressMeterWidth);
+    return 1;
+}
+
+// board.zombie_count_down —— 下一波僵尸生成倒计时（读写）
+// mod 可修改此值控制僵尸生成节奏
+int l_board_get_zombie_count_down(lua_State* L) {
+    Board* b = CheckUserdata<Board>(L, 1, MT_BOARD);
+    if (!b) return 0;
+    lua_pushinteger(L, b->mZombieCountDown);
+    return 1;
+}
+int l_board_set_zombie_count_down(lua_State* L) {
+    Board* b = CheckUserdata<Board>(L, 1, MT_BOARD);
+    if (!b) return 0;
+    b->mZombieCountDown = static_cast<int32_t>(luaL_checkinteger(L, 2));
+    return 0;
+}
+
+// board.huge_wave_count_down —— 大波僵尸倒计时（读写）
+// 旗帜波前的"巨大浪潮"倒计时
+int l_board_get_huge_wave_count_down(lua_State* L) {
+    Board* b = CheckUserdata<Board>(L, 1, MT_BOARD);
+    if (!b) return 0;
+    lua_pushinteger(L, b->mHugeWaveCountDown);
+    return 1;
+}
+int l_board_set_huge_wave_count_down(lua_State* L) {
+    Board* b = CheckUserdata<Board>(L, 1, MT_BOARD);
+    if (!b) return 0;
+    b->mHugeWaveCountDown = static_cast<int32_t>(luaL_checkinteger(L, 2));
+    return 0;
+}
+
+// board.total_spawned_waves —— 已生成的总波数（只读）
+int l_board_get_total_spawned_waves(lua_State* L) {
+    Board* b = CheckUserdata<Board>(L, 1, MT_BOARD);
+    if (!b) return 0;
+    lua_pushinteger(L, b->mTotalSpawnedWaves);
+    return 1;
+}
+
 // === Board 方法 ===
+
+// board:is_flag_wave(wave) -> bool —— 判断指定波次是否是旗帜波
+int l_board_is_flag_wave(lua_State* L) {
+    Board* b = CheckUserdata<Board>(L, 1, MT_BOARD);
+    if (!b) { lua_pushboolean(L, 0); return 1; }
+    int wave = static_cast<int>(luaL_checkinteger(L, 2));
+    lua_pushboolean(L, b->IsFlagWave(wave) ? 1 : 0);
+    return 1;
+}
+
+// board:has_progress_meter() -> bool —— 是否显示进度条
+int l_board_has_progress_meter(lua_State* L) {
+    Board* b = CheckUserdata<Board>(L, 1, MT_BOARD);
+    if (!b) { lua_pushboolean(L, 0); return 1; }
+    lua_pushboolean(L, b->HasProgressMeter() ? 1 : 0);
+    return 1;
+}
+
+// board:get_survival_flags_completed() -> int —— 生存模式已完成的旗帜数
+int l_board_get_survival_flags_completed(lua_State* L) {
+    Board* b = CheckUserdata<Board>(L, 1, MT_BOARD);
+    if (!b) { lua_pushinteger(L, 0); return 1; }
+    lua_pushinteger(L, b->GetSurvivalFlagsCompleted());
+    return 1;
+}
+
+// === 关卡类型判断便捷方法 ===
+// 这些方法封装了常见的 game_mode 判断，避免 mod 重复写枚举比较
+
+// board:is_adventure() -> bool
+int l_board_is_adventure(lua_State* L) {
+    Board* b = CheckUserdata<Board>(L, 1, MT_BOARD);
+    if (!b || !b->mApp) { lua_pushboolean(L, 0); return 1; }
+    lua_pushboolean(L, b->mApp->IsAdventureMode() ? 1 : 0);
+    return 1;
+}
+
+// board:is_survival() -> bool
+int l_board_is_survival(lua_State* L) {
+    Board* b = CheckUserdata<Board>(L, 1, MT_BOARD);
+    if (!b || !b->mApp) { lua_pushboolean(L, 0); return 1; }
+    lua_pushboolean(L, b->mApp->IsSurvivalMode() ? 1 : 0);
+    return 1;
+}
+
+// board:is_challenge() -> bool —— 是否是挑战模式（迷你游戏）
+int l_board_is_challenge(lua_State* L) {
+    Board* b = CheckUserdata<Board>(L, 1, MT_BOARD);
+    if (!b || !b->mApp) { lua_pushboolean(L, 0); return 1; }
+    lua_pushboolean(L, b->mApp->IsChallengeMode() ? 1 : 0);
+    return 1;
+}
+
+// board:is_puzzle() -> bool —— 是否是解谜模式（砸罐/我僵尸）
+int l_board_is_puzzle(lua_State* L) {
+    Board* b = CheckUserdata<Board>(L, 1, MT_BOARD);
+    if (!b || !b->mApp) { lua_pushboolean(L, 0); return 1; }
+    lua_pushboolean(L, b->mApp->IsPuzzleMode() ? 1 : 0);
+    return 1;
+}
+
+// board:is_final_boss() -> bool
+int l_board_is_final_boss(lua_State* L) {
+    Board* b = CheckUserdata<Board>(L, 1, MT_BOARD);
+    if (!b || !b->mApp) { lua_pushboolean(L, 0); return 1; }
+    lua_pushboolean(L, b->mApp->IsFinalBossLevel() ? 1 : 0);
+    return 1;
+}
+
+// board:is_first_time_adventure() -> bool —— 是否是首次冒险模式（教程关）
+int l_board_is_first_time_adventure(lua_State* L) {
+    Board* b = CheckUserdata<Board>(L, 1, MT_BOARD);
+    if (!b || !b->mApp) { lua_pushboolean(L, 0); return 1; }
+    lua_pushboolean(L, b->mApp->IsFirstTimeAdventureMode() ? 1 : 0);
+    return 1;
+}
+
+// === Board 原有方法（add_sun 等）===
 
 // board:add_sun(amount)  -- 增加/减少阳光（正数加，负数扣）
 int l_board_add_sun(lua_State* L) {
@@ -327,33 +493,51 @@ int l_board_index(lua_State* L) {
     const char* key = luaL_checkstring(L, 2);
 
     // 属性
-    if (strcmp(key, "sun") == 0)         return l_board_get_sun(L);
-    if (strcmp(key, "level") == 0)       return l_board_get_level(L);
-    if (strcmp(key, "frame") == 0)       return l_board_get_frame(L);
-    if (strcmp(key, "wave") == 0)        return l_board_get_wave(L);
-    if (strcmp(key, "num_waves") == 0)   return l_board_get_num_waves(L);
-    if (strcmp(key, "game_mode") == 0)   return l_board_get_game_mode(L);
-    if (strcmp(key, "paused") == 0)      return l_board_get_paused(L);
+    if (strcmp(key, "sun") == 0)                  return l_board_get_sun(L);
+    if (strcmp(key, "level") == 0)                return l_board_get_level(L);
+    if (strcmp(key, "frame") == 0)                return l_board_get_frame(L);
+    if (strcmp(key, "wave") == 0)                 return l_board_get_wave(L);
+    if (strcmp(key, "num_waves") == 0)            return l_board_get_num_waves(L);
+    if (strcmp(key, "game_mode") == 0)            return l_board_get_game_mode(L);
+    if (strcmp(key, "paused") == 0)               return l_board_get_paused(L);
+    if (strcmp(key, "background") == 0)           return l_board_get_background(L);
+    if (strcmp(key, "waves_per_flag") == 0)       return l_board_get_waves_per_flag(L);
+    if (strcmp(key, "num_waves_per_flag") == 0)   return l_board_get_num_waves_per_flag(L);
+    if (strcmp(key, "progress_meter_width") == 0) return l_board_get_progress_meter_width(L);
+    if (strcmp(key, "zombie_count_down") == 0)    return l_board_get_zombie_count_down(L);
+    if (strcmp(key, "huge_wave_count_down") == 0) return l_board_get_huge_wave_count_down(L);
+    if (strcmp(key, "total_spawned_waves") == 0)  return l_board_get_total_spawned_waves(L);
 
     // 方法（push C 闭包）
     struct { const char* name; lua_CFunction fn; } methods[] = {
-        {"add_sun",               l_board_add_sun},
-        {"take_sun",              l_board_take_sun},
-        {"add_zombie",            l_board_add_zombie},
-        {"add_plant",             l_board_add_plant},
-        {"add_projectile",        l_board_add_projectile},
-        {"add_coin",              l_board_add_coin},
-        {"remove_all_zombies",    l_board_remove_all_zombies},
-        {"pause",                 l_board_pause},
-        {"grid_to_pixel",         l_board_grid_to_pixel},
-        {"for_each_zombie",       l_board_for_each_zombie},
-        {"for_each_plant",        l_board_for_each_plant},
-        {"for_each_projectile",   l_board_for_each_projectile},
-        {"get_ptr",               l_board_get_ptr},
-        {"for_each_coin",         l_board_for_each_coin},
-        {"count_zombies",         l_board_count_zombies},
-        {"count_plants",          l_board_count_plants},
-        {"set_seed_packet",       l_board_set_seed_packet},
+        {"add_sun",                    l_board_add_sun},
+        {"take_sun",                   l_board_take_sun},
+        {"add_zombie",                 l_board_add_zombie},
+        {"add_plant",                  l_board_add_plant},
+        {"add_projectile",             l_board_add_projectile},
+        {"add_coin",                   l_board_add_coin},
+        {"remove_all_zombies",         l_board_remove_all_zombies},
+        {"pause",                      l_board_pause},
+        {"grid_to_pixel",              l_board_grid_to_pixel},
+        {"for_each_zombie",            l_board_for_each_zombie},
+        {"for_each_plant",             l_board_for_each_plant},
+        {"for_each_projectile",        l_board_for_each_projectile},
+        {"get_ptr",                    l_board_get_ptr},
+        {"for_each_coin",              l_board_for_each_coin},
+        {"count_zombies",              l_board_count_zombies},
+        {"count_plants",               l_board_count_plants},
+        {"set_seed_packet",            l_board_set_seed_packet},
+        // 波次/进度条相关
+        {"is_flag_wave",               l_board_is_flag_wave},
+        {"has_progress_meter",         l_board_has_progress_meter},
+        {"get_survival_flags_completed", l_board_get_survival_flags_completed},
+        // 关卡类型判断
+        {"is_adventure",               l_board_is_adventure},
+        {"is_survival",                l_board_is_survival},
+        {"is_challenge",               l_board_is_challenge},
+        {"is_puzzle",                  l_board_is_puzzle},
+        {"is_final_boss",              l_board_is_final_boss},
+        {"is_first_time_adventure",    l_board_is_first_time_adventure},
     };
     for (auto& m : methods) {
         if (strcmp(key, m.name) == 0) {
@@ -376,6 +560,26 @@ int l_board_newindex(lua_State* L) {
     }
     if (strcmp(key, "paused") == 0) {
         b->mPaused = lua_toboolean(L, 3) != 0;
+        return 0;
+    }
+    if (strcmp(key, "background") == 0) {
+        b->mBackground = static_cast<BackgroundType>(luaL_checkinteger(L, 3));
+        return 0;
+    }
+    if (strcmp(key, "waves_per_flag") == 0) {
+        b->mWavesPerFlagOverride = static_cast<int32_t>(luaL_checkinteger(L, 3));
+        return 0;
+    }
+    if (strcmp(key, "num_waves") == 0) {
+        b->mNumWaves = static_cast<int32_t>(luaL_checkinteger(L, 3));
+        return 0;
+    }
+    if (strcmp(key, "zombie_count_down") == 0) {
+        b->mZombieCountDown = static_cast<int32_t>(luaL_checkinteger(L, 3));
+        return 0;
+    }
+    if (strcmp(key, "huge_wave_count_down") == 0) {
+        b->mHugeWaveCountDown = static_cast<int32_t>(luaL_checkinteger(L, 3));
         return 0;
     }
     return 0;
