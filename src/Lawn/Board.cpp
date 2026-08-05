@@ -557,6 +557,9 @@ void Board::AddGraveStones(int theGridX, int theCount, MTRand& theLevelRNG)
 
 int Board::GetNumWavesPerFlag()
 {
+	// Mod API: 如果 mod 设置了 override，优先使用
+	if (mWavesPerFlagOverride > 0)
+		return mWavesPerFlagOverride;
 	return (mApp->IsFirstTimeAdventureMode() && mNumWaves < 10) ? mNumWaves : 10;
 }
 
@@ -625,6 +628,8 @@ void Board::PickZombieWaves()
 		if (_ctx.useCustomWaves) {
 			// Mod 提供了完整的自定义波次表，直接覆盖 mZombiesInWave
 			mNumWaves = ClampInt(_ctx.customNumWaves, 0, MAX_ZOMBIE_WAVES);
+			// Mod API: 应用 mod 指定的每多少波一个旗帜（影响旗帜 UI 数量和分布）
+			mWavesPerFlagOverride = _ctx.wavesPerFlag;
 			for (int w = 0; w < mNumWaves; ++w) {
 				int len = ClampInt(_ctx.customWaveLengths[w], 0, MAX_ZOMBIES_IN_WAVE);
 				for (int i = 0; i < len; ++i) {
@@ -1476,6 +1481,7 @@ void Board::InitLevel()
 	mEnableGraveStones = false;
 	mSodPosition = 0;
 	mPrevBoardResult = mApp->mBoardResult;
+	mWavesPerFlagOverride = 0;  // Mod API: 重置旗帜间隔覆盖，防止跨关卡残留
 	
 	GameMode aGameMode = mApp->mGameMode;
 	if (aGameMode != GameMode::GAMEMODE_TREE_OF_WISDOM && aGameMode != GameMode::GAMEMODE_CHALLENGE_ZEN_GARDEN)

@@ -175,6 +175,7 @@ public:
 	int32_t							mPrevMouseY;
 	int32_t							mSunMoney;
 	int32_t							mNumWaves;
+	int32_t							mWavesPerFlagOverride = 0;  // Mod API: >0 时覆盖默认每多少波一个旗帜（0=用原版逻辑）
 	uint32_t						mMainCounter;
 	uint32_t						mEffectCounter;
 	uint32_t						mDrawCount;

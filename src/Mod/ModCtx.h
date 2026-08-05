@@ -66,6 +66,7 @@ struct ModCtx {
     // Mod 返回自定义出怪表时填这些字段，C++ 侧会用它替换默认 mZombiesInWave
     bool        useCustomWaves      = false;   // true = 用 customWaves 替换整张波次表
     int32_t     customNumWaves      = 0;       // 自定义总波数
+    int32_t     wavesPerFlag        = 0;       // >0 时覆盖默认每多少波一个旗帜（影响旗帜 UI 数量和分布）
     // customWaves[wave][i] = ZombieType，每波最多 MAX_ZOMBIES_IN_WAVE 个
     // 用静态数组避免堆分配（MAX_ZOMBIE_WAVES=100, MAX_ZOMBIES_IN_WAVE=50）
     static constexpr int MAX_CUSTOM_WAVES = 100;

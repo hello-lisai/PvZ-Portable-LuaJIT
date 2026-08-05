@@ -1825,6 +1825,15 @@ void DispatchEvent(ModCtx& ctx) {
                 }
                 lua_pop(g_L, 1);
 
+                // Mod API: 读取 waves_per_flag（可选），控制旗帜 UI 的数量和分布
+                // 例：32 波 + waves_per_flag=8 → 4 面旗帜（第8/16/24/32波）
+                lua_getfield(g_L, retIdx, "waves_per_flag");
+                if (lua_isinteger(g_L, -1)) {
+                    int wpf = static_cast<int>(lua_tointeger(g_L, -1));
+                    if (wpf > 0) ctx.wavesPerFlag = wpf;
+                }
+                lua_pop(g_L, 1);
+
                 lua_getfield(g_L, retIdx, "plan");
                 if (lua_istable(g_L, -1)) {
                     int planIdx = lua_absindex(g_L, -1);
