@@ -5,6 +5,7 @@
 #include "../../Resources.h"            // IMAGE_SEEDBANK（set_seed_packet 更新 SeedBank 宽度）
 #include "../../SexyAppFramework/graphics/MemoryImage.h"
 #include "../../SexyAppFramework/imagelib/ImageLib.h"
+#include <cstdio>
 #include <cstring>
 
 namespace ModLua {
@@ -505,17 +506,26 @@ int l_board_set_background_image(lua_State* L) {
 
     // nil 或空字符串：清除自定义背景
     if (lua_isnil(L, 2) || (lua_isstring(L, 2) && lua_tostring(L, 2)[0] == '\0')) {
+        std::fprintf(stdout, "[ModAPI] clear_background_image (nil/empty)\n");
+        std::fflush(stdout);
         return 0;
     }
 
     const char* path = luaL_checkstring(L, 2);
+    std::fprintf(stdout, "[ModAPI] set_background_image: path='%s'\n", path);
+    std::fflush(stdout);
 
     // 用 ImageLib 加载图片文件（支持 PNG/JPG/GIF/TGA，通过 PakInterface 支持 mod overlay）
     ImageLib::Image* srcImg = ImageLib::GetImage(path, false);
     if (!srcImg) {
+        std::fprintf(stdout, "[ModAPI] FAILED to load background image: %s\n", path);
+        std::fflush(stdout);
         luaL_error(L, "failed to load background image: %s", path);
         return 0;
     }
+
+    std::fprintf(stdout, "[ModAPI] background image loaded: %dx%d\n", srcImg->mWidth, srcImg->mHeight);
+    std::fflush(stdout);
 
     // 创建 MemoryImage 并拷贝像素数据
     MemoryImage* memImg = new MemoryImage(gLawnApp);
@@ -528,6 +538,8 @@ int l_board_set_background_image(lua_State* L) {
     delete srcImg;
 
     b->mCustomBackgroundImage = memImg;
+    std::fprintf(stdout, "[ModAPI] mCustomBackgroundImage set OK (ptr=%p)\n", (void*)memImg);
+    std::fflush(stdout);
     return 0;
 }
 

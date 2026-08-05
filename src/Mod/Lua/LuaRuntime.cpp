@@ -1162,6 +1162,8 @@ void LoadMod(lua_State* L, const std::string& modDir) {
     std::string manifestPath = modDir + "/mod.lua";
     if (!std::filesystem::exists(manifestPath)) {
         info.error = "mod.lua not found";
+        std::fprintf(stdout, "[ModLua] SKIP mod '%s': %s\n", modDir.c_str(), info.error.c_str());
+        std::fflush(stdout);
         g_mods.push_back(info);
         return;
     }
@@ -1172,6 +1174,8 @@ void LoadMod(lua_State* L, const std::string& modDir) {
 
     // 解析清单（结果在栈顶）
     if (!ParseManifest(L, manifestPath, info)) {
+        std::fprintf(stdout, "[ModLua] SKIP mod '%s': %s\n", modDir.c_str(), info.error.c_str());
+        std::fflush(stdout);
         g_mods.push_back(info);
         return;
     }
@@ -1215,6 +1219,8 @@ void LoadMod(lua_State* L, const std::string& modDir) {
     std::string content;
     if (!ReadFile(mainPath, content)) {
         info.error = "cannot read " + mainFile;
+        std::fprintf(stdout, "[ModLua] SKIP mod '%s': %s\n", info.name.c_str(), info.error.c_str());
+        std::fflush(stdout);
         g_mods.push_back(info);
         return;
     }
@@ -1234,17 +1240,23 @@ void LoadMod(lua_State* L, const std::string& modDir) {
         const char* err = lua_tostring(L, -1);
         info.error = std::string("load error: ") + (err ? err : "?");
         lua_pop(L, 1);
+        std::fprintf(stdout, "[ModLua] SKIP mod '%s': %s\n", info.name.c_str(), info.error.c_str());
+        std::fflush(stdout);
         g_mods.push_back(info);
         return;
     }
     if (!SafePCall(L, 0, 1)) {
         info.error = "runtime error in " + mainFile;
+        std::fprintf(stdout, "[ModLua] SKIP mod '%s': %s\n", info.name.c_str(), info.error.c_str());
+        std::fflush(stdout);
         g_mods.push_back(info);
         return;
     }
     if (!lua_istable(L, -1)) {
         info.error = mainFile + " must return a table";
         lua_pop(L, 1);
+        std::fprintf(stdout, "[ModLua] SKIP mod '%s': %s\n", info.name.c_str(), info.error.c_str());
+        std::fflush(stdout);
         g_mods.push_back(info);
         return;
     }
@@ -1272,6 +1284,7 @@ void LoadMod(lua_State* L, const std::string& modDir) {
 
     std::fprintf(stdout, "[ModLua] Loaded mod: %s v%s (%s)\n",
                  info.name.c_str(), info.version.c_str(), modDir.c_str());
+    std::fflush(stdout);
 }
 
 } // namespace
