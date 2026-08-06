@@ -9,15 +9,11 @@
 #include "LuaRuntime.h"
 #include <cstdio>
 #include <cstring>
-#include <unordered_map>
 
 namespace ModLua {
 
 // 在 BindReanimation.cpp 中定义，这里前向声明
 void PushReanimation(lua_State* L, Reanimation* r);
-
-// g_customChallengeIcons 在 BindBoard.cpp 中定义
-extern std::unordered_map<int, Sexy::Image*> g_customChallengeIcons;
 
 namespace {
 
@@ -51,12 +47,6 @@ int l_pvz_set_challenge_icon(lua_State* L) {
     int gameMode = static_cast<int>(luaL_checkinteger(L, 1));
     const char* path = luaL_checkstring(L, 2);
 
-    // 释放旧图标
-    auto it = g_customChallengeIcons.find(gameMode);
-    if (it != g_customChallengeIcons.end() && it->second) {
-        delete it->second;
-    }
-
     // 用 ImageLib 加载图片文件（支持 PNG/JPG/GIF/TGA，通过 PakInterface 支持 mod overlay）
     ImageLib::Image* srcImg = ImageLib::GetImage(path, false);
     if (!srcImg) {
@@ -74,7 +64,8 @@ int l_pvz_set_challenge_icon(lua_State* L) {
     memImg->BitsChanged();
     delete srcImg;
 
-    g_customChallengeIcons[gameMode] = memImg;
+    // 通过函数接口设置（SetCustomChallengeIcon 会自动释放旧图标）
+    SetCustomChallengeIcon(gameMode, memImg);
     return 0;
 }
 

@@ -41,6 +41,15 @@ Sexy::Image* GetCustomChallengeIcon(int theGameMode) {
     return (it != g_customChallengeIcons.end()) ? it->second : nullptr;
 }
 
+void SetCustomChallengeIcon(int theGameMode, Sexy::Image* theImage) {
+    // 释放旧图标
+    auto it = g_customChallengeIcons.find(theGameMode);
+    if (it != g_customChallengeIcons.end() && it->second) {
+        delete it->second;
+    }
+    g_customChallengeIcons[theGameMode] = theImage;
+}
+
 void ClearCustomChallengeIcons() {
     for (auto& pair : g_customChallengeIcons) {
         if (pair.second) {

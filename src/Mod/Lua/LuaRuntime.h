@@ -60,6 +60,7 @@ void ClearDisabledSeeds();
 // 返回 nullptr 表示无自定义图标，使用原版 IMAGE_CHALLENGE_THUMBNAILS
 // theGameMode: GameMode 枚举值
 Sexy::Image* GetCustomChallengeIcon(int theGameMode);
+void SetCustomChallengeIcon(int theGameMode, Sexy::Image* theImage);
 void ClearCustomChallengeIcons();
 
 } // namespace ModLua
