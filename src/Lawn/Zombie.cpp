@@ -5680,6 +5680,10 @@ void Zombie::DrawZombie(Graphics* g, const ZombieDrawPosition& theDrawPos)
 
 bool Zombie::IsWalkingBackwards()
 {
+    // Mod API: mod 可强制任意僵尸逆行（向右走 + 动画镜像 + 碰撞框翻转 + 右边界死亡）
+    if (mModWalkingBackwards)
+        return true;
+
     if (mMindControlled)
         return true;
 

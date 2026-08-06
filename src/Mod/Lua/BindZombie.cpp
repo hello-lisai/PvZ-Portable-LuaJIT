@@ -111,6 +111,16 @@ int l_zombie_get_mind_controlled(lua_State* L) {
     return 1;
 }
 
+// zombie.walking_backwards —— 是否逆行（向右走 + 动画镜像 + 碰撞框翻转）
+// mod 可设为 true 让任意僵尸倒走（类似矿工僵尸出土后逆行或魅惑僵尸）
+// 逆行时：移动方向从左→右，动画水平翻转，啃食检测指向右侧，到达右边界(850)时死亡
+int l_zombie_get_walking_backwards(lua_State* L) {
+    Zombie* z = CheckUserdata<Zombie>(L, 1, MT_ZOMBIE);
+    if (!z) return 0;
+    lua_pushboolean(L, z->mModWalkingBackwards);
+    return 1;
+}
+
 int l_zombie_get_dead(lua_State* L) {
     Zombie* z = CheckUserdata<Zombie>(L, 1, MT_ZOMBIE);
     if (!z) return 0;
@@ -340,6 +350,7 @@ int l_zombie_index(lua_State* L) {
         {"buttered",         l_zombie_get_buttered},
         {"ice_trap",         l_zombie_get_icetrap},
         {"mind_controlled",  l_zombie_get_mind_controlled},
+        {"walking_backwards", l_zombie_get_walking_backwards},
         {"dead",             l_zombie_get_dead},
         {"phase",            l_zombie_get_phase},
         {"from_wave",        l_zombie_get_from_wave},
@@ -408,6 +419,8 @@ int l_zombie_newindex(lua_State* L) {
         z->mIceTrapCounter = static_cast<int32_t>(luaL_checkinteger(L, 3));
     } else if (strcmp(key, "mind_controlled") == 0) {
         z->mMindControlled = lua_toboolean(L, 3) != 0;
+    } else if (strcmp(key, "walking_backwards") == 0) {
+        z->mModWalkingBackwards = lua_toboolean(L, 3) != 0;
     } else if (strcmp(key, "abilities") == 0) {
         z->mAbilities = static_cast<ZombieAbility>(luaL_checkinteger(L, 3));
     }

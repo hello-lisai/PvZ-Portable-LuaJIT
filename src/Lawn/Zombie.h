@@ -170,6 +170,7 @@ public:
     int32_t                         mButteredCounter;
     int32_t                         mIceTrapCounter;
     bool                            mMindControlled;
+    bool                            mModWalkingBackwards = false;  // Mod API: 强制逆行（向右走+动画镜像+碰撞框翻转）
     bool                            mBlowingAway;
     bool                            mHasHead;
     bool                            mHasArm;
