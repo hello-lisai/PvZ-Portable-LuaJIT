@@ -4635,13 +4635,10 @@ void Zombie::UpdateZamboni()
         mBoard->mIceMinX[mRow] = anIceX;
     }
     // 逆行时冰道右边界跟随僵尸右侧（限制冰道只覆盖走过的路径，不延伸到僵尸前方）
+    // 直接赋值而非取 max：初始 mIceMaxX=BOARD_WIDTH，取 max 会保持 800 导致冰道延伸到屏幕右侧
     if (aBackwards)
     {
-        int aMaxX = static_cast<int>(mPosX) + 118;
-        if (aMaxX > mBoard->mIceMaxX[mRow])
-        {
-            mBoard->mIceMaxX[mRow] = aMaxX;
-        }
+        mBoard->mIceMaxX[mRow] = static_cast<int>(mPosX) + 118;
     }
     if (anIceX < 800)
     {
