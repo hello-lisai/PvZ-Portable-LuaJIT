@@ -570,6 +570,19 @@ int l_board_clear_background_image(lua_State* L) {
     return 0;
 }
 
+// board:set_terrain(bg_type) — 切换关卡地形（背景类型 + 行类型 + 网格类型）
+// bg_type: pvz.BackgroundType 枚举值（BACKGROUND_1_DAY=白天草地, BACKGROUND_2_NIGHT=夜间,
+//          BACKGROUND_3_POOL=泳池, BACKGROUND_4_FOG=雾, BACKGROUND_5_ROOF=屋顶, ...）
+// 会重新加载背景资源、初始化行类型和网格类型，适用于 on_level_init 中修改关卡地形
+// 例：board:set_terrain(pvz.BackgroundType.BACKGROUND_1_DAY)  -- 将屋顶关卡改为白天草地
+int l_board_set_terrain(lua_State* L) {
+    Board* b = CheckUserdata<Board>(L, 1, MT_BOARD);
+    if (!b) return 0;
+    BackgroundType bg = static_cast<BackgroundType>(luaL_checkinteger(L, 2));
+    b->SetTerrain(bg);
+    return 0;
+}
+
 // ===== 场地控制 API =====
 
 // board:add_crater(grid_x, grid_y) — 在指定格子创建弹坑（阻止种植，类似末日蘑菇爆炸后的坑）
@@ -771,6 +784,8 @@ int l_board_index(lua_State* L) {
         // 自定义背景图片
         {"set_background_image",       l_board_set_background_image},
         {"clear_background_image",     l_board_clear_background_image},
+        // 地形切换
+        {"set_terrain",                l_board_set_terrain},
         // 场地控制
         {"add_crater",                 l_board_add_crater},
         {"remove_crater",              l_board_remove_crater},

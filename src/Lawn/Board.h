@@ -490,6 +490,7 @@ public:
 	/*inline*/ bool					PlantUsesAcceleratedPricing(SeedType theSeedType);
 	void							FreezeEffectsForCutscene(bool theFreeze);
 	void							LoadBackgroundImages();
+	void							SetTerrain(BackgroundType theBackground);  // Mod API: 切换关卡地形（背景+行类型+网格类型）
 	bool							CanUseGameObject(GameObjectType theGameObject);
 	void							SetMustacheMode(bool theEnableMustache);
 	int								CountCoinByType(CoinType theCoinType);

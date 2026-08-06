@@ -989,6 +989,84 @@ void Board::LoadBackgroundImages()
 		TodLoadResources(resource.c_str());
 }
 
+// Mod API: 切换关卡地形（背景类型 + 行类型 + 网格类型）
+// 与 PickBackground 中的地形初始化逻辑一致，但允许在任意时机调用
+// 适用于 on_level_init 中将屋顶关卡改为草地等场景
+void Board::SetTerrain(BackgroundType theBackground)
+{
+	mBackground = theBackground;
+
+	// 清空旧背景的延迟加载资源名，再加载新背景资源
+	mLoadedResourceNames.clear();
+	LoadBackgroundImages();
+
+	// 重新初始化行类型（mPlantRow）
+	if (mBackground == BackgroundType::BACKGROUND_1_DAY || mBackground == BackgroundType::BACKGROUND_GREENHOUSE || mBackground == BackgroundType::BACKGROUND_TREEOFWISDOM)
+	{
+		mPlantRow[0] = PlantRowType::PLANTROW_NORMAL;
+		mPlantRow[1] = PlantRowType::PLANTROW_NORMAL;
+		mPlantRow[2] = PlantRowType::PLANTROW_NORMAL;
+		mPlantRow[3] = PlantRowType::PLANTROW_NORMAL;
+		mPlantRow[4] = PlantRowType::PLANTROW_NORMAL;
+		mPlantRow[5] = PlantRowType::PLANTROW_DIRT;
+	}
+	else if (mBackground == BackgroundType::BACKGROUND_2_NIGHT)
+	{
+		mPlantRow[0] = PlantRowType::PLANTROW_NORMAL;
+		mPlantRow[1] = PlantRowType::PLANTROW_NORMAL;
+		mPlantRow[2] = PlantRowType::PLANTROW_NORMAL;
+		mPlantRow[3] = PlantRowType::PLANTROW_NORMAL;
+		mPlantRow[4] = PlantRowType::PLANTROW_NORMAL;
+		mPlantRow[5] = PlantRowType::PLANTROW_DIRT;
+	}
+	else if (mBackground == BackgroundType::BACKGROUND_3_POOL || mBackground == BackgroundType::BACKGROUND_ZOMBIQUARIUM || mBackground == BackgroundType::BACKGROUND_4_FOG)
+	{
+		mPlantRow[0] = PlantRowType::PLANTROW_NORMAL;
+		mPlantRow[1] = PlantRowType::PLANTROW_NORMAL;
+		mPlantRow[2] = PlantRowType::PLANTROW_POOL;
+		mPlantRow[3] = PlantRowType::PLANTROW_POOL;
+		mPlantRow[4] = PlantRowType::PLANTROW_NORMAL;
+		mPlantRow[5] = PlantRowType::PLANTROW_NORMAL;
+	}
+	else if (mBackground == BackgroundType::BACKGROUND_5_ROOF || mBackground == BackgroundType::BACKGROUND_6_BOSS)
+	{
+		mPlantRow[0] = PlantRowType::PLANTROW_NORMAL;
+		mPlantRow[1] = PlantRowType::PLANTROW_NORMAL;
+		mPlantRow[2] = PlantRowType::PLANTROW_NORMAL;
+		mPlantRow[3] = PlantRowType::PLANTROW_NORMAL;
+		mPlantRow[4] = PlantRowType::PLANTROW_NORMAL;
+		mPlantRow[5] = PlantRowType::PLANTROW_DIRT;
+	}
+
+	// 重新初始化网格类型（mGridSquareType）
+	for (int x = 0; x < MAX_GRID_SIZE_X; x++)
+	{
+		for (int y = 0; y < MAX_GRID_SIZE_Y; y++)
+		{
+			if (mPlantRow[y] == PlantRowType::PLANTROW_DIRT)
+			{
+				mGridSquareType[x][y] = GridSquareType::GRIDSQUARE_DIRT;
+			}
+			else if (mPlantRow[y] == PlantRowType::PLANTROW_POOL && x >= 0 && x <= 8)
+			{
+				mGridSquareType[x][y] = GridSquareType::GRIDSQUARE_POOL;
+			}
+			else if (mPlantRow[y] == PlantRowType::PLANTROW_HIGH_GROUND && x >= 4 && x <= 8)
+			{
+				mGridSquareType[x][y] = GridSquareType::GRIDSQUARE_HIGH_GROUND;
+			}
+			else
+			{
+				mGridSquareType[x][y] = GridSquareType::GRIDSQUARE_GRASS;
+			}
+		}
+	}
+
+	// 标记屏幕需要重绘
+	if (mApp)
+		mApp->MarkScreenDirty();
+}
+
 void Board::PickBackground()
 {
 	switch (mApp->mGameMode)
