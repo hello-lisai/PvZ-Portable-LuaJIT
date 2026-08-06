@@ -1615,6 +1615,9 @@ void Shutdown() {
     g_callbacks.callbacks.clear();
     g_mods.clear();
 
+    // 释放自定义关卡封面图标
+    ClearCustomChallengeIcons();
+
     lua_close(g_L);
     g_L = nullptr;
 }

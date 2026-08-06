@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../ModCtx.h"
+#include "../../SexyAppFramework/graphics/Image.h"
 
 #include <string>
 #include <vector>
@@ -54,5 +55,11 @@ const std::vector<ModInfo>& GetLoadedMods();
 // 植物禁用列表（mod 通过 board:disable_seed 设置，选卡界面查询）
 bool IsSeedDisabled(int seedType);
 void ClearDisabledSeeds();
+
+// 自定义关卡封面图标（mod 通过 pvz.set_challenge_icon 设置，ChallengeScreen 查询）
+// 返回 nullptr 表示无自定义图标，使用原版 IMAGE_CHALLENGE_THUMBNAILS
+// theGameMode: GameMode 枚举值
+Sexy::Image* GetCustomChallengeIcon(int theGameMode);
+void ClearCustomChallengeIcons();
 
 } // namespace ModLua

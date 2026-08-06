@@ -2,11 +2,18 @@
 #include "../../LawnApp.h"
 #include "../../Sexy.TodLib/Reanimator.h"  // Reanimation / ReanimLoopType
 #include "../../ConstEnums.h"              // CrazyDaveState / ReanimLoopType 枚举
+#include "../../SexyAppFramework/SexyAppBase.h"  // gSexyAppBase / mStringProperties
+#include "../../SexyAppFramework/graphics/Image.h"
+#include "../../SexyAppFramework/imagelib/ImageLib.h"
+#include "LuaRuntime.h"
 
 namespace ModLua {
 
 // 在 BindReanimation.cpp 中定义，这里前向声明
 void PushReanimation(lua_State* L, Reanimation* r);
+
+// g_customChallengeIcons 在 BindBoard.cpp 中定义
+extern std::unordered_map<int, Sexy::Image*> g_customChallengeIcons;
 
 namespace {
 
@@ -15,6 +22,46 @@ int l_get_app(lua_State* L) {
     if (!gLawnApp) { lua_pushnil(L); return 1; }
     NewUserdata(L, gLawnApp, MT_APP);
     return 1;
+}
+
+// pvz.set_string(key, value) —— 覆盖游戏字符串表中的值
+// 用于修改 UI 显示文本，如关卡名称、按钮文本等
+// key 不含方括号，如 "POGO_PARTY"（对应原版 "[POGO_PARTY]"）
+// value 为新文本，如 "跳跳舞会"
+// 设置后所有 TodStringTranslate("[POGO_PARTY]") 调用都会返回新值
+// 例：pvz.set_string("POGO_PARTY", "跳跳舞会")
+int l_pvz_set_string(lua_State* L) {
+    const char* key = luaL_checkstring(L, 1);
+    const char* value = luaL_checkstring(L, 2);
+    if (!gSexyAppBase) return 0;
+    gSexyAppBase->mStringProperties[std::string(key)] = std::string(value);
+    return 0;
+}
+
+// pvz.set_challenge_icon(game_mode, image_path) —— 为指定关卡设置自定义封面图标
+// game_mode: pvz.GameMode 枚举值（如 pvz.GameMode.CHALLENGE_POGO_PARTY）
+// image_path: 图片文件路径（相对于 mod 目录或资源根目录，如 "images/my_pogo_icon.png"）
+// 设置后选关界面中该关卡的封面图会替换为自定义图片
+// 例：pvz.set_challenge_icon(pvz.GameMode.CHALLENGE_POGO_PARTY, "images/my_pogo_icon.png")
+int l_pvz_set_challenge_icon(lua_State* L) {
+    int gameMode = static_cast<int>(luaL_checkinteger(L, 1));
+    const char* path = luaL_checkstring(L, 2);
+
+    // 释放旧图标
+    auto it = g_customChallengeIcons.find(gameMode);
+    if (it != g_customChallengeIcons.end() && it->second) {
+        delete it->second;
+    }
+
+    // 加载新图标（通过 ImageLib::GetImage 支持 mod 资源覆盖）
+    Sexy::Image* img = Sexy::ImageLib::GetImage(path, false);
+    if (img) {
+        g_customChallengeIcons[gameMode] = img;
+    } else {
+        // 加载失败时记录警告但不崩溃
+        fprintf(stderr, "[ModAPI] set_challenge_icon: failed to load '%s'\n", path);
+    }
+    return 0;
 }
 
 // app:crazy_dave_enter() —— 戴夫进场
@@ -152,6 +199,14 @@ void BindApp(lua_State* L) {
     if (lua_istable(L, -1)) {
         lua_pushcfunction(L, l_get_app);
         lua_setfield(L, -2, "get_app");
+
+        // pvz.set_string(key, value) —— 覆盖字符串表（改关卡名等）
+        lua_pushcfunction(L, l_pvz_set_string);
+        lua_setfield(L, -2, "set_string");
+
+        // pvz.set_challenge_icon(game_mode, image_path) —— 设置自定义关卡封面
+        lua_pushcfunction(L, l_pvz_set_challenge_icon);
+        lua_setfield(L, -2, "set_challenge_icon");
     }
     lua_pop(L, 1);
 }

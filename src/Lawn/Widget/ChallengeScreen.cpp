@@ -32,6 +32,7 @@
 #include "misc/Debug.h"
 #include "../../Sexy.TodLib/TodStringFile.h"
 #include "widget/WidgetManager.h"
+#include "../../Mod/Lua/LuaRuntime.h"
 #include <SDL.h>
 
 constinit const ChallengeDefinition gChallengeDefs[NUM_CHALLENGE_MODES] = {
@@ -442,7 +443,17 @@ void ChallengeScreen::DrawButton(Graphics* g, int theChallengeIndex)
 			}
 			else
 			{
-				g->DrawImageCel(Sexy::IMAGE_CHALLENGE_THUMBNAILS, aPosX + 13, aPosY + 4, aDef.mChallengeIconIndex);
+				// Mod API: 检查是否有自定义关卡封面图标
+				Sexy::Image* aCustomIcon = ModLua::GetCustomChallengeIcon(static_cast<int>(aDef.mChallengeMode));
+				if (aCustomIcon)
+				{
+					// 缩放绘制到与原版图标相同的位置和尺寸（75x75）
+					TodDrawImageScaledF(g, aCustomIcon, aPosX + 13, aPosY + 4, 75.0f / aCustomIcon->mWidth, 75.0f / aCustomIcon->mHeight);
+				}
+				else
+				{
+					g->DrawImageCel(Sexy::IMAGE_CHALLENGE_THUMBNAILS, aPosX + 13, aPosY + 4, aDef.mChallengeIconIndex);
+				}
 			}
 
 			// ============================================================================================

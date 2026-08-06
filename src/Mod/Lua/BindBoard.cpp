@@ -10,6 +10,7 @@
 #include <cstdio>
 #include <cstring>
 #include <unordered_set>
+#include <unordered_map>
 
 namespace ModLua {
 
@@ -29,6 +30,25 @@ bool IsSeedDisabled(int seedType) {
 
 void ClearDisabledSeeds() {
     g_disabledSeeds.clear();
+}
+
+// 自定义关卡封面图标：mod 通过 pvz.set_challenge_icon 设置，ChallengeScreen 查询
+// mod 加载时设置一次即可，无需每关清空（图标在选关界面显示）
+static std::unordered_map<int, Sexy::Image*> g_customChallengeIcons;
+
+Sexy::Image* GetCustomChallengeIcon(int theGameMode) {
+    auto it = g_customChallengeIcons.find(theGameMode);
+    return (it != g_customChallengeIcons.end()) ? it->second : nullptr;
+}
+
+void ClearCustomChallengeIcons() {
+    for (auto& pair : g_customChallengeIcons) {
+        if (pair.second) {
+            delete pair.second;
+            pair.second = nullptr;
+        }
+    }
+    g_customChallengeIcons.clear();
 }
 
 namespace {
