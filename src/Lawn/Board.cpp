@@ -1063,8 +1063,7 @@ void Board::SetTerrain(BackgroundType theBackground)
 	}
 
 	// 标记屏幕需要重绘
-	if (mApp)
-		mApp->MarkScreenDirty();
+	MarkDirty();
 }
 
 void Board::PickBackground()
