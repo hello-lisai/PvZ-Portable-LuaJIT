@@ -1613,6 +1613,7 @@ void Board::InitLevel()
 	{
 		mWaveRowGotLawnMowered[aRow] = -100;
 		mIceMinX[aRow] = BOARD_ICE_START;
+		mIceMaxX[aRow] = BOARD_WIDTH;
 		mIceTimer[aRow] = 0;
 		mIceParticleID[aRow] = ParticleSystemID::PARTICLESYSTEMID_NULL;
 		mRowPickingArray[aRow].mItem = aRow;
@@ -3042,7 +3043,12 @@ bool Board::IsIceAt(int theGridX, int theGridY)
 	if (mIceTimer[theGridY] == 0 || mIceMinX[theGridY] > 750)
 		return false;
 
-	return theGridX >= PixelToGridXKeepOnBoard(mIceMinX[theGridY] + 12, 0);
+	// Mod API: 逆行冰车的冰道有右边界 mIceMaxX，格子必须同时满足左/右边界
+	if (theGridX < PixelToGridXKeepOnBoard(mIceMinX[theGridY] + 12, 0))
+		return false;
+	if (mIceMaxX[theGridY] < BOARD_WIDTH && theGridX >= PixelToGridXKeepOnBoard(mIceMaxX[theGridY] - 12, 0))
+		return false;
+	return true;
 }
 
 PlantingReason Board::CanPlantAt(int theGridX, int theGridY, SeedType theSeedType)
@@ -5825,6 +5831,7 @@ void Board::UpdateIce()
 			if (mIceTimer[aRow] == 0)
 			{
 				mIceMinX[aRow] = BOARD_ICE_START;
+				mIceMaxX[aRow] = BOARD_WIDTH;
 				if (aParticleIce)
 				{
 					aParticleIce->ParticleSystemDie();
@@ -6289,11 +6296,13 @@ void Board::DrawIce(Graphics* g, int theGridY)
 	}
 
 	int aBeginningX = mIceMinX[theGridY] + 13, aDeltaX;
-	for (int aPosX = aBeginningX; aPosX < BOARD_WIDTH; aPosX += aDeltaX)
+	// Mod API: 冰道右边界使用 mIceMaxX（逆行冰车限制为僵尸右侧，原版为 BOARD_WIDTH）
+	int aIceEndX = mIceMaxX[theGridY];
+	for (int aPosX = aBeginningX; aPosX < aIceEndX; aPosX += aDeltaX)
 	{
 		if (aPosX == aBeginningX)
 		{
-			aDeltaX = (BOARD_WIDTH - aBeginningX) % aWidth;
+			aDeltaX = (aIceEndX - aBeginningX) % aWidth;
 			if (!aDeltaX) aDeltaX = aWidth;
 		}
 		else aDeltaX = aWidth;

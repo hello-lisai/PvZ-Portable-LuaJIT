@@ -4620,7 +4620,8 @@ void Zombie::UpdateZamboni()
     }
 
     // Mod API: 逆行时冰车向右移动，冰道应生成在僵尸身后（左侧）
-    int anIceX = IsWalkingBackwards() ? mPosX - 118 : mPosX + 118;
+    bool aBackwards = IsWalkingBackwards();
+    int anIceX = aBackwards ? (mPosX - 118) : (mPosX + 118);
     if (mBoard->StageHasRoof())
     {
         anIceX = std::max(anIceX, 500);
@@ -4632,6 +4633,15 @@ void Zombie::UpdateZamboni()
     if (anIceX < mBoard->mIceMinX[mRow])
     {
         mBoard->mIceMinX[mRow] = anIceX;
+    }
+    // 逆行时冰道右边界跟随僵尸右侧（限制冰道只覆盖走过的路径，不延伸到僵尸前方）
+    if (aBackwards)
+    {
+        int aMaxX = static_cast<int>(mPosX) + 118;
+        if (aMaxX > mBoard->mIceMaxX[mRow])
+        {
+            mBoard->mIceMaxX[mRow] = aMaxX;
+        }
     }
     if (anIceX < 800)
     {

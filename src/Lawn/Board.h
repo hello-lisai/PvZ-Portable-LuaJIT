@@ -158,6 +158,7 @@ public:
 	int32_t							mWaveRowGotLawnMowered[MAX_GRID_SIZE_Y];
 	int32_t							mBonusLawnMowersRemaining;
 	int32_t							mIceMinX[MAX_GRID_SIZE_Y];
+	int32_t							mIceMaxX[MAX_GRID_SIZE_Y];  // Mod API: 冰道右边界（默认 BOARD_WIDTH，逆行冰车限制为僵尸右侧）
 	int32_t							mIceTimer[MAX_GRID_SIZE_Y];
 	ParticleSystemID				mIceParticleID[MAX_GRID_SIZE_Y];
 	TodSmoothArray					mRowPickingArray[MAX_GRID_SIZE_Y];
