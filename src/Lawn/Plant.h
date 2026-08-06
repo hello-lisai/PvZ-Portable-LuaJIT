@@ -209,6 +209,7 @@ public:
     PlantOnBungeeState      mOnBungeeState;
     SeedType                mImitaterType;
     int32_t                 mPottedPlantIndex;
+    bool                    mModReverseAttack = false;  // Mod API: 强制向左攻击（动画镜像+子弹反向，仅适用于射手类植物）
     bool                    mAnimPing;
     bool                    mDead;
     bool                    mSquished;

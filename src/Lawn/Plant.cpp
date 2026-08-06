@@ -3087,7 +3087,7 @@ void Plant::UpdateReanim()
 
     aBodyReanim->Update();
 
-    if (mSeedType == SeedType::SEED_LEFTPEATER)
+    if (mSeedType == SeedType::SEED_LEFTPEATER || mModReverseAttack)
     {
         aOffsetX += 80.0f * aScaleX;
         aScaleX *= -1.0f;
@@ -4956,7 +4956,8 @@ void Plant::GetFireOrigin(PlantWeapon thePlantWeapon, int& aOriginX, int& aOrigi
     {
         int aOffsetX, aOffsetY;
         GetPeaHeadOffset(aOffsetX, aOffsetY);
-        aOriginX = mX + aOffsetX + 24;
+        // Mod API: 逆向攻击时发射点移到左侧（同 LEFTPEATER）
+        aOriginX = mModReverseAttack ? mX + aOffsetX - 57 : mX + aOffsetX + 24;
         aOriginY = mY + aOffsetY - 33;
     }
     // Mod API: 自定义 SHOOTER 植物复用 PEASHOOTER 家族的发射点计算
@@ -4966,7 +4967,7 @@ void Plant::GetFireOrigin(PlantWeapon thePlantWeapon, int& aOriginX, int& aOrigi
     {
         int aOffsetX, aOffsetY;
         GetPeaHeadOffset(aOffsetX, aOffsetY);
-        aOriginX = mX + aOffsetX + 24;
+        aOriginX = mModReverseAttack ? mX + aOffsetX - 57 : mX + aOffsetX + 24;
         aOriginY = mY + aOffsetY - 33;
     }
     else if (mSeedType == SeedType::SEED_LEFTPEATER)
@@ -4980,7 +4981,8 @@ void Plant::GetFireOrigin(PlantWeapon thePlantWeapon, int& aOriginX, int& aOrigi
     {
         int aOffsetX, aOffsetY;
         GetPeaHeadOffset(aOffsetX, aOffsetY);
-        aOriginX = mX + aOffsetX + 34;
+        // Mod API: 逆向攻击时发射点移到左侧
+        aOriginX = mModReverseAttack ? mX + aOffsetX - 57 : mX + aOffsetX + 34;
         aOriginY = mY + aOffsetY - 33;
     }
     else if (mSeedType == SeedType::SEED_SPLITPEA)
@@ -5146,8 +5148,9 @@ void Plant::SetupProjectileMotion(Projectile* aProjectile, Zombie* theTargetZomb
     {
         aProjectile->mMotionType = ProjectileMotion::MOTION_BACKWARDS;
     }
-    else if (mSeedType == SeedType::SEED_LEFTPEATER)
+    else if (mSeedType == SeedType::SEED_LEFTPEATER || mModReverseAttack)
     {
+        // Mod API: 逆向攻击的射手植物，子弹向左飞行
         aProjectile->mMotionType = ProjectileMotion::MOTION_BACKWARDS;
     }
     else if (mSeedType == SeedType::SEED_CATTAIL)
@@ -5717,6 +5720,11 @@ Rect Plant::GetPlantAttackRect(PlantWeapon thePlantWeapon)
     if (mApp->IsWallnutBowlingLevel())
     {
         aRect = Rect(mX, mY, mWidth - 20, mHeight);
+    }
+    // Mod API: 逆向攻击的射手植物，攻击范围在左侧（同 LEFTPEATER）
+    else if (mModReverseAttack)
+    {
+        aRect = Rect(0, mY, mX, mHeight);
     }
     else if (thePlantWeapon == PlantWeapon::WEAPON_SECONDARY && mSeedType == SeedType::SEED_SPLITPEA)
     {

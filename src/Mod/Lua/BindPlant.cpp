@@ -78,6 +78,15 @@ int l_plant_get_y(lua_State* L) {
     return 1;
 }
 
+// plant.reverse_attack —— 是否逆向攻击（向左射击，仅适用于射手类植物）
+// 设为 true 后：动画水平镜像、发射点移到左侧、子弹向左飞行、攻击范围覆盖左侧
+int l_plant_get_reverse_attack(lua_State* L) {
+    Plant* p = CheckUserdata<Plant>(L, 1, MT_PLANT);
+    if (!p) return 0;
+    lua_pushboolean(L, p->mModReverseAttack);
+    return 1;
+}
+
 // plant.body_reanim —— 获取身体动画对象（Reanimation userdata），无动画时返回 nil
 // mod 可通过此对象读取/修改植物动画：
 //   local r = plant.body_reanim
@@ -182,6 +191,7 @@ int l_plant_index(lua_State* L) {
         {"dead",           l_plant_get_dead},
         {"x",              l_plant_get_x},
         {"y",              l_plant_get_y},
+        {"reverse_attack", l_plant_get_reverse_attack},
         {"body_reanim",    l_plant_get_body_reanim},
         {"body_reanim_id", l_plant_get_body_reanim_id},
     };
@@ -223,6 +233,8 @@ int l_plant_newindex(lua_State* L) {
         p->mX = static_cast<int>(luaL_checkinteger(L, 3));
     } else if (strcmp(key, "y") == 0) {
         p->mY = static_cast<int>(luaL_checkinteger(L, 3));
+    } else if (strcmp(key, "reverse_attack") == 0) {
+        p->mModReverseAttack = lua_toboolean(L, 3) != 0;
     }
     return 0;
 }
