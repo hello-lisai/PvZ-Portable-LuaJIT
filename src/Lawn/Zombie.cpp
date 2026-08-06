@@ -1946,7 +1946,9 @@ void Zombie::UpdateZombiePogo()
 
 void Zombie::ZombieCatapultFire(Plant* thePlant)
 {
-    float aOriginX = mPosX + 113.0f;
+    bool aBackwards = IsWalkingBackwards();
+    // Mod API: 逆行时投石车动画镜像，发射点在僵尸左侧
+    float aOriginX = aBackwards ? mPosX - 113.0f : mPosX + 113.0f;
     float aOriginY = mPosY - 44.0f;
     int aTargetX, aTargetY;
     if (thePlant)
@@ -1956,21 +1958,22 @@ void Zombie::ZombieCatapultFire(Plant* thePlant)
     }
     else
     {
-        aTargetX = mPosX - 300.0f;
+        aTargetX = aBackwards ? mPosX + 300.0f : mPosX - 300.0f;
         aTargetY = 0.0f;
     }
 
     mApp->PlayFoley(FoleyType::FOLEY_BASKETBALL);
 
     Projectile* aProjectile = mBoard->AddProjectile(aOriginX, aOriginY, mRenderOrder, mRow, ProjectileType::PROJECTILE_BASKETBALL);
-    float aRangeX = aOriginX - aTargetX - 20.0f;
+    // 逆行时目标在右侧，射程方向反转
+    float aRangeX = aBackwards ? (aTargetX - aOriginX + 20.0f) : (aOriginX - aTargetX - 20.0f);
     float aRangeY = aTargetY - aOriginY;
     if (aRangeX < 40.0f)
     {
         aRangeX = 40.0f;
     }
     aProjectile->mMotionType = ProjectileMotion::MOTION_LOBBED;
-    aProjectile->mVelX = -aRangeX / 120.0f;
+    aProjectile->mVelX = aBackwards ? (aRangeX / 120.0f) : (-aRangeX / 120.0f);
     aProjectile->mVelY = 0.0f;
     aProjectile->mVelZ = aRangeY / 120.0f - 7.0f;
     aProjectile->mAccZ = 0.115f;
@@ -1979,13 +1982,19 @@ void Zombie::ZombieCatapultFire(Plant* thePlant)
 Plant* Zombie::FindCatapultTarget()
 {
     Plant* aTarget = nullptr;
+    bool aBackwards = IsWalkingBackwards();
 
     Plant* aPlant = nullptr;
     while (mBoard->IteratePlants(aPlant))
     {
-        if (aPlant->mRow == mRow && mX >= aPlant->mX + 100 && !aPlant->NotOnGround() && !aPlant->IsSpiky())
+        // Mod API: 逆行时投石车从左侧向右攻击，目标在僵尸右侧
+        if (aPlant->mRow == mRow &&
+            (aBackwards ? mX <= aPlant->mX - 100 : mX >= aPlant->mX + 100) &&
+            !aPlant->NotOnGround() && !aPlant->IsSpiky())
         {
-            if (aTarget == nullptr || aPlant->mPlantCol < aTarget->mPlantCol)
+            // 正常取最左列（最远）植物；逆行取最右列（最远）植物
+            if (aTarget == nullptr ||
+                (aBackwards ? aPlant->mPlantCol > aTarget->mPlantCol : aPlant->mPlantCol < aTarget->mPlantCol))
             {
                 aTarget = mBoard->GetTopPlantAt(aPlant->mPlantCol, aPlant->mRow, PlantPriority::TOPPLANT_CATAPULT_ORDER);
             }
@@ -4610,7 +4619,8 @@ void Zombie::UpdateZamboni()
         mVelX -= 0.0005f;
     }
 
-    int anIceX = mPosX + 118;
+    // Mod API: 逆行时冰车向右移动，冰道应生成在僵尸身后（左侧）
+    int anIceX = IsWalkingBackwards() ? mPosX - 118 : mPosX + 118;
     if (mBoard->StageHasRoof())
     {
         anIceX = std::max(anIceX, 500);
