@@ -4,8 +4,12 @@
 #include "../../ConstEnums.h"              // CrazyDaveState / ReanimLoopType 枚举
 #include "../../SexyAppFramework/SexyAppBase.h"  // gSexyAppBase / mStringProperties
 #include "../../SexyAppFramework/graphics/Image.h"
+#include "../../SexyAppFramework/graphics/MemoryImage.h"
 #include "../../SexyAppFramework/imagelib/ImageLib.h"
 #include "LuaRuntime.h"
+#include <cstdio>
+#include <cstring>
+#include <unordered_map>
 
 namespace ModLua {
 
@@ -53,14 +57,24 @@ int l_pvz_set_challenge_icon(lua_State* L) {
         delete it->second;
     }
 
-    // 加载新图标（通过 ImageLib::GetImage 支持 mod 资源覆盖）
-    Sexy::Image* img = Sexy::ImageLib::GetImage(path, false);
-    if (img) {
-        g_customChallengeIcons[gameMode] = img;
-    } else {
-        // 加载失败时记录警告但不崩溃
-        fprintf(stderr, "[ModAPI] set_challenge_icon: failed to load '%s'\n", path);
+    // 用 ImageLib 加载图片文件（支持 PNG/JPG/GIF/TGA，通过 PakInterface 支持 mod overlay）
+    ImageLib::Image* srcImg = ImageLib::GetImage(path, false);
+    if (!srcImg) {
+        std::fprintf(stderr, "[ModAPI] set_challenge_icon: failed to load '%s'\n", path);
+        return 0;
     }
+
+    // 创建 MemoryImage 并拷贝像素数据（与 set_background_image 相同的模式）
+    MemoryImage* memImg = new MemoryImage(gLawnApp);
+    memImg->Create(srcImg->mWidth, srcImg->mHeight);
+    uint32_t* bits = memImg->GetBits();
+    if (srcImg->mBits) {
+        std::memcpy(bits, srcImg->mBits, sizeof(uint32_t) * srcImg->mWidth * srcImg->mHeight);
+    }
+    memImg->BitsChanged();
+    delete srcImg;
+
+    g_customChallengeIcons[gameMode] = memImg;
     return 0;
 }
 
