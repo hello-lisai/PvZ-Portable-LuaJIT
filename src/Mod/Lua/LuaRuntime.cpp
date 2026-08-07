@@ -1546,6 +1546,9 @@ void Initialize() {
     push_img("ZOMBIE_FOOTBALL_HELMET",  IMAGE_REANIM_ZOMBIE_FOOTBALL_HELMET);
     push_img("ZOMBIE_FOOTBALL_HELMET2", IMAGE_REANIM_ZOMBIE_FOOTBALL_HELMET2);
     push_img("ZOMBIE_FOOTBALL_HELMET3", IMAGE_REANIM_ZOMBIE_FOOTBALL_HELMET3);
+    // 巨人僵尸武器图片（用于 set_image_override 替换 telephonepole track）
+    push_img("ZOMBIE_GARGANTUAR_ZOMBIE",   IMAGE_REANIM_ZOMBIE_GARGANTUAR_ZOMBIE);
+    push_img("ZOMBIE_GARGANTUAR_DUCKXING", IMAGE_REANIM_ZOMBIE_GARGANTUAR_DUCKXING);
     // 创建 pvz.images 表，设置 __index 元方法实现动态查询
     lua_newtable(g_L);
     lua_newtable(g_L);  // 元表
