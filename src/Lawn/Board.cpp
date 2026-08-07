@@ -646,7 +646,9 @@ void Board::PickZombieWaves()
 					mZombiesInWave[w][len] = ZombieType::ZOMBIE_INVALID;
 				}
 			}
-			return;
+			// Mod API: 自定义波次表也允许 ON_PICK_ZOMBIE_WAVES_POST 追加僵尸
+			// （如 gargantuar_party mod 在旗帜波追加巨人僵尸）
+			goto pick_waves_post;
 		}
 	}
 
@@ -869,7 +871,8 @@ void Board::PickZombieWaves()
 		}
 	}
 
-	// Mod API: ON_PICK_ZOMBIE_WAVES_POST —— 原版波次生成完毕后，Mod 可往任意波次追加僵尸
+	pick_waves_post:
+	// Mod API: ON_PICK_ZOMBIE_WAVES_POST —— 原版/自定义波次生成完毕后，Mod 可往任意波次追加僵尸
 	// mod 返回 {append = {[wave] = {type1, type2, ...}}}，C++ 侧把僵尸追加到 mZombiesInWave
 	// mod 也可返回 {hide_from_preview = {type1, type2, ...}} 标记某些类型不参与右侧预览
 	if (ModBus::HasListenersFor(ModEvent::ON_PICK_ZOMBIE_WAVES_POST)) {

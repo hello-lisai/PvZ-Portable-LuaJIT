@@ -69,6 +69,30 @@ int l_pvz_set_challenge_icon(lua_State* L) {
     return 0;
 }
 
+// pvz.load_image(path) -> Image or nil —— 从文件加载图片，返回 Image userdata
+// 用于 set_image_override 等需要 Image* 的 API
+// path 相对于资源目录或 mod overlay 目录（如 "images/my_weapon.png"）
+// 例：local img = pvz.load_image("images/gargantuar_weapon.png")
+int l_pvz_load_image(lua_State* L) {
+    const char* path = luaL_checkstring(L, 1);
+    ImageLib::Image* srcImg = ImageLib::GetImage(path, false);
+    if (!srcImg) {
+        std::fprintf(stderr, "[ModAPI] load_image: failed to load '%s'\n", path);
+        lua_pushnil(L);
+        return 1;
+    }
+    MemoryImage* memImg = new MemoryImage(gLawnApp);
+    memImg->Create(srcImg->mWidth, srcImg->mHeight);
+    uint32_t* bits = memImg->GetBits();
+    if (srcImg->mBits) {
+        std::memcpy(bits, srcImg->mBits, sizeof(uint32_t) * srcImg->mWidth * srcImg->mHeight);
+    }
+    memImg->BitsChanged();
+    delete srcImg;
+    PushImage(L, memImg);
+    return 1;
+}
+
 // app:crazy_dave_enter() —— 戴夫进场
 int l_app_dave_enter(lua_State* L) {
     LawnApp* a = CheckUserdata<LawnApp>(L, 1, MT_APP);
@@ -212,6 +236,10 @@ void BindApp(lua_State* L) {
         // pvz.set_challenge_icon(game_mode, image_path) —— 设置自定义关卡封面
         lua_pushcfunction(L, l_pvz_set_challenge_icon);
         lua_setfield(L, -2, "set_challenge_icon");
+
+        // pvz.load_image(path) —— 从文件加载图片，返回 Image userdata
+        lua_pushcfunction(L, l_pvz_load_image);
+        lua_setfield(L, -2, "load_image");
     }
     lua_pop(L, 1);
 }
