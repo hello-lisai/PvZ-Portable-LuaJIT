@@ -647,8 +647,36 @@ void Board::PickZombieWaves()
 				}
 			}
 			// Mod API: 自定义波次表也允许 ON_PICK_ZOMBIE_WAVES_POST 追加僵尸
-			// （如 gargantuar_party mod 在旗帜波追加巨人僵尸）
-			goto pick_waves_post;
+			// 内联触发 POST 事件（不能 goto 到函数末尾，因为中间有带初始化的变量声明）
+			if (ModBus::HasListenersFor(ModEvent::ON_PICK_ZOMBIE_WAVES_POST)) {
+				ModCtx _postCtx = MakeCtx(ModEvent::ON_PICK_ZOMBIE_WAVES_POST);
+				_postCtx.app = gLawnApp;
+				_postCtx.board = this;
+				_postCtx.level = mLevel;
+				_postCtx.customNumWaves = mNumWaves;
+				ClearZombieHiddenFromPreview();
+				ModBus::Fire(_postCtx.event, _postCtx);
+				if (_postCtx.useAppendWaves) {
+					for (int w = 0; w < mNumWaves && w < ModCtx::MAX_CUSTOM_WAVES; ++w) {
+						int appendLen = ClampInt(_postCtx.appendWaveLengths[w], 0, ModCtx::MAX_CUSTOM_PER_WAVE);
+						if (appendLen <= 0) continue;
+						int existingLen = 0;
+						for (int i = 0; i < MAX_ZOMBIES_IN_WAVE; ++i) {
+							if (mZombiesInWave[w][i] == ZombieType::ZOMBIE_INVALID) break;
+							++existingLen;
+						}
+						for (int i = 0; i < appendLen && existingLen + i < MAX_ZOMBIES_IN_WAVE; ++i) {
+							mZombiesInWave[w][existingLen + i] = _postCtx.appendWaves[w][i];
+						}
+						int newLen = existingLen + appendLen;
+						if (newLen > MAX_ZOMBIES_IN_WAVE) newLen = MAX_ZOMBIES_IN_WAVE;
+						if (newLen < MAX_ZOMBIES_IN_WAVE) {
+							mZombiesInWave[w][newLen] = ZombieType::ZOMBIE_INVALID;
+						}
+					}
+				}
+			}
+			return;
 		}
 	}
 
@@ -871,8 +899,7 @@ void Board::PickZombieWaves()
 		}
 	}
 
-	pick_waves_post:
-	// Mod API: ON_PICK_ZOMBIE_WAVES_POST —— 原版/自定义波次生成完毕后，Mod 可往任意波次追加僵尸
+	// Mod API: ON_PICK_ZOMBIE_WAVES_POST —— 原版波次生成完毕后，Mod 可往任意波次追加僵尸
 	// mod 返回 {append = {[wave] = {type1, type2, ...}}}，C++ 侧把僵尸追加到 mZombiesInWave
 	// mod 也可返回 {hide_from_preview = {type1, type2, ...}} 标记某些类型不参与右侧预览
 	if (ModBus::HasListenersFor(ModEvent::ON_PICK_ZOMBIE_WAVES_POST)) {

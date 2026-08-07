@@ -89,7 +89,7 @@ int l_pvz_load_image(lua_State* L) {
     }
     memImg->BitsChanged();
     delete srcImg;
-    PushImage(L, memImg);
+    NewUserdata(L, memImg, MT_IMAGE);
     return 1;
 }
 
