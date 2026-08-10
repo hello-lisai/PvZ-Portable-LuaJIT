@@ -61,6 +61,7 @@ enum class ModEvent : int32_t {
     ON_LEVEL_INIT_POST,         // Board::InitLevel 末尾
     ON_LEVEL_START_POST,        // Board::StartLevel 末尾
     ON_LEVEL_END,               // Board::ZombiesWon 入口（关卡失败）
+    ON_LOAD_GAME,               // Board::LoadGame 末尾（暂停退出后继续游戏，mod 可恢复自定义数据如自定义背景）
 
     // ====== 输入 ======
     ON_KEY_DOWN_PRE,            // Board::KeyDown 入口（可拦截）
@@ -121,6 +122,7 @@ inline const char* ModEventName(ModEvent e) {
     case ModEvent::ON_LEVEL_INIT_POST:         return "ON_LEVEL_INIT_POST";
     case ModEvent::ON_LEVEL_START_POST:        return "ON_LEVEL_START_POST";
     case ModEvent::ON_LEVEL_END:               return "ON_LEVEL_END";
+    case ModEvent::ON_LOAD_GAME:               return "ON_LOAD_GAME";
     case ModEvent::ON_KEY_DOWN_PRE:            return "ON_KEY_DOWN_PRE";
     case ModEvent::ON_MOUSE_DOWN_PRE:          return "ON_MOUSE_DOWN_PRE";
     case ModEvent::ON_MOUSE_UP_PRE:            return "ON_MOUSE_UP_PRE";

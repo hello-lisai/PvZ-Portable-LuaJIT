@@ -154,6 +154,7 @@ const char* EventToLuaName(ModEvent e) {
     case ModEvent::ON_LEVEL_INIT_POST:         return "on_level_init";
     case ModEvent::ON_LEVEL_START_POST:        return "on_level_start";
     case ModEvent::ON_LEVEL_END:               return "on_level_end";
+    case ModEvent::ON_LOAD_GAME:               return "on_load_game";
     case ModEvent::ON_KEY_DOWN_PRE:            return "on_key_down";
     case ModEvent::ON_MOUSE_DOWN_PRE:          return "on_mouse_down";
     case ModEvent::ON_MOUSE_UP_PRE:            return "on_mouse_up";
@@ -1660,6 +1661,7 @@ void DispatchEvent(ModCtx& ctx) {
         case ModEvent::ON_LEVEL_INIT_POST:
         case ModEvent::ON_LEVEL_START_POST:
         case ModEvent::ON_LEVEL_END:
+        case ModEvent::ON_LOAD_GAME:
             PushBoard(g_L, ctx.board);
             nargs = 1;
             break;

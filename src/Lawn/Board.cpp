@@ -405,6 +405,16 @@ bool Board::LoadGame(const std::string& theFileName)
 	mApp->ClearUpdateBacklog();
 	ResetFPSStats();
 	UpdateLayers();
+
+	// Mod API: 游戏加载完成后触发 ON_LOAD_GAME 事件
+	// 暂停退出后继续游戏时，mod 的自定义数据（如自定义背景图片指针）未被存档保存，
+	// 加载后这些数据丢失。mod 通过监听 on_load_game 回调重新设置自定义数据。
+	if (ModBus::HasListenersFor(ModEvent::ON_LOAD_GAME)) {
+		ModCtx _ctx = MakeCtx(ModEvent::ON_LOAD_GAME);
+		_ctx.app = gLawnApp; _ctx.board = this;
+		ModBus::Fire(ModEvent::ON_LOAD_GAME, _ctx);
+	}
+
 	return true;
 }
 
@@ -9107,6 +9117,13 @@ void Board::AddSunMoney(int theAmount)
 		// if ( !*(mApp->mPlayerInfo + 48) ) todo @Patoke: figure this out
 		ReportAchievement::GiveAchievement(mApp, SunnyDays, true);
 
+	// Mod API: 阳光下限保护（无限阳光模式）
+	// 若设置了 mSunMoneyFloor(>=0)，扣到低于此值时自动补回，实现"花不完"效果
+	if (mSunMoneyFloor >= 0 && mSunMoney < mSunMoneyFloor)
+	{
+		mSunMoney = mSunMoneyFloor;
+	}
+
 	// Mod API: 阳光变化事件
 	if (ModBus::HasListenersFor(ModEvent::ON_SUN_CHANGED)) {
 		ModCtx _ctx = MakeCtx(ModEvent::ON_SUN_CHANGED);
@@ -9150,6 +9167,13 @@ bool Board::TakeSunMoney(int theAmount)
 	if (CanTakeSunMoney(theAmount))
 	{
 		mSunMoney -= theAmount;
+		// Mod API: 阳光下限保护（无限阳光模式）
+		// 扣费后若低于 floor，自动补回，实现"花不完"效果
+		// 注意：这里在扣费成功后补回，不影响 CanTakeSunMoney 的判定（仍能正常种卡）
+		if (mSunMoneyFloor >= 0 && mSunMoney < mSunMoneyFloor)
+		{
+			mSunMoney = mSunMoneyFloor;
+		}
 		return true;
 	}
 

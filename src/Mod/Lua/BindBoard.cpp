@@ -167,6 +167,24 @@ int l_board_set_waves_per_flag(lua_State* L) {
     return 0;
 }
 
+// board.sun_floor —— 阳光下限（无限阳光模式）
+// >=0 时启用：阳光扣到低于此值自动补回，实现"花不完"效果
+// -1 时禁用（默认，原版行为）
+// mod 在 on_level_init / on_load_game 中设置一次即可，整个关卡生效
+// 注意：此值不存档，暂停继续后需 mod 在 on_load_game 中重新设置
+int l_board_get_sun_floor(lua_State* L) {
+    Board* b = CheckUserdata<Board>(L, 1, MT_BOARD);
+    if (!b) return 0;
+    lua_pushinteger(L, b->mSunMoneyFloor);
+    return 1;
+}
+int l_board_set_sun_floor(lua_State* L) {
+    Board* b = CheckUserdata<Board>(L, 1, MT_BOARD);
+    if (!b) return 0;
+    b->mSunMoneyFloor = static_cast<int32_t>(luaL_checkinteger(L, 2));
+    return 0;
+}
+
 // board.num_waves_per_flag —— 当前生效的每多少波一个旗帜（只读）
 // 返回 GetNumWavesPerFlag() 的结果（考虑 override 后的实际值）
 int l_board_get_num_waves_per_flag(lua_State* L) {
@@ -805,6 +823,7 @@ int l_board_index(lua_State* L) {
     if (strcmp(key, "paused") == 0)               return l_board_get_paused(L);
     if (strcmp(key, "background") == 0)           return l_board_get_background(L);
     if (strcmp(key, "waves_per_flag") == 0)       return l_board_get_waves_per_flag(L);
+    if (strcmp(key, "sun_floor") == 0)            return l_board_get_sun_floor(L);
     if (strcmp(key, "num_waves_per_flag") == 0)   return l_board_get_num_waves_per_flag(L);
     if (strcmp(key, "progress_meter_width") == 0) return l_board_get_progress_meter_width(L);
     if (strcmp(key, "zombie_count_down") == 0)    return l_board_get_zombie_count_down(L);
@@ -891,6 +910,10 @@ int l_board_newindex(lua_State* L) {
     }
     if (strcmp(key, "waves_per_flag") == 0) {
         b->mWavesPerFlagOverride = static_cast<int32_t>(luaL_checkinteger(L, 3));
+        return 0;
+    }
+    if (strcmp(key, "sun_floor") == 0) {
+        b->mSunMoneyFloor = static_cast<int32_t>(luaL_checkinteger(L, 3));
         return 0;
     }
     if (strcmp(key, "num_waves") == 0) {
