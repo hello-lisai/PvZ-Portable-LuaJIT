@@ -328,6 +328,10 @@ public:
 //	inline void						MouseDownNormal(int x, int y, int theClickCount) { /* 未发现 */; }
 	bool							CanInteractWithBoardButtons();
 	void							DrawProgressMeter(Graphics* g);
+	// Mod API：在指定位置独立绘制旗帜进度条（背景+填充+旗帜+僵尸头），不依赖默认 DrawProgressMeter
+	void							DrawFlagMeterAt(Graphics* g, int x, int y);
+	// Mod API：在指定位置独立绘制僵王博士血条（背景+填充），不依赖默认 DrawProgressMeter
+	void							DrawBossHealthMeterAt(Graphics* g, int x, int y);
 	void							UpdateToolTip();
 	Plant*							GetTopPlantAt(int theGridX, int theGridY, PlantPriority thePriority);
 	void							GetPlantsOnLawn(int theGridX, int theGridY, PlantsOnLawn* thePlantOnLawn);

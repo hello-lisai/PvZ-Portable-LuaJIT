@@ -1,4 +1,5 @@
 #include "LuaBindUtil.h"
+#include "../../SexyAppFramework/graphics/Graphics.h"
 #include "../../Lawn/Board.h"
 #include "../../Lawn/SeedPacket.h"
 #include "../../Lawn/GridItem.h"
@@ -239,6 +240,36 @@ int l_board_has_progress_meter(lua_State* L) {
     if (!b) { lua_pushboolean(L, 0); return 1; }
     lua_pushboolean(L, b->HasProgressMeter() ? 1 : 0);
     return 1;
+}
+
+// board:draw_flag_meter(graphics, x, y) —— 在指定位置绘制旗帜进度条
+// graphics: 从 on_board_draw_hud 回调参数获取的 Graphics userdata
+// x, y: 进度条左上角坐标（原版默认 x=600, y=575）
+// 始终绘制旗帜模式，不受 BOSS 存在影响
+int l_board_draw_flag_meter(lua_State* L) {
+    Board* b = CheckUserdata<Board>(L, 1, MT_BOARD);
+    if (!b) return 0;
+    Graphics** pp = static_cast<Graphics**>(luaL_checkudata(L, 2, MT_GRAPHICS));
+    if (!pp || !*pp) return 0;
+    int x = static_cast<int>(luaL_checkinteger(L, 3));
+    int y = static_cast<int>(luaL_checkinteger(L, 4));
+    b->DrawFlagMeterAt(*pp, x, y);
+    return 0;
+}
+
+// board:draw_boss_health_meter(graphics, x, y) —— 在指定位置绘制僵王博士血条
+// graphics: 从 on_board_draw_hud 回调参数获取的 Graphics userdata
+// x, y: 进度条左上角坐标（原版默认 x=600, y=575）
+// 血条宽度根据当前 BOSS 血量计算
+int l_board_draw_boss_health_meter(lua_State* L) {
+    Board* b = CheckUserdata<Board>(L, 1, MT_BOARD);
+    if (!b) return 0;
+    Graphics** pp = static_cast<Graphics**>(luaL_checkudata(L, 2, MT_GRAPHICS));
+    if (!pp || !*pp) return 0;
+    int x = static_cast<int>(luaL_checkinteger(L, 3));
+    int y = static_cast<int>(luaL_checkinteger(L, 4));
+    b->DrawBossHealthMeterAt(*pp, x, y);
+    return 0;
 }
 
 // board:get_survival_flags_completed() -> int —— 生存模式已完成的旗帜数
@@ -803,6 +834,9 @@ int l_board_index(lua_State* L) {
         {"is_flag_wave",               l_board_is_flag_wave},
         {"has_progress_meter",         l_board_has_progress_meter},
         {"get_survival_flags_completed", l_board_get_survival_flags_completed},
+        // Mod API：自定义进度条绘制（在 on_board_draw_hud 回调中调用）
+        {"draw_flag_meter",            l_board_draw_flag_meter},
+        {"draw_boss_health_meter",     l_board_draw_boss_health_meter},
         // 关卡类型判断
         {"is_adventure",               l_board_is_adventure},
         {"is_survival",                l_board_is_survival},

@@ -5891,9 +5891,11 @@ void Board::UpdateIce()
 
 void Board::UpdateProgressMeter()
 {
-	if (mApp->IsFinalBossLevel())
+	// Mod 扩展：同时计算旗帜进度和 BOSS 血条进度
+	// DrawProgressMeter 和 DrawFlagMeterAt/DrawBossHealthMeterAt 各自根据状态选择绘制内容
+	Zombie* aBoss = GetBossZombie();
+	if (mApp->IsFinalBossLevel() || (aBoss && !aBoss->IsDeadOrDying()))
 	{
-		Zombie* aBoss = GetBossZombie();
 		if (aBoss && !aBoss->IsDeadOrDying())
 		{
 			mProgressMeterWidth = 150 * (aBoss->mBodyMaxHealth - aBoss->mBodyHealth) / aBoss->mBodyMaxHealth;
@@ -5902,6 +5904,9 @@ void Board::UpdateProgressMeter()
 		{
 			mProgressMeterWidth = 150;
 		}
+		// BOSS 存在时也更新旗帜计数器，以便 mod 同时绘制旗帜
+		if (mFlagRaiseCounter > 0)
+			mFlagRaiseCounter--;
 	}
 	else if (mCurrentWave != 0)
 	{
@@ -7028,6 +7033,13 @@ void Board::DrawProgressMeter(Graphics* g)
 	if (!HasProgressMeter())
 		return;
 
+	// Mod API：如果有 mod 监听 ON_BOARD_DRAW_HUD 事件，跳过默认绘制
+	// 由 mod 通过 board:draw_flag_meter() / board:draw_boss_health_meter() 自行控制
+#ifdef PVZ_MOD_API_ENABLED
+	if (ModBus::HasListenersFor(ModEvent::ON_BOARD_DRAW_HUD))
+		return;
+#endif
+
 	// ====================================================================================================
 	// ▲ 绘制进度条进度部分的贴图
 	// ====================================================================================================
@@ -7105,17 +7117,96 @@ void Board::DrawProgressMeter(Graphics* g)
 	// 绘制“关卡进程”的小牌子
 	g->DrawImage(Sexy::IMAGE_FLAGMETERLEVELPROGRESS, 638, 589);
 	// 判断是否需要绘制进度条当前位置处的小僵尸头，不需要则直接返回
-	if (mApp->mGameMode == GameMode::GAMEMODE_CHALLENGE_BEGHOULED || 
+	if (mApp->mGameMode == GameMode::GAMEMODE_CHALLENGE_BEGHOULED ||
 		mApp->mGameMode == GameMode::GAMEMODE_CHALLENGE_BEGHOULED_TWIST ||
-		mApp->mGameMode == GameMode::GAMEMODE_CHALLENGE_ZOMBIQUARIUM || 
-		mApp->IsSquirrelLevel() || 
+		mApp->mGameMode == GameMode::GAMEMODE_CHALLENGE_ZOMBIQUARIUM ||
+		mApp->IsSquirrelLevel() ||
 		mApp->IsSlotMachineLevel() ||
-		mApp->IsIZombieLevel() || 
+		mApp->IsIZombieLevel() ||
 		mApp->IsFinalBossLevel())
 		return;
 	// 绘制僵尸头
 	int aHeadProgress = TodAnimateCurve(0, 150, mProgressMeterWidth, 0, 135, CURVE_LINEAR);
 	g->DrawImageCel(Sexy::IMAGE_FLAGMETERPARTS, aCelWidth - aHeadProgress + 580, 572, 0, 0);
+}
+
+// Mod API：在指定位置 (x, y) 独立绘制旗帜进度条
+// 绘制内容：背景条 + 进度填充 + 旗帜标记 + 僵尸头标记
+// 与 DrawProgressMeter 不同，此函数始终绘制旗帜模式，不受 BOSS 存在影响
+// x, y 为进度条背景图左上角的坐标（原版默认位置 x=600, y=575）
+void Board::DrawFlagMeterAt(Graphics* g, int x, int y)
+{
+	int aCelWidth = Sexy::IMAGE_FLAGMETER->GetCelWidth();
+	int aCelHeight = Sexy::IMAGE_FLAGMETER->GetCelHeight();
+
+	// 绘制背景条
+	g->DrawImageCel(Sexy::IMAGE_FLAGMETER, x, y, 0);
+
+	// 绘制进度填充
+	int aClipWidth = TodAnimateCurve(0, PROGRESS_METER_COUNTER, mProgressMeterWidth, 0, 143, TodCurves::CURVE_LINEAR);
+	Rect aSrcRect(aCelWidth - aClipWidth - 7, aCelHeight, aClipWidth, aCelHeight);
+	Rect aDstRect(aCelWidth - aClipWidth + x - 7, y, aClipWidth, aCelHeight);
+	g->DrawImage(Sexy::IMAGE_FLAGMETER, aDstRect, aSrcRect);
+
+	// 绘制旗帜
+	if (ProgressMeterHasFlags())
+	{
+		int aNumWavesPerFlag = GetNumWavesPerFlag();
+		int aNumFlagWaves = mNumWaves / aNumWavesPerFlag;
+		int aFlagsPosEnd = y + 15 + aCelWidth;  // 旗帜区域右界
+		for (int aFlagWave = 1; aFlagWave <= aNumFlagWaves; aFlagWave++)
+		{
+			int aHeight = 0;
+			int aTotalWavesAtFlag = aFlagWave * aNumWavesPerFlag;
+			if (aTotalWavesAtFlag < mCurrentWave)
+			{
+				aHeight = 14;
+			}
+			else if (aTotalWavesAtFlag == mCurrentWave)
+			{
+				aHeight = TodAnimateCurve(100, 0, mFlagRaiseCounter, 0, 14, TodCurves::CURVE_LINEAR);
+			}
+			int aFlagX = TodAnimateCurve(0, mNumWaves, aTotalWavesAtFlag, aFlagsPosEnd, x + 6, TodCurves::CURVE_LINEAR);
+			g->DrawImageCel(Sexy::IMAGE_FLAGMETERPARTS, aFlagX, y - 4, 1, 0);
+			g->DrawImageCel(Sexy::IMAGE_FLAGMETERPARTS, aFlagX, y - 3 - aHeight, 2, 0);
+		}
+	}
+
+	// 绘制"关卡进程"小牌子
+	g->DrawImage(Sexy::IMAGE_FLAGMETERLEVELPROGRESS, x + 38, y + 14);
+
+	// 绘制僵尸头
+	int aHeadProgress = TodAnimateCurve(0, 150, mProgressMeterWidth, 0, 135, CURVE_LINEAR);
+	g->DrawImageCel(Sexy::IMAGE_FLAGMETERPARTS, aCelWidth - aHeadProgress + x - 20, y - 3, 0, 0);
+}
+
+// Mod API：在指定位置 (x, y) 独立绘制僵王博士血条
+// 绘制内容：背景条 + 血条填充（根据 BOSS 血量）
+// x, y 为进度条背景图左上角的坐标（原版默认位置 x=600, y=575）
+void Board::DrawBossHealthMeterAt(Graphics* g, int x, int y)
+{
+	int aCelWidth = Sexy::IMAGE_FLAGMETER->GetCelWidth();
+	int aCelHeight = Sexy::IMAGE_FLAGMETER->GetCelHeight();
+
+	// 绘制背景条
+	g->DrawImageCel(Sexy::IMAGE_FLAGMETER, x, y, 0);
+
+	// 计算 BOSS 血条宽度
+	int aBossWidth = 150;
+	Zombie* aBoss = GetBossZombie();
+	if (aBoss && !aBoss->IsDeadOrDying())
+	{
+		aBossWidth = 150 * (aBoss->mBodyMaxHealth - aBoss->mBodyHealth) / aBoss->mBodyMaxHealth;
+	}
+
+	// 绘制血条填充
+	int aClipWidth = TodAnimateCurve(0, PROGRESS_METER_COUNTER, aBossWidth, 0, 143, TodCurves::CURVE_LINEAR);
+	Rect aSrcRect(aCelWidth - aClipWidth - 7, aCelHeight, aClipWidth, aCelHeight);
+	Rect aDstRect(aCelWidth - aClipWidth + x - 7, y, aClipWidth, aCelHeight);
+	g->DrawImage(Sexy::IMAGE_FLAGMETER, aDstRect, aSrcRect);
+
+	// 绘制"关卡进程"小牌子
+	g->DrawImage(Sexy::IMAGE_FLAGMETERLEVELPROGRESS, x + 38, y + 14);
 }
 
 void Board::DrawHouseDoorBottom(Graphics* g)
