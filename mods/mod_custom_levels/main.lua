@@ -81,11 +81,40 @@ end
 -- 安全调用 register_icons（pvz API 可能在 mod 加载时还未就绪）
 local icons_registered = pcall(register_icons)
 
--- on_loading_completed: 如果加载时注册失败，在资源加载完成后重试
+-- ========================================================================
+-- 一次性重置 MOD_CUSTOM_1~6 的通关记录
+-- 通过 config 标志位 records_reset_version 控制：
+--   - 标志位不存在或版本号变化时，清零六关通关记录并立即保存
+--   - 用户如需再次重置，删除 config.json 中本 mod 的 records_reset_version 字段即可
+-- 在 on_loading_completed 中执行（此时 PlayerInfo 已加载完毕）
+-- ========================================================================
+local RECORDS_RESET_VERSION = 1  -- 递增此版本号可强制重新重置
+
+local function reset_custom_level_records()
+    -- 检查是否已执行过此版本的重置
+    local last_version = pvz.config.get("records_reset_version")
+    if last_version == RECORDS_RESET_VERSION then
+        return  -- 已重置过，跳过
+    end
+
+    -- 重置 MOD_CUSTOM_1~6 的通关记录
+    for i = 0, 5 do
+        local mode = pvz.GameMode.MOD_CUSTOM_1 + i
+        pvz.reset_challenge_record(mode)
+    end
+    print("[mod_custom_levels] 已重置 MOD_CUSTOM_1~6 通关记录")
+
+    -- 标记已完成此版本的重置
+    pvz.config.set("records_reset_version", RECORDS_RESET_VERSION)
+end
+
+-- on_loading_completed: 资源加载完成后执行（PlayerInfo 此时已加载）
 function M.on_loading_completed()
     if not icons_registered then
         icons_registered = pcall(register_icons)
     end
+    -- 执行一次性通关记录重置（pcall 保护，避免 API 未就绪时崩溃）
+    pcall(reset_custom_level_records)
 end
 
 -- ========================================================================

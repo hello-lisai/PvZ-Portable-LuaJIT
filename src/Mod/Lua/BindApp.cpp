@@ -6,6 +6,7 @@
 #include "../../SexyAppFramework/graphics/Image.h"
 #include "../../SexyAppFramework/graphics/MemoryImage.h"
 #include "../../SexyAppFramework/imagelib/ImageLib.h"
+#include "../../Lawn/System/PlayerInfo.h"  // PlayerInfo / ResetChallengeRecord
 #include "LuaRuntime.h"
 #include <cstdio>
 #include <cstring>
@@ -89,6 +90,21 @@ int l_pvz_set_hud_custom(lua_State* L) {
     int gameMode = static_cast<int>(luaL_checkinteger(L, 1));
     bool enabled = lua_toboolean(L, 2);
     SetCustomHudMode(gameMode, enabled);
+    return 0;
+}
+
+// pvz.reset_challenge_record(game_mode) —— 重置指定关卡的通关记录
+// game_mode: pvz.GameMode 枚举值（如 pvz.GameMode.MOD_CUSTOM_1）
+// 清零 mChallengeRecords 中该关卡的记录并立即保存到用户档案，使该关卡回到未通关状态
+// 例：pvz.reset_challenge_record(pvz.GameMode.MOD_CUSTOM_1)
+int l_pvz_reset_challenge_record(lua_State* L) {
+    int gameMode = static_cast<int>(luaL_checkinteger(L, 1));
+    if (!gLawnApp || !gLawnApp->mPlayerInfo) {
+        std::fprintf(stderr, "[ModAPI] reset_challenge_record: app or playerInfo is null\n");
+        return 0;
+    }
+    gLawnApp->mPlayerInfo->ResetChallengeRecord(static_cast<GameMode>(gameMode));
+    gLawnApp->mPlayerInfo->SaveDetails();
     return 0;
 }
 
@@ -267,6 +283,10 @@ void BindApp(lua_State* L) {
         // pvz.set_hud_custom(game_mode, enabled) —— 标记关卡由 mod 自定义绘制 HUD
         lua_pushcfunction(L, l_pvz_set_hud_custom);
         lua_setfield(L, -2, "set_hud_custom");
+
+        // pvz.reset_challenge_record(game_mode) —— 重置指定关卡通关记录并立即保存
+        lua_pushcfunction(L, l_pvz_reset_challenge_record);
+        lua_setfield(L, -2, "reset_challenge_record");
 
         // pvz.load_image(path) —— 从文件加载图片，返回 Image userdata
         lua_pushcfunction(L, l_pvz_load_image);
