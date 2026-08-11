@@ -69,6 +69,18 @@ int l_pvz_set_challenge_icon(lua_State* L) {
     return 0;
 }
 
+// pvz.set_challenge_name(game_mode, name) —— 为指定关卡设置自定义显示名称
+// game_mode: pvz.GameMode 枚举值
+// name: 显示名称（明文字符串，不经过翻译表）
+// 设置后选关界面中该关卡按钮下方显示此名称
+// 例：pvz.set_challenge_name(pvz.GameMode.MOD_CUSTOM_1, "草地入侵")
+int l_pvz_set_challenge_name(lua_State* L) {
+    int gameMode = static_cast<int>(luaL_checkinteger(L, 1));
+    const char* name = luaL_checkstring(L, 2);
+    SetCustomChallengeName(gameMode, std::string(name));
+    return 0;
+}
+
 // pvz.load_image(path) -> Image or nil —— 从文件加载图片，返回 Image userdata
 // 用于 set_image_override 等需要 Image* 的 API
 // path 相对于资源目录或 mod overlay 目录（如 "images/my_weapon.png"）
@@ -236,6 +248,10 @@ void BindApp(lua_State* L) {
         // pvz.set_challenge_icon(game_mode, image_path) —— 设置自定义关卡封面
         lua_pushcfunction(L, l_pvz_set_challenge_icon);
         lua_setfield(L, -2, "set_challenge_icon");
+
+        // pvz.set_challenge_name(game_mode, name) —— 设置自定义关卡显示名称
+        lua_pushcfunction(L, l_pvz_set_challenge_name);
+        lua_setfield(L, -2, "set_challenge_name");
 
         // pvz.load_image(path) —— 从文件加载图片，返回 Image userdata
         lua_pushcfunction(L, l_pvz_load_image);

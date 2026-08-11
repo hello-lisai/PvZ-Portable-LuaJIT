@@ -184,6 +184,12 @@ void BindEnums(lua_State* L) {
         {"CHALLENGE_SUNNY_DAY",       static_cast<lua_Integer>(GameMode::GAMEMODE_CHALLENGE_SUNNY_DAY)},
         {"CHALLENGE_RESODDED",        static_cast<lua_Integer>(GameMode::GAMEMODE_CHALLENGE_RESODDED)},
         {"CHALLENGE_BIG_TIME",        static_cast<lua_Integer>(GameMode::GAMEMODE_CHALLENGE_BIG_TIME)},
+        {"MOD_CUSTOM_1",              static_cast<lua_Integer>(GameMode::GAMEMODE_MOD_CUSTOM_1)},
+        {"MOD_CUSTOM_2",              static_cast<lua_Integer>(GameMode::GAMEMODE_MOD_CUSTOM_2)},
+        {"MOD_CUSTOM_3",              static_cast<lua_Integer>(GameMode::GAMEMODE_MOD_CUSTOM_3)},
+        {"MOD_CUSTOM_4",              static_cast<lua_Integer>(GameMode::GAMEMODE_MOD_CUSTOM_4)},
+        {"MOD_CUSTOM_5",              static_cast<lua_Integer>(GameMode::GAMEMODE_MOD_CUSTOM_5)},
+        {"MOD_CUSTOM_6",              static_cast<lua_Integer>(GameMode::GAMEMODE_MOD_CUSTOM_6)},
     };
     RegisterEnum(L, game_modes, sizeof(game_modes)/sizeof(game_modes[0]));
     lua_setfield(L, -2, "GameMode");
@@ -204,6 +210,19 @@ void BindEnums(lua_State* L) {
     };
     RegisterEnum(L, background_types, sizeof(background_types)/sizeof(background_types[0]));
     lua_setfield(L, -2, "BackgroundType");
+
+    // === GridTerrain (Mod API: per-grid 地形覆盖) ===
+    lua_newtable(L);
+    static const EnumEntry grid_terrains[] = {
+        {"DEFAULT",     static_cast<lua_Integer>(GridTerrain::GRID_TERRAIN_DEFAULT)},
+        {"DAY_GRASS",   static_cast<lua_Integer>(GridTerrain::GRID_TERRAIN_DAY_GRASS)},
+        {"NIGHT_GRASS", static_cast<lua_Integer>(GridTerrain::GRID_TERRAIN_NIGHT_GRASS)},
+        {"POOL",        static_cast<lua_Integer>(GridTerrain::GRID_TERRAIN_POOL)},
+        {"ROOF",        static_cast<lua_Integer>(GridTerrain::GRID_TERRAIN_ROOF)},
+        {"BLOCKED",     static_cast<lua_Integer>(GridTerrain::GRID_TERRAIN_BLOCKED)},
+    };
+    RegisterEnum(L, grid_terrains, sizeof(grid_terrains)/sizeof(grid_terrains[0]));
+    lua_setfield(L, -2, "GridTerrain");
 
     // === CrazyDaveState ===
     lua_newtable(L);

@@ -107,7 +107,15 @@ constinit const ChallengeDefinition gChallengeDefs[NUM_CHALLENGE_MODES] = {
 	{ .mChallengeMode = GameMode::GAMEMODE_PUZZLE_I_ZOMBIE_9, .mChallengeIconIndex = 11, .mPage = ChallengePage::CHALLENGE_PAGE_PUZZLE, .mRow = 3, .mCol = 3, .mChallengeName = "[I_ZOMBIE_9]" },
 	{ .mChallengeMode = GameMode::GAMEMODE_PUZZLE_I_ZOMBIE_ENDLESS, .mChallengeIconIndex = 11, .mPage = ChallengePage::CHALLENGE_PAGE_PUZZLE, .mRow = 3, .mCol = 4, .mChallengeName = "[I_ZOMBIE_ENDLESS]" },
 	{ .mChallengeMode = GameMode::GAMEMODE_UPSELL, .mChallengeIconIndex = 10, .mPage = ChallengePage::CHALLENGE_PAGE_LIMBO, .mRow = 3, .mCol = 4, .mChallengeName = "Upsell" },
-	{ .mChallengeMode = GameMode::GAMEMODE_INTRO, .mChallengeIconIndex = 10, .mPage = ChallengePage::CHALLENGE_PAGE_LIMBO, .mRow = 2, .mCol = 3, .mChallengeName = "Intro" }
+	{ .mChallengeMode = GameMode::GAMEMODE_INTRO, .mChallengeIconIndex = 10, .mPage = ChallengePage::CHALLENGE_PAGE_LIMBO, .mRow = 2, .mCol = 3, .mChallengeName = "Intro" },
+	// Mod API: 自定义关卡（生存模式第二页），2行×3列居中布局
+	// 封面图标由 mod 通过 pvz.set_challenge_icon 设置；关卡内容由 mod 的 on_level_init 设置
+	{ .mChallengeMode = GameMode::GAMEMODE_MOD_CUSTOM_1, .mChallengeIconIndex = 0, .mPage = ChallengePage::CHALLENGE_PAGE_MOD_CUSTOM, .mRow = 0, .mCol = 1, .mChallengeName = "Custom Lv.1" },
+	{ .mChallengeMode = GameMode::GAMEMODE_MOD_CUSTOM_2, .mChallengeIconIndex = 0, .mPage = ChallengePage::CHALLENGE_PAGE_MOD_CUSTOM, .mRow = 0, .mCol = 2, .mChallengeName = "Custom Lv.2" },
+	{ .mChallengeMode = GameMode::GAMEMODE_MOD_CUSTOM_3, .mChallengeIconIndex = 0, .mPage = ChallengePage::CHALLENGE_PAGE_MOD_CUSTOM, .mRow = 0, .mCol = 3, .mChallengeName = "Custom Lv.3" },
+	{ .mChallengeMode = GameMode::GAMEMODE_MOD_CUSTOM_4, .mChallengeIconIndex = 0, .mPage = ChallengePage::CHALLENGE_PAGE_MOD_CUSTOM, .mRow = 1, .mCol = 1, .mChallengeName = "Custom Lv.4" },
+	{ .mChallengeMode = GameMode::GAMEMODE_MOD_CUSTOM_5, .mChallengeIconIndex = 0, .mPage = ChallengePage::CHALLENGE_PAGE_MOD_CUSTOM, .mRow = 1, .mCol = 2, .mChallengeName = "Custom Lv.5" },
+	{ .mChallengeMode = GameMode::GAMEMODE_MOD_CUSTOM_6, .mChallengeIconIndex = 0, .mPage = ChallengePage::CHALLENGE_PAGE_MOD_CUSTOM, .mRow = 1, .mCol = 3, .mChallengeName = "Custom Lv.6" }
 };
 
 // GOTY @Patoke: 0x430810
@@ -145,6 +153,10 @@ ChallengeScreen::ChallengeScreen(LawnApp* theApp, ChallengePage thePage)
 		mPageButton[aPageIdx] = aPageButton;
 		if (aPageIdx == CHALLENGE_PAGE_LIMBO)
 			aPageButton->mLabel = mApp->GetString("LIMBO_PAGE_BUTTON", "Limbo Page");
+		else if (aPageIdx == CHALLENGE_PAGE_MOD_CUSTOM)
+			aPageButton->mLabel = "Page 2 >>";  // 生存模式第二页入口
+		else if (aPageIdx == CHALLENGE_PAGE_SURVIVAL)
+			aPageButton->mLabel = "<< Page 1";  // 返回第一页
 		else
 			aPageButton->mLabel = TodReplaceNumberString("[PAGE_X]", "{PAGE}", aPageIdx);
 		aPageButton->mButtonImage = Sexy::IMAGE_BLANK;
@@ -153,11 +165,17 @@ ChallengeScreen::ChallengeScreen(LawnApp* theApp, ChallengePage thePage)
 		aPageButton->SetFont(Sexy::FONT_BRIANNETOD12);
 		aPageButton->mColors[ButtonWidget::COLOR_LABEL] = Color(255, 240, 0);
 		aPageButton->mColors[ButtonWidget::COLOR_LABEL_HILITE] = Color(220, 220, 0);
-		aPageButton->Resize(200 + 100 * aPageIdx, 540, 100, 75);
-		if (!ShowPageButtons() || aPageIdx == CHALLENGE_PAGE_SURVIVAL || aPageIdx == CHALLENGE_PAGE_PUZZLE)
-			aPageButton->mVisible = false;
+		// 导航按钮位置：SURVIVAL 页右下角显示"第二页"，MOD_CUSTOM 页左下角显示"第一页"
+		if (aPageIdx == CHALLENGE_PAGE_MOD_CUSTOM)
+			aPageButton->Resize(620, 540, 120, 40);
+		else if (aPageIdx == CHALLENGE_PAGE_SURVIVAL)
+			aPageButton->Resize(120, 540, 120, 40);
+		else
+			aPageButton->Resize(200 + 100 * aPageIdx, 540, 100, 75);
+		// 默认隐藏，UpdateButtons 会按需显示导航按钮
+		aPageButton->mVisible = false;
 	}
-	
+
 	for (int aChallengeMode = 0; aChallengeMode < NUM_CHALLENGE_MODES; aChallengeMode++)
 	{
 		const ChallengeDefinition& aChlDef = GetChallengeDefinition(aChallengeMode);
@@ -165,7 +183,7 @@ ChallengeScreen::ChallengeScreen(LawnApp* theApp, ChallengePage thePage)
 		mChallengeButtons[aChallengeMode] = aChallengeButton;
 		aChallengeButton->mDoFinger = true;
 		aChallengeButton->mFrameNoDraw = true;
-		if (aChlDef.mPage == CHALLENGE_PAGE_CHALLENGE || aChlDef.mPage == CHALLENGE_PAGE_LIMBO || aChlDef.mPage == CHALLENGE_PAGE_PUZZLE)
+		if (aChlDef.mPage == CHALLENGE_PAGE_CHALLENGE || aChlDef.mPage == CHALLENGE_PAGE_LIMBO || aChlDef.mPage == CHALLENGE_PAGE_PUZZLE || aChlDef.mPage == CHALLENGE_PAGE_MOD_CUSTOM)
 			aChallengeButton->Resize(38 + aChlDef.mCol * 155, 93 + aChlDef.mRow * 119, 104, 115);
 		else
 			aChallengeButton->Resize(38 + aChlDef.mCol * 155, 125 + aChlDef.mRow * 145, 104, 115);
@@ -267,6 +285,17 @@ int ChallengeScreen::MoreTrophiesNeeded(int theChallengeIndex)
 	{
 		return aDef.mChallengeMode == GAMEMODE_CHALLENGE_FINAL_BOSS ? 1 : 0;
 	}
+
+	// Mod API: MOD_CUSTOM 页顺序解锁
+	// 第1关默认解锁；第N关需第N-1关通关（HasBeatenChallenge 检查 mChallengeRecords）
+	if (aDef.mPage == CHALLENGE_PAGE_MOD_CUSTOM)
+	{
+		int aSlotIndex = static_cast<int>(aDef.mChallengeMode) - static_cast<int>(GameMode::GAMEMODE_MOD_CUSTOM_1);
+		if (aSlotIndex <= 0)
+			return 0;  // 第1关始终解锁
+		GameMode aPrevMode = static_cast<GameMode>(static_cast<int>(GameMode::GAMEMODE_MOD_CUSTOM_1) + aSlotIndex - 1);
+		return mApp->HasBeatenChallenge(aPrevMode) ? 0 : 1;
+	}
 	
 	if (mApp->IsTrialStageLocked())
 	{
@@ -363,7 +392,7 @@ int ChallengeScreen::MoreTrophiesNeeded(int theChallengeIndex)
 
 bool ChallengeScreen::ShowPageButtons()
 {
-	return mApp->mTodCheatKeys && mPageIndex != CHALLENGE_PAGE_SURVIVAL && mPageIndex != CHALLENGE_PAGE_PUZZLE;
+	return mApp->mTodCheatKeys && mPageIndex != CHALLENGE_PAGE_SURVIVAL && mPageIndex != CHALLENGE_PAGE_PUZZLE && mPageIndex != CHALLENGE_PAGE_MOD_CUSTOM;
 }
 
 void ChallengeScreen::UpdateButtons()
@@ -373,8 +402,21 @@ void ChallengeScreen::UpdateButtons()
 	for (int aPage = 0; aPage < MAX_CHALLANGE_PAGES; aPage++)
 	{
 		ButtonWidget* aPageButton = mPageButton[aPage];
+		// 默认隐藏所有页按钮
+		aPageButton->mVisible = false;
 
-		if (mLimboPageUnlocked && aPage == CHALLENGE_PAGE_LIMBO)
+		// Limbo 彩蛋页：解锁后显示（仅作弊键时）
+		if (mLimboPageUnlocked && aPage == CHALLENGE_PAGE_LIMBO && ShowPageButtons())
+			aPageButton->mVisible = true;
+
+		// Mod API 导航：SURVIVAL 页显示"第二页"按钮，MOD_CUSTOM 页显示"第一页"按钮
+		if (aPage == CHALLENGE_PAGE_MOD_CUSTOM && mPageIndex == CHALLENGE_PAGE_SURVIVAL)
+			aPageButton->mVisible = true;
+		if (aPage == CHALLENGE_PAGE_SURVIVAL && mPageIndex == CHALLENGE_PAGE_MOD_CUSTOM)
+			aPageButton->mVisible = true;
+
+		// 作弊键开启时显示其他页按钮（原版行为）
+		if (ShowPageButtons() && aPage != CHALLENGE_PAGE_SURVIVAL && aPage != CHALLENGE_PAGE_PUZZLE && aPage != CHALLENGE_PAGE_MOD_CUSTOM)
 			aPageButton->mVisible = true;
 
 		if (aPage == mPageIndex)
@@ -467,7 +509,9 @@ void ChallengeScreen::DrawButton(Graphics* g, int theChallengeIndex)
 			// ▲ 绘制小游戏的名称
 			// ============================================================================================
 			Color aTextColor = aHighLight ? Color(250, 40, 40) : Color(42, 42, 90);
-			std::string aName = TodStringTranslate(aDef.mChallengeName);
+			// Mod API: 优先使用 mod 通过 pvz.set_challenge_name 设置的名称
+			std::string aModName = ModLua::GetCustomChallengeName(static_cast<int>(aDef.mChallengeMode));
+			std::string aName = !aModName.empty() ? aModName : TodStringTranslate(aDef.mChallengeName);
 			if (aChallengeButton->mDisabled || (theChallengeIndex == mUnlockChallengeIndex && mUnlockState == UNLOCK_SHAKING))
 			{
 				aName = "?";
@@ -596,7 +640,8 @@ void ChallengeScreen::Draw(Graphics* g)
 	g->DrawImage(Sexy::IMAGE_CHALLENGE_BACKGROUND, 0, 0);
 
 	std::string aTitleString =
-		mPageIndex == CHALLENGE_PAGE_SURVIVAL ? "[PICK_AREA]" : 
+		mPageIndex == CHALLENGE_PAGE_SURVIVAL ? "[PICK_AREA]" :
+		mPageIndex == CHALLENGE_PAGE_MOD_CUSTOM ? "Mod Custom Levels" :
 		mPageIndex == CHALLENGE_PAGE_PUZZLE ? "[SCARY_POTTER]" : "[PICK_CHALLENGE]";
 	TodDrawString(g, aTitleString, 400, 58, Sexy::FONT_HOUSEOFTERROR28, Color(220, 220, 220), DS_ALIGN_CENTER);
 
@@ -685,7 +730,7 @@ void ChallengeScreen::ButtonDepress(int theId)
 	}
 
 	int aPageIndex = theId - ChallengeScreen::ChallengeScreen_Page;
-	if (aPageIndex >= 0 && aPageIndex < 4)
+	if (aPageIndex >= 0 && aPageIndex < MAX_CHALLANGE_PAGES)
 	{
 		mPageIndex = (ChallengePage)aPageIndex;
 		UpdateButtons();

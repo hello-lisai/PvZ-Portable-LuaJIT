@@ -61,6 +61,22 @@ void ClearCustomChallengeIcons() {
     g_customChallengeIcons.clear();
 }
 
+// 自定义关卡显示名称（mod 通过 pvz.set_challenge_name 设置）
+static std::unordered_map<int, std::string> g_customChallengeNames;
+
+std::string GetCustomChallengeName(int theGameMode) {
+    auto it = g_customChallengeNames.find(theGameMode);
+    return (it != g_customChallengeNames.end()) ? it->second : "";
+}
+
+void SetCustomChallengeName(int theGameMode, const std::string& theName) {
+    g_customChallengeNames[theGameMode] = theName;
+}
+
+void ClearCustomChallengeNames() {
+    g_customChallengeNames.clear();
+}
+
 namespace {
 
 // === Board 字段读写（getter/setter）===
@@ -295,6 +311,38 @@ int l_board_get_survival_flags_completed(lua_State* L) {
     Board* b = CheckUserdata<Board>(L, 1, MT_BOARD);
     if (!b) { lua_pushinteger(L, 0); return 1; }
     lua_pushinteger(L, b->GetSurvivalFlagsCompleted());
+    return 1;
+}
+
+// board:set_grid_terrain(grid_x, grid_y, terrain_kind)
+// 设置单个格子的地形覆盖（per-grid，优先于关卡全局背景判定）
+// terrain_kind: pvz.GridTerrain 枚举值
+//   DEFAULT(-1)      使用关卡默认（原版行为）
+//   DAY_GRASS(0)     白天草地：蘑菇睡觉，无需花盆/睡莲
+//   NIGHT_GRASS(1)   黑夜草地：蘑菇醒着，无需花盆/睡莲
+//   POOL(2)          水池：陆生植物需要睡莲，水生植物可种
+//   ROOF(3)          屋顶：需要花盆，地刺不可种
+//   BLOCKED(4)       不可种植：任何植物都无法种在此格
+// 在 on_level_init 中设置；InitLevel 会自动重置为 DEFAULT，无需手动清除
+int l_board_set_grid_terrain(lua_State* L) {
+    Board* b = CheckUserdata<Board>(L, 1, MT_BOARD);
+    if (!b) return 0;
+    int gx = static_cast<int>(luaL_checkinteger(L, 2));
+    int gy = static_cast<int>(luaL_checkinteger(L, 3));
+    GridTerrain t = static_cast<GridTerrain>(luaL_checkinteger(L, 4));
+    if (gx < 0 || gx >= MAX_GRID_SIZE_X || gy < 0 || gy >= MAX_GRID_SIZE_Y) return 0;
+    b->mGridTerrainOverride[gx][gy] = t;
+    return 0;
+}
+
+// board:get_grid_terrain(grid_x, grid_y) -> int
+// 返回指定格子的地形覆盖值（pvz.GridTerrain 枚举值）
+int l_board_get_grid_terrain(lua_State* L) {
+    Board* b = CheckUserdata<Board>(L, 1, MT_BOARD);
+    if (!b) { lua_pushinteger(L, static_cast<lua_Integer>(GridTerrain::GRID_TERRAIN_DEFAULT)); return 1; }
+    int gx = static_cast<int>(luaL_checkinteger(L, 2));
+    int gy = static_cast<int>(luaL_checkinteger(L, 3));
+    lua_pushinteger(L, static_cast<lua_Integer>(b->GetGridTerrain(gx, gy)));
     return 1;
 }
 
@@ -868,6 +916,9 @@ int l_board_index(lua_State* L) {
         {"clear_background_image",     l_board_clear_background_image},
         // 地形切换
         {"set_terrain",                l_board_set_terrain},
+        // per-grid 地形覆盖
+        {"set_grid_terrain",           l_board_set_grid_terrain},
+        {"get_grid_terrain",           l_board_get_grid_terrain},
         // 场地控制
         {"add_crater",                 l_board_add_crater},
         {"remove_crater",              l_board_remove_crater},

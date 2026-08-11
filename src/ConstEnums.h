@@ -145,7 +145,8 @@ enum ChallengePage : int32_t
     CHALLENGE_PAGE_CHALLENGE = 1,
     CHALLENGE_PAGE_LIMBO = 2,
     CHALLENGE_PAGE_PUZZLE = 3,
-    MAX_CHALLANGE_PAGES = 4
+    CHALLENGE_PAGE_MOD_CUSTOM = 4,  // Mod API: 生存模式第二页（自定义关卡）
+    MAX_CHALLANGE_PAGES = 5
 };
 enum ChallengeState : int32_t
 {
@@ -449,6 +450,16 @@ enum GameMode : int32_t
     GAMEMODE_PUZZLE_I_ZOMBIE_ENDLESS,
     GAMEMODE_UPSELL,
     GAMEMODE_INTRO,
+    // Mod API: 自定义关卡槽位（生存模式第二页）
+    // mod 通过 on_level_init 监听这些 GameMode 设置地形/波次/阳光等
+    // 解锁规则：第1关默认解锁，后续需前一关通关
+    // 通关记录存于 mChallengeRecords，奖杯自动显示
+    GAMEMODE_MOD_CUSTOM_1,
+    GAMEMODE_MOD_CUSTOM_2,
+    GAMEMODE_MOD_CUSTOM_3,
+    GAMEMODE_MOD_CUSTOM_4,
+    GAMEMODE_MOD_CUSTOM_5,
+    GAMEMODE_MOD_CUSTOM_6,
     NUM_GAME_MODES
 };
 enum GameObjectType : int32_t
@@ -550,6 +561,18 @@ enum GridSquareType : int32_t
     GRIDSQUARE_DIRT = 2,
     GRIDSQUARE_POOL = 3,
     GRIDSQUARE_HIGH_GROUND = 4
+};
+// Mod API: per-grid 地形覆盖（优先于关卡全局背景判定）
+// mod 通过 board:set_grid_terrain(x, y, kind) 设置单个格子的地形表现
+// DEFAULT(-1) 表示使用关卡全局逻辑（原版行为）
+enum GridTerrain : int32_t
+{
+    GRID_TERRAIN_DEFAULT = -1,     // 使用关卡默认（原版行为）
+    GRID_TERRAIN_DAY_GRASS = 0,    // 白天草地：蘑菇睡觉，无需花盆/睡莲
+    GRID_TERRAIN_NIGHT_GRASS = 1,  // 黑夜草地：蘑菇醒着，无需花盆/睡莲
+    GRID_TERRAIN_POOL = 2,         // 水池：陆生植物需要睡莲，水生植物可种
+    GRID_TERRAIN_ROOF = 3,         // 屋顶：需要花盆，地刺不可种
+    GRID_TERRAIN_BLOCKED = 4       // 不可种植：任何植物都无法种在此格
 };
 enum HelmType : int32_t
 {

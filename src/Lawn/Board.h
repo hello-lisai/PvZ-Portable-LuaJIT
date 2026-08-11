@@ -146,6 +146,7 @@ public:
 	Challenge*						mChallenge;
 	bool							mPaused;
 	GridSquareType					mGridSquareType[MAX_GRID_SIZE_X][MAX_GRID_SIZE_Y];
+	GridTerrain						mGridTerrainOverride[MAX_GRID_SIZE_X][MAX_GRID_SIZE_Y];  // Mod API: per-grid 地形覆盖（DEFAULT=使用关卡全局）
 	int32_t							mGridCelLook[MAX_GRID_SIZE_X][MAX_GRID_SIZE_Y];
 	int32_t							mGridCelOffset[MAX_GRID_SIZE_X][MAX_GRID_SIZE_Y][2];
 	int32_t							mGridCelFog[MAX_GRID_SIZE_X][MAX_GRID_SIZE_Y + 1];
@@ -316,6 +317,12 @@ public:
 	/*inline*/ bool					StageHasFog();
 	/*inline*/ bool					StageIsDayWithoutPool();
 	/*inline*/ bool					StageIsDayWithPool();
+	// Mod API: per-grid 地形查询（覆盖值优先，DEFAULT 时回退到关卡全局）
+	GridTerrain						GetGridTerrain(int theGridX, int theGridY);
+	bool							IsGridNight(int theGridX, int theGridY);    // 该格子是否为黑夜（蘑菇醒着）
+	bool							IsGridPool(int theGridX, int theGridY);     // 该格子是否为水池（需睡莲）
+	bool							IsGridRoof(int theGridX, int theGridY);     // 该格子是否为屋顶（需花盆）
+	bool							IsGridBlocked(int theGridX, int theGridY);  // 该格子是否禁止种植
 	bool							StageHasGraveStones();
 	int								PixelToGridX(int theX, int theY);
 	int								PixelToGridY(int theX, int theY);

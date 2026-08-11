@@ -63,4 +63,11 @@ Sexy::Image* GetCustomChallengeIcon(int theGameMode);
 void SetCustomChallengeIcon(int theGameMode, Sexy::Image* theImage);
 void ClearCustomChallengeIcons();
 
+// 自定义关卡显示名称（mod 通过 pvz.set_challenge_name 设置，ChallengeScreen 查询）
+// 返回空字符串表示无自定义名称，使用 gChallengeDefs 中的默认名称
+// theGameMode: GameMode 枚举值
+std::string GetCustomChallengeName(int theGameMode);
+void SetCustomChallengeName(int theGameMode, const std::string& theName);
+void ClearCustomChallengeNames();
+
 } // namespace ModLua

@@ -170,7 +170,7 @@ void Plant::PlantInitialize(int theGridX, int theGridY, SeedType theSeedType, Se
     Reanimation* aBodyReanim = nullptr;
     InitPlantBodyReanim(aPlantDef, aBodyReanim);
 
-    if (IsNocturnal(mSeedType) && mBoard && !mBoard->StageIsNight())
+    if (IsNocturnal(mSeedType) && mBoard && !mBoard->IsGridNight(mPlantCol, mRow))
         SetSleeping(true);
 
     if (mLaunchRate > 0)

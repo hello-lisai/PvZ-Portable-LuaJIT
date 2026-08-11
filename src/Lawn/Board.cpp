@@ -99,6 +99,7 @@ Board::Board(LawnApp* theApp)
 		for (int j = 0; j < MAX_GRID_SIZE_Y; j++)
 		{
 			mGridSquareType[i][j] = GridSquareType::GRIDSQUARE_GRASS;
+			mGridTerrainOverride[i][j] = GridTerrain::GRID_TERRAIN_DEFAULT;
 			mGridCelLook[i][j] = Rand(20);
 			mGridCelOffset[i][j][0] = Rand(10) - 5;
 			mGridCelOffset[i][j][1] = Rand(10) - 5;
@@ -1100,6 +1101,8 @@ void Board::SetTerrain(BackgroundType theBackground)
 			{
 				mGridSquareType[x][y] = GridSquareType::GRIDSQUARE_GRASS;
 			}
+			// Mod API: 每次初始化关卡时重置 per-grid 地形覆盖，防止跨关卡残留
+			mGridTerrainOverride[x][y] = GridTerrain::GRID_TERRAIN_DEFAULT;
 		}
 	}
 
@@ -1243,6 +1246,16 @@ void Board::PickBackground()
 
 	case GameMode::GAMEMODE_TREE_OF_WISDOM:
 		mBackground = BackgroundType::BACKGROUND_TREEOFWISDOM;
+		break;
+
+	// Mod API: 自定义关卡默认白天草地，mod 在 on_level_init 中可用 set_terrain 覆盖
+	case GameMode::GAMEMODE_MOD_CUSTOM_1:
+	case GameMode::GAMEMODE_MOD_CUSTOM_2:
+	case GameMode::GAMEMODE_MOD_CUSTOM_3:
+	case GameMode::GAMEMODE_MOD_CUSTOM_4:
+	case GameMode::GAMEMODE_MOD_CUSTOM_5:
+	case GameMode::GAMEMODE_MOD_CUSTOM_6:
+		mBackground = BackgroundType::BACKGROUND_1_DAY;
 		break;
 
 	default:
@@ -2380,7 +2393,7 @@ void Board::DoPlantingEffects(int theGridX, int theGridY, Plant* thePlant)
 		return;
 	}
 
-	if (IsPoolSquare(theGridX, theGridY))
+	if (IsGridPool(theGridX, theGridY))
 	{
 		mApp->PlayFoley(FoleyType::FOLEY_PLANT_WATER);
 		mApp->AddTodParticle(aXPos, aYPos, RenderLayer::RENDER_LAYER_TOP, ParticleEffect::PARTICLE_PLANTING_POOL);
@@ -3177,6 +3190,11 @@ PlantingReason Board::CanPlantAt(int theGridX, int theGridY, SeedType theSeedTyp
 	{
 		return PlantingReason::PLANTING_NOT_HERE;
 	}
+	// Mod API: per-grid 禁止种植覆盖（优先于物理格子类型）
+	if (IsGridBlocked(theGridX, theGridY))
+	{
+		return PlantingReason::PLANTING_NOT_HERE;
+	}
 	GridSquareType aGridSquare = mGridSquareType[theGridX][theGridY];
 	if (aGridSquare == GridSquareType::GRIDSQUARE_DIRT || aGridSquare == GridSquareType::GRIDSQUARE_NONE)
 	{
@@ -3186,7 +3204,7 @@ PlantingReason Board::CanPlantAt(int theGridX, int theGridY, SeedType theSeedTyp
 	Plant* aNormalPlant = aPlantOnLawn.mNormalPlant;
 	if (theSeedType == SeedType::SEED_LILYPAD || theSeedType == SeedType::SEED_TANGLEKELP || theSeedType == SeedType::SEED_SEASHROOM)
 	{
-		if (!IsPoolSquare(theGridX, theGridY))
+		if (!IsGridPool(theGridX, theGridY))
 		{
 			return PlantingReason::PLANTING_ONLY_IN_POOL;
 		}
@@ -3200,14 +3218,14 @@ PlantingReason Board::CanPlantAt(int theGridX, int theGridY, SeedType theSeedTyp
 	// 地刺/地刺王只能种在坚固的地面
 	if (theSeedType == SeedType::SEED_SPIKEWEED || theSeedType == SeedType::SEED_SPIKEROCK)
 	{
-		if (aGridSquare == GridSquareType::GRIDSQUARE_POOL || StageHasRoof() || aUnderPlant)
+		if (IsGridPool(theGridX, theGridY) || IsGridRoof(theGridX, theGridY) || aUnderPlant)
 		{
 			return PlantingReason::PLANTING_NEEDS_GROUND;
 		}
 	}
 	// 非水生植物不能种在水面上（南瓜头可以种在香蒲上）
 	Plant* aPumpkinPlant = aPlantOnLawn.mPumpkinPlant;
-	if (aGridSquare == GridSquareType::GRIDSQUARE_POOL && !aHasLilypad && theSeedType != SeedType::SEED_CATTAIL)
+	if (IsGridPool(theGridX, theGridY) && !aHasLilypad && theSeedType != SeedType::SEED_CATTAIL)
 	{
 		if (!aNormalPlant || aNormalPlant->mSeedType != SeedType::SEED_CATTAIL || theSeedType != SeedType::SEED_PUMPKINSHELL)
 		{
@@ -3220,7 +3238,7 @@ PlantingReason Board::CanPlantAt(int theGridX, int theGridY, SeedType theSeedTyp
 		return (aNormalPlant || aUnderPlant || aPumpkinPlant) ? PlantingReason::PLANTING_NOT_HERE : PlantingReason::PLANTING_OK;
 	}
 	// 屋顶种植需要花盆
-	if (StageHasRoof() && !aHasFlowerPot)
+	if (IsGridRoof(theGridX, theGridY) && !aHasFlowerPot)
 	{
 		return PlantingReason::PLANTING_NEEDS_POT;
 	}
@@ -3316,7 +3334,7 @@ PlantingReason Board::CanPlantAt(int theGridX, int theGridY, SeedType theSeedTyp
 	{
 		return PlantingReason::PLANTING_NEEDS_UPGRADE;
 	}
-	else if (theSeedType == SeedType::SEED_CATTAIL && aGridSquare != GridSquareType::GRIDSQUARE_POOL)
+	else if (theSeedType == SeedType::SEED_CATTAIL && !IsGridPool(theGridX, theGridY))
 	{
 		return PlantingReason::PLANTING_NOT_HERE;
 	}
@@ -9392,6 +9410,49 @@ bool Board::StageHasRoof()
 bool Board::StageHasPool()
 {
 	return (mBackground == BackgroundType::BACKGROUND_3_POOL || mBackground == BackgroundType::BACKGROUND_4_FOG);
+}
+
+// ===== Mod API: per-grid 地形查询 =====
+// 覆盖值优先；DEFAULT 时回退到关卡全局判定
+GridTerrain Board::GetGridTerrain(int theGridX, int theGridY)
+{
+	if (theGridX < 0 || theGridX >= MAX_GRID_SIZE_X || theGridY < 0 || theGridY >= MAX_GRID_SIZE_Y)
+		return GridTerrain::GRID_TERRAIN_DEFAULT;
+	return mGridTerrainOverride[theGridX][theGridY];
+}
+
+bool Board::IsGridNight(int theGridX, int theGridY)
+{
+	GridTerrain t = GetGridTerrain(theGridX, theGridY);
+	if (t == GridTerrain::GRID_TERRAIN_NIGHT_GRASS) return true;
+	if (t == GridTerrain::GRID_TERRAIN_DAY_GRASS) return false;
+	// DEFAULT 或其他非光照类型：回退到关卡全局
+	return StageIsNight();
+}
+
+bool Board::IsGridPool(int theGridX, int theGridY)
+{
+	GridTerrain t = GetGridTerrain(theGridX, theGridY);
+	if (t == GridTerrain::GRID_TERRAIN_POOL) return true;
+	if (t == GridTerrain::GRID_TERRAIN_DAY_GRASS || t == GridTerrain::GRID_TERRAIN_NIGHT_GRASS || t == GridTerrain::GRID_TERRAIN_ROOF)
+		return false;
+	// DEFAULT：回退到原版 IsPoolSquare（基于 mGridSquareType）
+	return IsPoolSquare(theGridX, theGridY);
+}
+
+bool Board::IsGridRoof(int theGridX, int theGridY)
+{
+	GridTerrain t = GetGridTerrain(theGridX, theGridY);
+	if (t == GridTerrain::GRID_TERRAIN_ROOF) return true;
+	if (t == GridTerrain::GRID_TERRAIN_DAY_GRASS || t == GridTerrain::GRID_TERRAIN_NIGHT_GRASS || t == GridTerrain::GRID_TERRAIN_POOL)
+		return false;
+	// DEFAULT：回退到关卡全局
+	return StageHasRoof();
+}
+
+bool Board::IsGridBlocked(int theGridX, int theGridY)
+{
+	return GetGridTerrain(theGridX, theGridY) == GridTerrain::GRID_TERRAIN_BLOCKED;
 }
 
 bool Board::StageHas6Rows()
