@@ -81,6 +81,17 @@ int l_pvz_set_challenge_name(lua_State* L) {
     return 0;
 }
 
+// pvz.set_hud_custom(game_mode, enabled) —— 标记指定关卡由 mod 自定义绘制 HUD
+// game_mode: pvz.GameMode 枚举值
+// enabled: true 表示该关卡跳过默认 DrawProgressMeter，由 mod 通过 on_board_draw_hud 自行绘制
+// 例：pvz.set_hud_custom(pvz.GameMode.CHALLENGE_POGO_PARTY, true)
+int l_pvz_set_hud_custom(lua_State* L) {
+    int gameMode = static_cast<int>(luaL_checkinteger(L, 1));
+    bool enabled = lua_toboolean(L, 2);
+    SetCustomHudMode(gameMode, enabled);
+    return 0;
+}
+
 // pvz.load_image(path) -> Image or nil —— 从文件加载图片，返回 Image userdata
 // 用于 set_image_override 等需要 Image* 的 API
 // path 相对于资源目录或 mod overlay 目录（如 "images/my_weapon.png"）
@@ -252,6 +263,10 @@ void BindApp(lua_State* L) {
         // pvz.set_challenge_name(game_mode, name) —— 设置自定义关卡显示名称
         lua_pushcfunction(L, l_pvz_set_challenge_name);
         lua_setfield(L, -2, "set_challenge_name");
+
+        // pvz.set_hud_custom(game_mode, enabled) —— 标记关卡由 mod 自定义绘制 HUD
+        lua_pushcfunction(L, l_pvz_set_hud_custom);
+        lua_setfield(L, -2, "set_hud_custom");
 
         // pvz.load_image(path) —— 从文件加载图片，返回 Image userdata
         lua_pushcfunction(L, l_pvz_load_image);

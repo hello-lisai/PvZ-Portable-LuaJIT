@@ -70,4 +70,11 @@ std::string GetCustomChallengeName(int theGameMode);
 void SetCustomChallengeName(int theGameMode, const std::string& theName);
 void ClearCustomChallengeNames();
 
+// 自定义 HUD 模式（mod 通过 pvz.set_hud_custom 设置）
+// 返回 true 表示该关卡由 mod 自定义绘制 HUD（进度条等），跳过默认 DrawProgressMeter
+// theGameMode: GameMode 枚举值
+bool IsCustomHudMode(int theGameMode);
+void SetCustomHudMode(int theGameMode, bool enabled);
+void ClearCustomHudModes();
+
 } // namespace ModLua

@@ -77,6 +77,24 @@ void ClearCustomChallengeNames() {
     g_customChallengeNames.clear();
 }
 
+// 自定义 HUD 模式（mod 通过 pvz.set_hud_custom 设置，按关卡注册）
+static std::unordered_set<int> g_customHudModes;
+
+bool IsCustomHudMode(int theGameMode) {
+    return g_customHudModes.count(theGameMode) > 0;
+}
+
+void SetCustomHudMode(int theGameMode, bool enabled) {
+    if (enabled)
+        g_customHudModes.insert(theGameMode);
+    else
+        g_customHudModes.erase(theGameMode);
+}
+
+void ClearCustomHudModes() {
+    g_customHudModes.clear();
+}
+
 namespace {
 
 // === Board 字段读写（getter/setter）===

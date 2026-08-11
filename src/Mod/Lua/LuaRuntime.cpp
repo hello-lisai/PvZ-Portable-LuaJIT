@@ -1622,6 +1622,7 @@ void Shutdown() {
     // 释放自定义关卡封面图标
     ClearCustomChallengeIcons();
     ClearCustomChallengeNames();
+    ClearCustomHudModes();
 
     lua_close(g_L);
     g_L = nullptr;

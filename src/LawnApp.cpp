@@ -1433,7 +1433,9 @@ bool LawnApp::UpdatePlayerProfileForFinishingLevel()
 			aUnlockedNewChallenge = !HasBeatenChallenge(mGameMode);
 			mBoard->SurvivalSaveScore();
 
-			if (aUnlockedNewChallenge && HasFinishedAdventure())
+			// Mod API: 自定义关卡不触发生存模式奖杯计数
+			bool isModCustom = (mGameMode >= GameMode::GAMEMODE_MOD_CUSTOM_1 && mGameMode <= GameMode::GAMEMODE_MOD_CUSTOM_6);
+			if (aUnlockedNewChallenge && HasFinishedAdventure() && !isModCustom)
 			{
 				int aNumTrophies = GetNumTrophies(ChallengePage::CHALLENGE_PAGE_SURVIVAL);
 				if (aNumTrophies != 8 && aNumTrophies != 9)

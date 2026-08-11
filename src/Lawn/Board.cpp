@@ -7075,10 +7075,10 @@ void Board::DrawProgressMeter(Graphics* g)
 	if (!HasProgressMeter())
 		return;
 
-	// Mod API：如果有 mod 监听 ON_BOARD_DRAW_HUD 事件，跳过默认绘制
-	// 由 mod 通过 board:draw_flag_meter() / board:draw_boss_health_meter() 自行控制
+	// Mod API：如果当前关卡被 mod 标记为自定义 HUD 模式，跳过默认绘制
+	// mod 通过 pvz.set_hud_custom(game_mode, true) 注册，在 on_board_draw_hud 中自行绘制
 #ifdef PVZ_MOD_API_ENABLED
-	if (ModBus::HasListenersFor(ModEvent::ON_BOARD_DRAW_HUD))
+	if (ModLua::IsCustomHudMode(static_cast<int>(mApp->mGameMode)))
 		return;
 #endif
 
