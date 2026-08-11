@@ -123,6 +123,7 @@ Board::Board(LawnApp* theApp)
 	mNextSurvivalStageCounter = 0;
 	mScoreNextMowerCounter = 0;
 	mProgressMeterWidth = 0;
+	mFlagMeterWidth = 0;
 	mPoolSparklyParticleID = ParticleSystemID::PARTICLESYSTEMID_NULL;
 	mFogBlownCountDown = 0;
 	mFwooshCountDown = 0;
@@ -1486,6 +1487,7 @@ void Board::InitZombieWaves()
 	mZombieHealthWaveStart = 0;
 	mLastBungeeWave = 0;
 	mProgressMeterWidth = 0;
+	mFlagMeterWidth = 0;
 	mHugeWaveCountDown = 0;
 	mLevelAwardSpawned = false;
 	mZombieCountDownStart = mZombieCountDown;
@@ -5902,25 +5904,14 @@ void Board::UpdateIce()
 void Board::UpdateProgressMeter()
 {
 	// Mod 扩展：同时计算旗帜进度和 BOSS 血条进度
-	// DrawProgressMeter 和 DrawFlagMeterAt/DrawBossHealthMeterAt 各自根据状态选择绘制内容
+	// - mProgressMeterWidth: BOSS 存在时为血量比例，否则为波次进度（原版行为，供 DrawProgressMeter 使用）
+	// - mFlagMeterWidth: 始终按波次进度计算，不受 BOSS 影响（供 DrawFlagMeterAt 使用）
 	Zombie* aBoss = GetBossZombie();
-	if (mApp->IsFinalBossLevel() || (aBoss && !aBoss->IsDeadOrDying()))
+
+	// === 始终计算旗帜进度（mFlagMeterWidth）===
+	// 无论 BOSS 是否存在，旗帜进度条都应按波次推进，确保旗帜升起与僵尸头位置同步
+	if (mCurrentWave != 0)
 	{
-		if (aBoss && !aBoss->IsDeadOrDying())
-		{
-			mProgressMeterWidth = 150 * (aBoss->mBodyMaxHealth - aBoss->mBodyHealth) / aBoss->mBodyMaxHealth;
-		}
-		else
-		{
-			mProgressMeterWidth = 150;
-		}
-		// BOSS 存在时也更新旗帜计数器，以便 mod 同时绘制旗帜
-		if (mFlagRaiseCounter > 0)
-			mFlagRaiseCounter--;
-	}
-	else if (mCurrentWave != 0)
-	{
-		// 更新旗帜升起倒计时
 		if (mFlagRaiseCounter > 0)
 			mFlagRaiseCounter--;
 
@@ -5964,12 +5955,31 @@ void Board::UpdateProgressMeter()
 		// 计算当前应当的进度条长度，并将长度的范围限定在 [1, 150] 之间
 		int aLength = ClampInt(aCurrentWaveLength + FloatRoundToInt((aNextWaveLength - aCurrentWaveLength) * aFraction), 1, 150);
 		// 取得当前实际与理论的进度条长度之差
-		int aDelta = aLength - mProgressMeterWidth;
+		int aDelta = aLength - mFlagMeterWidth;
 		// 当差值不超过一波的长度时，每 20cs 调整一次长度；否则，每 5cs 调整一次长度
 		if ((aDelta > aWaveLength && (mMainCounter % 5 == 0)) || (aDelta > 0 && (mMainCounter % 20 == 0)))
 		{
-			mProgressMeterWidth++;
+			mFlagMeterWidth++;
 		}
+	}
+
+	// === 计算 mProgressMeterWidth（原版逻辑）===
+	// BOSS 存在时为血量比例，否则复用旗帜进度
+	if (mApp->IsFinalBossLevel() || (aBoss && !aBoss->IsDeadOrDying()))
+	{
+		if (aBoss && !aBoss->IsDeadOrDying())
+		{
+			mProgressMeterWidth = 150 * (aBoss->mBodyMaxHealth - aBoss->mBodyHealth) / aBoss->mBodyMaxHealth;
+		}
+		else
+		{
+			mProgressMeterWidth = 150;
+		}
+	}
+	else
+	{
+		// 非 BOSS 模式：mProgressMeterWidth 同步旗帜进度
+		mProgressMeterWidth = mFlagMeterWidth;
 	}
 }
 
@@ -7152,8 +7162,8 @@ void Board::DrawFlagMeterAt(Graphics* g, int x, int y)
 	// 绘制背景条
 	g->DrawImageCel(Sexy::IMAGE_FLAGMETER, x, y, 0);
 
-	// 绘制进度填充
-	int aClipWidth = TodAnimateCurve(0, PROGRESS_METER_COUNTER, mProgressMeterWidth, 0, 143, TodCurves::CURVE_LINEAR);
+	// 绘制进度填充（用 mFlagMeterWidth，按波次进度，不受 BOSS 血量影响）
+	int aClipWidth = TodAnimateCurve(0, PROGRESS_METER_COUNTER, mFlagMeterWidth, 0, 143, TodCurves::CURVE_LINEAR);
 	Rect aSrcRect(aCelWidth - aClipWidth - 7, aCelHeight, aClipWidth, aCelHeight);
 	Rect aDstRect(aCelWidth - aClipWidth + x - 7, y, aClipWidth, aCelHeight);
 	g->DrawImage(Sexy::IMAGE_FLAGMETER, aDstRect, aSrcRect);
@@ -7163,7 +7173,7 @@ void Board::DrawFlagMeterAt(Graphics* g, int x, int y)
 	{
 		int aNumWavesPerFlag = GetNumWavesPerFlag();
 		int aNumFlagWaves = mNumWaves / aNumWavesPerFlag;
-		int aFlagsPosEnd = y + 15 + aCelWidth;  // 旗帜区域右界
+		int aFlagsPosEnd = x - 10 + aCelWidth;  // 旗帜区域右界（横向坐标）
 		for (int aFlagWave = 1; aFlagWave <= aNumFlagWaves; aFlagWave++)
 		{
 			int aHeight = 0;
@@ -7185,8 +7195,8 @@ void Board::DrawFlagMeterAt(Graphics* g, int x, int y)
 	// 绘制"关卡进程"小牌子
 	g->DrawImage(Sexy::IMAGE_FLAGMETERLEVELPROGRESS, x + 38, y + 14);
 
-	// 绘制僵尸头
-	int aHeadProgress = TodAnimateCurve(0, 150, mProgressMeterWidth, 0, 135, CURVE_LINEAR);
+	// 绘制僵尸头（用 mFlagMeterWidth，与旗帜同步）
+	int aHeadProgress = TodAnimateCurve(0, 150, mFlagMeterWidth, 0, 135, CURVE_LINEAR);
 	g->DrawImageCel(Sexy::IMAGE_FLAGMETERPARTS, aCelWidth - aHeadProgress + x - 20, y - 3, 0, 0);
 }
 

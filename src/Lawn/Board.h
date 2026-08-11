@@ -207,6 +207,7 @@ public:
 	int32_t							mScoreNextMowerCounter;
 	bool							mLevelAwardSpawned;
 	int32_t							mProgressMeterWidth;
+	int32_t							mFlagMeterWidth = 0;     // Mod API: 旗帜进度条宽度（按波次进度计算，不受 BOSS 血量影响，供 DrawFlagMeterAt 使用）
 	int32_t							mFlagRaiseCounter;
 	int32_t							mIceTrapCounter;
 	int32_t							mBoardRandSeed;
