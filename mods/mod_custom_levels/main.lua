@@ -1,59 +1,55 @@
 -- mod_custom_levels main.lua
 -- 生存模式第二页：6个自定义测试关卡
 --
--- 关卡设计：
---   Lv.1  白天草地  10波  150阳光  简单
---   Lv.2  黑夜草地  15波  100阳光  蘑菇醒着
---   Lv.3  泳池      15波  150阳光  水路
---   Lv.4  浓雾      20波  100阳光  视野受限
---   Lv.5  屋顶      20波  200阳光  斜坡
---   Lv.6  白天草地  30波  无限阳光 娱乐关
+-- 关卡设计（均为单阶段生存模式，默认10波，引擎自动生成波次表）：
+--   Lv.1  白天草地  150阳光  简单
+--   Lv.2  黑夜草地  100阳光  蘑菇醒着
+--   Lv.3  泳池      150阳光  水路
+--   Lv.4  浓雾      100阳光  视野受限
+--   Lv.5  屋顶      200阳光  旗帜波出巨人
+--   Lv.6  白天草地  无限阳光  每5波出红眼巨人
 
 local M = {}
 
 -- ========================================================================
 -- 关卡配置表
+-- num_waves 字段仅用于日志显示，实际波数由引擎 GetNumWavesPerSurvivalStage() 决定（默认10波）
+-- 如需自定义波数，通过 on_pick_zombie_waves 事件返回 { waves = N, plan = {...} }
 -- ========================================================================
 local LEVEL_CONFIG = {
     [1] = {
         name      = "草地入侵",
         terrain   = pvz.BackgroundType.BACKGROUND_1_DAY,
-        num_waves = 10,
         sun       = 150,
         sun_floor = -1,
     },
     [2] = {
         name      = "黑夜突袭",
         terrain   = pvz.BackgroundType.BACKGROUND_2_NIGHT,
-        num_waves = 15,
         sun       = 100,
         sun_floor = -1,
     },
     [3] = {
         name      = "泳池防御",
         terrain   = pvz.BackgroundType.BACKGROUND_3_POOL,
-        num_waves = 15,
         sun       = 150,
         sun_floor = -1,
     },
     [4] = {
         name      = "迷雾重重",
         terrain   = pvz.BackgroundType.BACKGROUND_4_FOG,
-        num_waves = 20,
         sun       = 100,
         sun_floor = -1,
     },
     [5] = {
         name      = "屋顶决战",
         terrain   = pvz.BackgroundType.BACKGROUND_5_ROOF,
-        num_waves = 20,
         sun       = 200,
         sun_floor = -1,
     },
     [6] = {
         name      = "无尽狂欢",
         terrain   = pvz.BackgroundType.BACKGROUND_1_DAY,
-        num_waves = 30,
         sun       = 9990,
         sun_floor = 9990,  -- 无限阳光
     },
@@ -94,21 +90,21 @@ end
 
 -- ========================================================================
 -- on_level_init: 关卡初始化（Board::InitLevel 末尾触发）
--- 此时地形、波次已由引擎设置完毕，mod 可覆盖
+-- 此时地形、波次已由引擎设置完毕，mod 可覆盖地形和阳光
+-- 注意：不要在此设置 board.num_waves，因为波次表已在 PickZombieWaves 中按引擎默认值生成
+--       自定义关卡走生存模式逻辑，mNumWaves = GetNumWavesPerSurvivalStage() = 10
+--       如需自定义波数，请通过 on_pick_zombie_waves 事件返回 { waves = N, plan = {...} }
 -- ========================================================================
 function M.on_level_init(board)
     local idx = get_custom_level_index(board.game_mode)
     if not idx then return end
 
     local cfg = LEVEL_CONFIG[idx]
-    print(string.format("[mod_custom_levels] on_level_init: Lv.%d terrain=%d waves=%d sun=%d",
-        idx, cfg.terrain, cfg.num_waves, cfg.sun))
+    print(string.format("[mod_custom_levels] on_level_init: Lv.%d terrain=%d sun=%d",
+        idx, cfg.terrain, cfg.sun))
 
     -- 切换地形（背景+行类型+网格类型）
     board:set_terrain(cfg.terrain)
-
-    -- 设置波数
-    board.num_waves = cfg.num_waves
 
     -- 设置阳光
     board.sun = cfg.sun
@@ -178,12 +174,15 @@ function M.on_pick_zombie_waves_post(board, level, num_waves)
     if not idx then return nil end
 
     local append = {}
+    -- 生存模式默认每10波一个旗帜（GetNumWavesPerFlag 返回 10）
+    local waves_per_flag = 10
 
     -- Lv.5 屋顶关：每个旗帜波追加一个巨人僵尸
     if idx == 5 then
         local GARGANTUAR = pvz.ZombieType.GARGANTUAR
         for wave = 0, num_waves - 1 do
-            if board:is_flag_wave(wave) then
+            -- 旗帜波：第 (waves_per_flag-1) 波（0-based），即第10波、第20波...
+            if (wave + 1) % waves_per_flag == 0 then
                 append[wave] = { GARGANTUAR }
             end
         end

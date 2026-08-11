@@ -5643,6 +5643,10 @@ bool Board::IsFinalSurvivalStage()
 	if (!mApp->IsSurvivalMode())
 		return false;
 
+	// Mod API: 自定义关卡为单阶段生存模式，始终为最终阶段（通关后直接结束，不进入下一阶段）
+	if (mApp->mGameMode >= GameMode::GAMEMODE_MOD_CUSTOM_1 && mApp->mGameMode <= GameMode::GAMEMODE_MOD_CUSTOM_6)
+		return true;
+
 	int aFlags = GetNumWavesPerSurvivalStage() * (mChallenge->mSurvivalStage + 1) / GetNumWavesPerFlag();
 	if (mApp->IsSurvivalNormal(mApp->mGameMode))
 	{
@@ -10313,6 +10317,11 @@ int Board::GetNumWavesPerSurvivalStage()
 	else if (mApp->IsSurvivalHard(mApp->mGameMode) || mApp->IsSurvivalEndless(mApp->mGameMode))
 	{
 		return 20;
+	}
+	// Mod API: 自定义关卡默认每阶段10波，mod 可通过 on_pick_zombie_waves 覆盖波数
+	else if (mApp->mGameMode >= GameMode::GAMEMODE_MOD_CUSTOM_1 && mApp->mGameMode <= GameMode::GAMEMODE_MOD_CUSTOM_6)
+	{
+		return 10;
 	}
 
 	TOD_ASSERT(false);

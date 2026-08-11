@@ -1559,7 +1559,11 @@ void LawnApp::CheckForGameEnd()
 			}
 			else
 			{
-				ShowChallengeScreen(ChallengePage::CHALLENGE_PAGE_SURVIVAL);
+				// Mod API: 自定义关卡结束后返回自定义关卡页，而非生存模式第一页
+				ChallengePage aReturnPage = (mGameMode >= GameMode::GAMEMODE_MOD_CUSTOM_1 && mGameMode <= GameMode::GAMEMODE_MOD_CUSTOM_6)
+					? ChallengePage::CHALLENGE_PAGE_MOD_CUSTOM
+					: ChallengePage::CHALLENGE_PAGE_SURVIVAL;
+				ShowChallengeScreen(aReturnPage);
 			}
 		}
 		else
@@ -2109,7 +2113,8 @@ bool LawnApp::IsAdventureMode()
 
 bool LawnApp::IsSurvivalMode()
 {
-	return mGameMode >= GameMode::GAMEMODE_SURVIVAL_NORMAL_STAGE_1 && mGameMode <= GameMode::GAMEMODE_SURVIVAL_ENDLESS_STAGE_5;
+	return (mGameMode >= GameMode::GAMEMODE_SURVIVAL_NORMAL_STAGE_1 && mGameMode <= GameMode::GAMEMODE_SURVIVAL_ENDLESS_STAGE_5)
+		|| (mGameMode >= GameMode::GAMEMODE_MOD_CUSTOM_1 && mGameMode <= GameMode::GAMEMODE_MOD_CUSTOM_6);
 }
 
 bool LawnApp::IsPuzzleMode()
