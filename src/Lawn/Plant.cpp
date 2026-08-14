@@ -5430,7 +5430,12 @@ const PlantDefinition& GetPlantDefinition(SeedType theSeedType)
 bool IsValidCustomSeedType(SeedType s)
 {
     int idx = static_cast<int>(s);
-    if (idx < static_cast<int>(SeedType::NUM_SEED_TYPES)) return true;  // 内置类型总是有效
+    if (idx < 0) return false;  // SEED_NONE 等无效值
+    if (idx < static_cast<int>(SeedType::NUM_SEED_TYPES)) return true;  // 内置植物类型
+    // 内置解谜/挑战模式专用类型（SEED_BEGHOULED_* 到 SEED_ZOMBIE_IMP）也是有效的
+    // 这些类型用于 I,Zombie、老虎机、僵尸水族箱等模式，枚举值 >= NUM_SEED_TYPES
+    if (idx >= static_cast<int>(SeedType::SEED_BEGHOULED_BUTTON_SHUFFLE) &&
+        idx <= static_cast<int>(SeedType::SEED_ZOMBIE_IMP)) return true;
     for (auto& def : gCustomPlantDefs) {
         if (def.mSeedType == s) return true;
     }
