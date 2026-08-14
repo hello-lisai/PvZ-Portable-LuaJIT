@@ -5998,9 +5998,16 @@ void Board::UpdateProgressMeter()
 			mProgressMeterWidth = 150;
 		}
 	}
+	else if (mApp->IsIZombieLevel() || mApp->mGameMode == GameMode::GAMEMODE_CHALLENGE_BEGHOULED ||
+		mApp->mGameMode == GameMode::GAMEMODE_CHALLENGE_BEGHOULED_TWIST || mApp->IsSlotMachineLevel() ||
+		mApp->IsSquirrelLevel() || mApp->mGameMode == GameMode::GAMEMODE_CHALLENGE_ZOMBIQUARIUM)
+	{
+		// 这些模式自行管理 mProgressMeterWidth（如 I,Zombie 按大脑数、老虎机按阳光数）
+		// 不覆盖，保留各模式 Challenge 逻辑设置的值
+	}
 	else
 	{
-		// 非 BOSS 模式：mProgressMeterWidth 同步旗帜进度
+		// 非特殊模式：mProgressMeterWidth 同步旗帜进度
 		mProgressMeterWidth = mFlagMeterWidth;
 	}
 }
