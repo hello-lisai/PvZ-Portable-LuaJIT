@@ -30,10 +30,10 @@
 
 class LawnApp;
 class ToolTipWidget;
-class ButtonWidget;
 namespace Sexy
 {
     class DialogButton;
+    class ButtonWidget;
 }
 
 using namespace Sexy;
