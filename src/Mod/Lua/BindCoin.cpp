@@ -53,6 +53,30 @@ int l_coin_get_age(lua_State* L) {
     lua_pushinteger(L, c->mCoinAge);
     return 1;
 }
+int l_coin_get_is_on_ground(lua_State* L) {
+    Coin* c = CheckUserdata<Coin>(L, 1, MT_COIN);
+    if (!c) return 0;
+    lua_pushboolean(L, c->mHitGround);
+    return 1;
+}
+int l_coin_get_is_being_collected(lua_State* L) {
+    Coin* c = CheckUserdata<Coin>(L, 1, MT_COIN);
+    if (!c) return 0;
+    lua_pushboolean(L, c->mIsBeingCollected);
+    return 1;
+}
+int l_coin_get_motion(lua_State* L) {
+    Coin* c = CheckUserdata<Coin>(L, 1, MT_COIN);
+    if (!c) return 0;
+    lua_pushinteger(L, static_cast<lua_Integer>(c->mCoinMotion));
+    return 1;
+}
+int l_coin_get_disappear_counter(lua_State* L) {
+    Coin* c = CheckUserdata<Coin>(L, 1, MT_COIN);
+    if (!c) return 0;
+    lua_pushinteger(L, c->mDisappearCounter);
+    return 1;
+}
 
 int l_coin_die(lua_State* L) {
     Coin* c = CheckUserdata<Coin>(L, 1, MT_COIN);
@@ -89,6 +113,10 @@ int l_coin_index(lua_State* L) {
         {"vel_y",  l_coin_get_vel_y},
         {"dead",   l_coin_get_dead},
         {"age",    l_coin_get_age},
+        {"is_on_ground",        l_coin_get_is_on_ground},
+        {"is_being_collected",  l_coin_get_is_being_collected},
+        {"motion",              l_coin_get_motion},
+        {"disappear_counter",   l_coin_get_disappear_counter},
     };
     for (auto& pr : props) {
         if (strcmp(key, pr.name) == 0) return pr.fn(L);

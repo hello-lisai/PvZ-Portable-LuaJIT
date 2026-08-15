@@ -30,6 +30,7 @@
 
 class LawnApp;
 class ToolTipWidget;
+class ButtonWidget;
 namespace Sexy
 {
     class DialogButton;
@@ -63,9 +64,10 @@ private:
         GameSelector_Survival = 110,
         GameSelector_Zombatar = 111, // @Patoke: add stuff after 110
         GameSelector_AchievementsBack = 112,
-        GameSelector_Achievements = 113,
-        GameSelector_QuickPlay = 114
-    };
+		GameSelector_Achievements = 113,
+		GameSelector_QuickPlay = 114,
+		GameSelector_ModCustom = 115
+	};
 
 public:
     LawnApp*                    mApp;
@@ -83,6 +85,7 @@ public:
     NewLawnButton*              mZombatarButton;             //+GOTY @Patoke: 0xC0
     NewLawnButton*              mAchievementsButton;        //+GOTY @Patoke: 0xC4
     NewLawnButton*              mQuickPlayButton;           //+GOTY @Patoke: 0xC8
+    ButtonWidget*               mModCustomButton;          // 自定义关卡入口按钮
     Widget*                     mOverlayWidget;
     bool                        mStartingGame;
     int                         mStartingGameCounter;

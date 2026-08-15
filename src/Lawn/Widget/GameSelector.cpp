@@ -21,6 +21,7 @@
 
 #include "../Board.h"
 #include "GameButton.h"
+#include "widget/ButtonWidget.h"
 #include "StoreScreen.h"
 #include "../ZenGarden.h"
 #include "GameSelector.h"
@@ -187,6 +188,11 @@ GameSelector::GameSelector(LawnApp* theApp)
 		Sexy::IMAGE_QUICKPLAY_BACK_BUTTON_HIGHLIGHT
 	);
 	mQuickPlayButton->Resize(mApp->mWidth - 150, 455, Sexy::IMAGE_QUICKPLAY_BACK_BUTTON->mWidth, Sexy::IMAGE_QUICKPLAY_BACK_BUTTON->mHeight);
+
+	// 自定义关卡入口按钮（右下角空位）
+	mModCustomButton = new ButtonWidget(GameSelector::GameSelector_ModCustom, this);
+	mModCustomButton->mLabel = "Mod 关卡";
+	mModCustomButton->Resize(mApp->mWidth - 160, 500, 150, 35);
 
 	mZenGardenButton = MakeNewButton(
 		GameSelector::GameSelector_ZenGarden, 
@@ -399,6 +405,8 @@ GameSelector::~GameSelector()
 		delete mAchievementsWidget;
 	if (mQuickPlayButton)
 		delete mQuickPlayButton;
+	if (mModCustomButton)
+		delete mModCustomButton;
 
 	delete mToolTip;
 }
@@ -1032,6 +1040,7 @@ void GameSelector::AddedToManager(WidgetManager* theWidgetManager)
 	theWidgetManager->AddWidget(mAchievementsButton);
 	theWidgetManager->AddWidget(mAchievementsWidget);
 	//theWidgetManager->AddWidget(mQuickPlayButton);
+	theWidgetManager->AddWidget(mModCustomButton);
 }
 
 void GameSelector::RemovedFromManager(WidgetManager* theWidgetManager)
@@ -1055,6 +1064,7 @@ void GameSelector::RemovedFromManager(WidgetManager* theWidgetManager)
 	theWidgetManager->RemoveWidget(mAchievementsButton);
 	theWidgetManager->RemoveWidget(mAchievementsWidget);
 	//theWidgetManager->RemoveWidget(mQuickPlayButton);
+	theWidgetManager->RemoveWidget(mModCustomButton);
 }
 
 void GameSelector::OrderInManagerChanged()
@@ -1382,6 +1392,10 @@ void GameSelector::ButtonDepress(int theId)
 		break;
 	case GameSelector::GameSelector_QuickPlay:
 		// GameSelector::ShowQuickPlayScreen();
+		break;
+	case GameSelector::GameSelector_ModCustom:
+		mApp->KillGameSelector();
+		mApp->ShowChallengeScreen(ChallengePage::CHALLENGE_PAGE_MOD_CUSTOM);
 		break;
 	}
 }
