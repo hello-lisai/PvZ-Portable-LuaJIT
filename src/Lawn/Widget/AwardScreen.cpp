@@ -306,9 +306,14 @@ void AwardScreen::Draw(Graphics* g)
 	int aLevel = mApp->mPlayerInfo->GetLevel();
 
 	// Mod API: 奖杯页面绘制事件
-	// 在默认绘制开始前触发，mod 可返回 {cancel=true} 接管整页背景/奖杯/文字绘制
-	// 按钮和淡入遮罩仍由原代码绘制，保证界面可交互
+	// 在默认绘制开始前触发，mod 可返回:
+	//   {cancel=true}       接管整页背景/奖杯/文字绘制
+	//   {skip_buttons=true} 跳过三按钮绘制（mod 自行画按钮）
+	//   {skip_fade=true}    跳过淡入遮罩绘制（mod 自行处理淡入）
+	// fadeInCounter 暴露淡入进度，配合 ON_AWARD_SCREEN_UPDATE 可实现完全自定义动画
 	bool modCanceled = false;
+	bool modSkipButtons = false;
+	bool modSkipFade = false;
 	if (ModBus::HasListenersFor(ModEvent::ON_AWARD_SCREEN_DRAW)) {
 		ModCtx _ctx = MakeCtx(ModEvent::ON_AWARD_SCREEN_DRAW);
 		_ctx.app      = gLawnApp;
@@ -316,8 +321,11 @@ void AwardScreen::Draw(Graphics* g)
 		_ctx.awardType = static_cast<int32_t>(mAwardType);
 		_ctx.level    = aLevel;
 		_ctx.showingAchievements = mShowingAchievements;
+		_ctx.fadeInCounter = mFadeInCounter;
 		ModBus::Fire(ModEvent::ON_AWARD_SCREEN_DRAW, _ctx);
 		modCanceled = _ctx.cancel;
+		modSkipButtons = _ctx.skipButtons;
+		modSkipFade = _ctx.skipFade;
 	}
 
 	if (!modCanceled) {
@@ -443,19 +451,38 @@ void AwardScreen::Draw(Graphics* g)
 		}
 	}
 
-	mStartButton->Draw(g);
-	mMenuButton->Draw(g);
-	mContinueButton->Draw(g); // @Patoke: add call
+	if (!modSkipButtons) {
+		mStartButton->Draw(g);
+		mMenuButton->Draw(g);
+		mContinueButton->Draw(g); // @Patoke: add call
+	}
 
-	int aFadeInAlpha = TodAnimateCurve(180, 0, mFadeInCounter, 255, 0, CURVE_LINEAR);
-	g->SetColor(IsPaperNote() ? Color(0, 0, 0, aFadeInAlpha) : Color(255, 255, 255, aFadeInAlpha));
-	g->FillRect(0, 0, BOARD_WIDTH, BOARD_HEIGHT);
+	if (!modSkipFade) {
+		int aFadeInAlpha = TodAnimateCurve(180, 0, mFadeInCounter, 255, 0, CURVE_LINEAR);
+		g->SetColor(IsPaperNote() ? Color(0, 0, 0, aFadeInAlpha) : Color(255, 255, 255, aFadeInAlpha));
+		g->FillRect(0, 0, BOARD_WIDTH, BOARD_HEIGHT);
+	}
 }
 
 // GOTY @Patoke: 0x408FE0
 void AwardScreen::Update()
 {
 	Widget::Update();
+
+	// Mod API: 奖杯页面每帧 Update 事件
+	// mod 可在此维护自定义动画时间线（缩放/旋转/粒子等），供 ON_AWARD_SCREEN_DRAW 读取
+	// 暴露 fadeInCounter/achievementAnimTime/awardType/level/showingAchievements
+	if (ModBus::HasListenersFor(ModEvent::ON_AWARD_SCREEN_UPDATE)) {
+		ModCtx _ctx = MakeCtx(ModEvent::ON_AWARD_SCREEN_UPDATE);
+		_ctx.app      = gLawnApp;
+		_ctx.awardType = static_cast<int32_t>(mAwardType);
+		_ctx.level    = mApp->mPlayerInfo->GetLevel();
+		_ctx.showingAchievements = mShowingAchievements;
+		_ctx.fadeInCounter = mFadeInCounter;
+		_ctx.achievementAnimTime = mAchievementAnimTime;
+		ModBus::Fire(ModEvent::ON_AWARD_SCREEN_UPDATE, _ctx);
+	}
+
 	// @Patoke: implemented
 	if (mShowingAchievements) {
 		mAchievementAnimTime++;

@@ -78,8 +78,18 @@ local function register_icons()
     print("[mod_custom_levels] 已注册6个自定义关卡封面图标和名称")
 end
 
--- 安全调用 register_icons（pvz API 可能在 mod 加载时还未就绪）
+-- 设置主菜单 Mod 关卡按钮的自定义图片
+-- 图片放在 mod 目录的 images/ 下，建议尺寸约 100x80（与商店/图鉴按钮风格相近）
+-- 三态：常态 mod_button.png，悬停 mod_button_glow.png
+-- 若图片缺失，API 会打印警告并回退到默认种子选择器底图，不影响游戏
+local function register_mod_button()
+    pvz.set_mod_button_image("images/mod_button.png", "images/mod_button_glow.png")
+    print("[mod_custom_levels] 已设置主菜单 Mod 按钮图片")
+end
+
+-- 安全调用 register_icons / register_mod_button（pvz API 可能在 mod 加载时还未就绪）
 local icons_registered = pcall(register_icons)
+local mod_button_registered = pcall(register_mod_button)
 
 -- ========================================================================
 -- 一次性重置 MOD_CUSTOM_1~6 的通关记录
@@ -234,10 +244,11 @@ function M.on_pick_zombie_waves_post(board, level, num_waves)
 end
 
 -- ========================================================================
--- on_award_screen_draw: 自定义奖杯页面
+-- on_award_screen_draw: 自定义奖杯页面（含动画时序）
 -- 在 AwardScreen::Draw 开头触发，返回 {cancel=true} 跳过默认绘制
 -- 仅对 mod 自定义关卡（MOD_CUSTOM_1~6）生效，其他模式不接管
--- 参数: (graphics, award_type, level, game_mode, showing_achievements)
+-- 参数: (graphics, award_type, level, game_mode, showing_achievements, fade_in_counter)
+--   fade_in_counter: 淡入计数器（180→0），mod 可据此推算淡入进度做动画
 -- ========================================================================
 local function draw_centered_string(g, font, text, cx, y)
     g:set_font(font)
@@ -245,7 +256,21 @@ local function draw_centered_string(g, font, text, cx, y)
     g:draw_string(text, cx - w / 2, y)
 end
 
-function M.on_award_screen_draw(g, award_type, level, game_mode, showing_achievements)
+-- mod 自维护的奖杯页面动画状态（on_award_screen_update 更新，on_award_screen_draw 读取）
+local award_anim = {
+    entered = false,   -- 是否已进入奖杯页面（首次 draw 时置 true）
+    time = 0,          -- 进入后的帧计数（自定义动画时间线）
+}
+
+function M.on_award_screen_update(fade_in_counter, achievement_anim_time, award_type, level, game_mode, showing_achievements)
+    local idx = get_custom_level_index(game_mode)
+    if not idx then return end
+    -- 仅在 mod 接管的奖杯页面阶段维护自定义时间线
+    if award_type ~= pvz.AwardType.FORLEVEL or showing_achievements then return end
+    award_anim.time = award_anim.time + 1
+end
+
+function M.on_award_screen_draw(g, award_type, level, game_mode, showing_achievements, fade_in_counter)
     local idx = get_custom_level_index(game_mode)
     if not idx then return nil end  -- 非 mod 自定义关卡，不接管
 
@@ -256,8 +281,16 @@ function M.on_award_screen_draw(g, award_type, level, game_mode, showing_achieve
 
     -- 如果正在显示成就列表，让默认绘制跑完（不接管），成就显示完后再接管
     if showing_achievements then
+        award_anim.entered = false
         return nil
     end
+
+    award_anim.entered = true
+
+    -- 淡入进度：fade_in_counter 从 180→0，progress 从 0→1
+    local progress = (180 - (fade_in_counter or 180)) / 180
+    if progress < 0 then progress = 0 end
+    if progress > 1 then progress = 1 end
 
     -- 1. 绘制奖杯页面背景（与原版 DrawBottom 一致）
     local bg = pvz.images.AWARDSCREEN_BACK
@@ -265,43 +298,53 @@ function M.on_award_screen_draw(g, award_type, level, game_mode, showing_achieve
         g:draw_image(bg, 0, 0)
     end
 
-    -- 2. 绘制奖杯图片（居中）
+    -- 2. 绘制奖杯图片（带滑入动画：从下方 80 像素缓动到 137）
     local trophy = pvz.images.TROPHY_HI_RES
     if trophy then
-        g:draw_image(trophy, 450 - trophy:width() / 2, 137)
+        -- ease-out：前半段快速滑入，后半段缓慢到位
+        local ease = 1 - (1 - progress) * (1 - progress)
+        local trophy_y = 137 + (1 - ease) * 80
+        g:draw_image(trophy, 450 - trophy:width() / 2, trophy_y)
     end
 
-    -- 3. 绘制自定义标题
-    local cfg = LEVEL_CONFIG[idx]
-    draw_centered_string(g, pvz.fonts.DWARVENTODCRAFT24,
-        string.format("[ Lv.%d  %s  通关 ]", idx, cfg.name), 450, 58)
-
-    -- 4. 绘制奖项名称
-    draw_centered_string(g, pvz.fonts.DWARVENTODCRAFT18YELLOW,
-        "[TROPHY]", 450, 326)
-
-    -- 5. 绘制消息文本（手动按行换行以适配 230x90 区域）
-    local message_lines
-    if idx < 6 then
-        message_lines = {
-            string.format("[ 恭喜通关 Lv.%d ]", idx),
-            string.format("[ 已解锁 Lv.%d: %s ]", idx + 1, LEVEL_CONFIG[idx + 1].name),
-            "[ 点击下方按钮继续 ]",
-        }
-    else
-        message_lines = {
-            "[ 恭喜通关全部 6 个自定义关卡 ]",
-            "[ 你已证明自己的实力 ]",
-            "[ 点击下方按钮返回菜单 ]",
-        }
-    end
-    local msg_y = 360
-    for _, line in ipairs(message_lines) do
-        draw_centered_string(g, pvz.fonts.BRIANNETOD16, line, 450, msg_y)
-        msg_y = msg_y + 22  -- 行距
+    -- 3. 绘制自定义标题（淡入进度 > 0.3 后才显示，避免与奖杯滑入重叠）
+    if progress > 0.3 then
+        local cfg = LEVEL_CONFIG[idx]
+        draw_centered_string(g, pvz.fonts.DWARVENTODCRAFT24,
+            string.format("[ Lv.%d  %s  通关 ]", idx, cfg.name), 450, 58)
     end
 
-    -- 返回 cancel=true 跳过默认绘制（按钮和淡入遮罩仍由原代码绘制）
+    -- 4. 绘制奖项名称（淡入进度 > 0.6 后显示）
+    if progress > 0.6 then
+        draw_centered_string(g, pvz.fonts.DWARVENTODCRAFT18YELLOW,
+            "[TROPHY]", 450, 326)
+    end
+
+    -- 5. 绘制消息文本（淡入进度 > 0.8 后显示，手动按行换行以适配 230x90 区域）
+    if progress > 0.8 then
+        local message_lines
+        if idx < 6 then
+            message_lines = {
+                string.format("[ 恭喜通关 Lv.%d ]", idx),
+                string.format("[ 已解锁 Lv.%d: %s ]", idx + 1, LEVEL_CONFIG[idx + 1].name),
+                "[ 点击下方按钮继续 ]",
+            }
+        else
+            message_lines = {
+                "[ 恭喜通关全部 6 个自定义关卡 ]",
+                "[ 你已证明自己的实力 ]",
+                "[ 点击下方按钮返回菜单 ]",
+            }
+        end
+        local msg_y = 360
+        for _, line in ipairs(message_lines) do
+            draw_centered_string(g, pvz.fonts.BRIANNETOD16, line, 450, msg_y)
+            msg_y = msg_y + 22  -- 行距
+        end
+    end
+
+    -- 返回 cancel=true 跳过默认绘制
+    -- 按钮和淡入遮罩仍由原代码绘制（mod 也可返回 skip_buttons/skip_fade 完全接管）
     return { cancel = true }
 end
 

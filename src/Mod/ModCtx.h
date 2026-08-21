@@ -20,11 +20,16 @@ struct ModCtx {
     // mod 通过 LuaBridge 的 MT_GRAPHICS 元表访问
     void*       graphics = nullptr;
 
-    // ====== 奖杯页面事件 (ON_AWARD_SCREEN_DRAW) ======
+    // ====== 奖杯页面事件 (ON_AWARD_SCREEN_DRAW / ON_AWARD_SCREEN_UPDATE) ======
     // AwardType 枚举值（见 ConstEnums.h），表示当前奖杯类型
     int32_t     awardType  = 0;
     // 是否正在显示成就列表（true 时默认会画成就列表而非奖杯，mod 可据此判断是否接管）
     bool        showingAchievements = false;
+    // 淡入计数器（180→0），mod 可据此推算淡入进度做缩放/淡入动画
+    // ON_AWARD_SCREEN_DRAW 和 ON_AWARD_SCREEN_UPDATE 均会填充
+    int32_t     fadeInCounter = 0;
+    // 成就动画时间累加器（mShowingAchievements 时每帧 +1），供 mod 同步成就弹出时序
+    int32_t     achievementAnimTime = 0;
 
     // ====== 对象创建/销毁 ======
     // 用 void* 是为了避免引入具体类型头文件（ModBus.cpp 内部会 static_cast）
@@ -67,6 +72,12 @@ struct ModCtx {
     // Mod 通过设置这些字段来修改游戏行为
     bool        cancel      = false;  // true = 跳过原逻辑（如取消伤害、取消波次）
     int32_t     newDamage   = -1;     // >=0 时用此值替换原伤害
+
+    // ====== 奖杯页面绘制控制 (ON_AWARD_SCREEN_DRAW 返回值) ======
+    // skip_buttons=true 时跳过 mStartButton/mMenuButton/mContinueButton 绘制（mod 自行画按钮）
+    bool        skipButtons = false;
+    // skip_fade=true 时跳过淡入遮罩绘制（mod 自行处理淡入）
+    bool        skipFade    = false;
 
     // ====== 波次表覆盖 (ON_PICK_ZOMBIE_WAVES_PRE) ======
     // Mod 返回自定义出怪表时填这些字段，C++ 侧会用它替换默认 mZombiesInWave

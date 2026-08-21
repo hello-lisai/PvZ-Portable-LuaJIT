@@ -144,6 +144,8 @@ public:
     // @Patoke: implement functions
     /*inline*/ void             SlideTo(int theX, int theY);
     void                        ShowAchievementsScreen(); // @Patoke: unofficial name
+    // Mod API: 查询 mod 通过 pvz.set_mod_button_image 设置的图片，替换 mModCustomButton 三态图
+    void                        ApplyModCustomButtonImages();
 };
 
 class GameSelectorOverlay : public Widget

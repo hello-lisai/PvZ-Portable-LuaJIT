@@ -161,6 +161,7 @@ const char* EventToLuaName(ModEvent e) {
     case ModEvent::ON_SUN_CHANGED:             return "on_sun_changed";
     case ModEvent::ON_BOARD_DRAW_HUD:          return "on_board_draw_hud";
     case ModEvent::ON_AWARD_SCREEN_DRAW:       return "on_award_screen_draw";
+    case ModEvent::ON_AWARD_SCREEN_UPDATE:     return "on_award_screen_update";
     case ModEvent::ON_CRAZY_DAVE_DIALOG_START: return "on_crazy_dave_dialog_start";
     case ModEvent::ON_CRAZY_DAVE_GET_TEXT:     return "on_crazy_dave_get_text";
     case ModEvent::ON_CRAZY_DAVE_ADVANCE:      return "on_crazy_dave_advance";
@@ -1636,6 +1637,7 @@ void Shutdown() {
     ClearCustomChallengeIcons();
     ClearCustomChallengeNames();
     ClearCustomHudModes();
+    ClearModButtonImages();
 
     lua_close(g_L);
     g_L = nullptr;
@@ -1818,15 +1820,30 @@ void DispatchEvent(ModCtx& ctx) {
             nargs = 2;
             break;
         case ModEvent::ON_AWARD_SCREEN_DRAW:
-            // 参数：graphics, award_type, level, game_mode, showing_achievements
-            // mod 返回 {cancel=true} 可跳过默认背景/奖杯/文字绘制（按钮仍由原代码绘制）
+            // 参数：graphics, award_type, level, game_mode, showing_achievements, fade_in_counter
+            // mod 返回:
+            //   {cancel=true}       跳过默认背景/奖杯/文字绘制
+            //   {skip_buttons=true} 跳过三按钮绘制（mod 自行画按钮）
+            //   {skip_fade=true}    跳过淡入遮罩绘制（mod 自行处理淡入）
             // graphics 是 light userdata，仅在回调期间有效
             PushGraphics(g_L, static_cast<Graphics*>(ctx.graphics));
             lua_pushinteger(g_L, ctx.awardType);
             lua_pushinteger(g_L, ctx.level);
             lua_pushinteger(g_L, ctx.app ? static_cast<lua_Integer>(ctx.app->mGameMode) : 0);
             lua_pushboolean(g_L, ctx.showingAchievements ? 1 : 0);
-            nargs = 5;
+            lua_pushinteger(g_L, ctx.fadeInCounter);
+            nargs = 6;
+            break;
+        case ModEvent::ON_AWARD_SCREEN_UPDATE:
+            // 参数：fade_in_counter, achievement_anim_time, award_type, level, game_mode, showing_achievements
+            // 只读事件，mod 在此维护自定义动画状态供 on_award_screen_draw 读取
+            lua_pushinteger(g_L, ctx.fadeInCounter);
+            lua_pushinteger(g_L, ctx.achievementAnimTime);
+            lua_pushinteger(g_L, ctx.awardType);
+            lua_pushinteger(g_L, ctx.level);
+            lua_pushinteger(g_L, ctx.app ? static_cast<lua_Integer>(ctx.app->mGameMode) : 0);
+            lua_pushboolean(g_L, ctx.showingAchievements ? 1 : 0);
+            nargs = 6;
             break;
         case ModEvent::ON_CRAZY_DAVE_DIALOG_START:
             // 参数：level, game_mode, dialog_start
@@ -1866,6 +1883,17 @@ void DispatchEvent(ModCtx& ctx) {
             lua_getfield(g_L, retIdx, "cancel");
             if (lua_toboolean(g_L, -1)) ctx.cancel = true;
             lua_pop(g_L, 1);
+
+            // ON_AWARD_SCREEN_DRAW: 跳过按钮/淡入遮罩绘制
+            if (ctx.event == ModEvent::ON_AWARD_SCREEN_DRAW) {
+                lua_getfield(g_L, retIdx, "skip_buttons");
+                if (lua_toboolean(g_L, -1)) ctx.skipButtons = true;
+                lua_pop(g_L, 1);
+
+                lua_getfield(g_L, retIdx, "skip_fade");
+                if (lua_toboolean(g_L, -1)) ctx.skipFade = true;
+                lua_pop(g_L, 1);
+            }
 
             lua_getfield(g_L, retIdx, "damage");
             if (lua_isinteger(g_L, -1)) ctx.newDamage = static_cast<int32_t>(lua_tointeger(g_L, -1));

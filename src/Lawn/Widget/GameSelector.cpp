@@ -42,6 +42,7 @@
 #include "../../Sexy.TodLib/TodParticle.h"
 #include "widget/Dialog.h"
 #include "widget/WidgetManager.h"
+#include "../Mod/Lua/LuaRuntime.h"
 
 static float gFlowerCenter[3][2] = { { 765.0f, 483.0f }, { 663.0f, 455.0f }, { 701.0f, 439.0f } };
 
@@ -190,10 +191,12 @@ GameSelector::GameSelector(LawnApp* theApp)
 	mQuickPlayButton->Resize(mApp->mWidth - 150, 455, Sexy::IMAGE_QUICKPLAY_BACK_BUTTON->mWidth, Sexy::IMAGE_QUICKPLAY_BACK_BUTTON->mHeight);
 
 	// 自定义关卡入口按钮（右下角空位）
+	// Mod API: 默认用种子选择器底图，mod 可通过 pvz.set_mod_button_image 替换为自带图片
+	// 与商店/图鉴按钮一致：mMouseVisible=false 待开场动画结束才启用，参与 TrackButton 入场动画
 	mModCustomButton = MakeNewButton(
 		GameSelector::GameSelector_ModCustom,
 		this,
-		"Mod 关卡",
+		"",
 		nullptr,
 		Sexy::IMAGE_SEEDCHOOSER_BUTTON,
 		Sexy::IMAGE_SEEDCHOOSER_BUTTON_GLOW,
@@ -201,6 +204,9 @@ GameSelector::GameSelector(LawnApp* theApp)
 	);
 	mModCustomButton->Resize(mApp->mWidth - 160, 500, Sexy::IMAGE_SEEDCHOOSER_BUTTON->mWidth, Sexy::IMAGE_SEEDCHOOSER_BUTTON->mHeight);
 	mModCustomButton->mClip = false;
+	mModCustomButton->mMouseVisible = false;  // 开场动画期间不响应，SELECTOR_OPEN 后启用
+	// Mod API: 若 mod 设置了自定义按钮图片，则替换三态图（覆盖默认种子选择器底图）
+	ApplyModCustomButtonImages();
 
 	mZenGardenButton = MakeNewButton(
 		GameSelector::GameSelector_ZenGarden, 
@@ -829,6 +835,7 @@ void GameSelector::Update()
 		mQuitButton->MarkDirty();
 		mStoreButton->MarkDirty();
 		mZenGardenButton->MarkDirty();
+		mModCustomButton->MarkDirty();
 
 		mSlideCounter--;
 	}
@@ -915,6 +922,7 @@ void GameSelector::Update()
 			mChangeUserButton->mMouseVisible = true;
 			mZombatarButton->mMouseVisible = true; // @Patoke: new widgets
 			mAchievementsButton->mMouseVisible = true;
+			mModCustomButton->mMouseVisible = true;
 
 			if (mApp->mPlayerInfo == nullptr)
 			{
@@ -1012,6 +1020,7 @@ void GameSelector::Update()
 	TrackButton(mChangeUserButton, "woodsign2", 24.0f, 10.0f);
 	TrackButton(mZombatarButton, "woodsign3", 0.f, 0.f); // @Patoke: add shart here
 	TrackButton(mAchievementsButton, "SelectorScreen_BG_Left", 20.f, 480.f);
+	TrackButton(mModCustomButton, "SelectorScreen_BG_Right", 569.0f, 458.0f);
 	aSelectorReanim->SetImageOverride("woodsign2", (mChangeUserButton->mIsOver || mChangeUserButton->mIsDown) ? Sexy::IMAGE_REANIM_SELECTORSCREEN_WOODSIGN2_PRESS : nullptr);
 	aSelectorReanim->SetImageOverride("woodsign3", (mZombatarButton->mIsOver || mZombatarButton->mIsDown) ? Sexy::IMAGE_REANIM_SELECTORSCREEN_WOODSIGN3_PRESS : nullptr);
 }
@@ -1026,6 +1035,23 @@ void GameSelector::TrackButton(DialogButton* theButton, const char* theTrackName
 	
 	theButton->mX = static_cast<int>(aTransform.mTransX + theOffsetX);
 	theButton->mY = static_cast<int>(aTransform.mTransY + theOffsetY);
+}
+
+// Mod API: 查询 mod 通过 pvz.set_mod_button_image 设置的图片，替换 mModCustomButton 三态图
+// 在构造函数末尾调用；mod 未设置时保留原版 IMAGE_SEEDCHOOSER_BUTTON
+void GameSelector::ApplyModCustomButtonImages()
+{
+	if (!mModCustomButton) return;
+	Sexy::Image* normal = ModLua::GetModButtonImageNormal();
+	if (!normal) return;  // mod 未设置，保留原版
+	Sexy::Image* over = ModLua::GetModButtonImageOver();
+	Sexy::Image* down = ModLua::GetModButtonImageDown();
+	mModCustomButton->mButtonImage = normal;
+	mModCustomButton->mOverImage   = over ? over : normal;
+	mModCustomButton->mDownImage   = down ? down : (over ? over : normal);
+	mModCustomButton->mWidth = normal->mWidth;
+	mModCustomButton->mHeight = normal->mHeight;
+	mModCustomButton->MarkDirty();
 }
 
 void GameSelector::AddedToManager(WidgetManager* theWidgetManager)
@@ -1296,6 +1322,7 @@ void GameSelector::ClickedAdventure()
 	mZenGardenButton->SetDisabled(true);
 	mZombatarButton->SetDisabled(true); // @Patoke: added new widgets
 	mAchievementsButton->SetDisabled(true);
+	mModCustomButton->SetDisabled(true);
 
 	Reanimation* aHandReanim = mApp->AddReanimation(-70.0f, 10.0f, 0, ReanimationType::REANIM_ZOMBIE_HAND);
 	aHandReanim->mLoopType = ReanimLoopType::REANIM_PLAY_ONCE_AND_HOLD;

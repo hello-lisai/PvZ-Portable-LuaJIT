@@ -76,8 +76,13 @@ enum class ModEvent : int32_t {
 
     // ====== 奖杯页面（可拦截，mod 可接管整页绘制）======
     // 在 AwardScreen::Draw 开头触发；返回 {cancel=true} 跳过默认背景/奖杯/文字绘制
-    // 按钮和淡入遮罩仍由原代码绘制，保证界面可交互
+    // 返回 {skip_buttons=true} 跳过三按钮绘制，{skip_fade=true} 跳过淡入遮罩
+    // 配合 fade_in_counter 字段，mod 可完全自定义动画时序与交互层
     ON_AWARD_SCREEN_DRAW,
+    // 奖杯页面每帧 Update 时触发（只读观察 + mod 自驱动动画状态）
+    // 暴露 fade_in_counter/achievement_anim_time/award_type/level/showing_achievements
+    // mod 可在此维护自定义动画时间线（如缩放/旋转/粒子），供 ON_AWARD_SCREEN_DRAW 读取
+    ON_AWARD_SCREEN_UPDATE,
 
     // ====== 疯狂戴夫对话 ======
     ON_CRAZY_DAVE_DIALOG_START, // CutScene 决定 mCrazyDaveDialogStart 时，mod 可覆盖起始索引或跳过
@@ -134,6 +139,7 @@ inline const char* ModEventName(ModEvent e) {
     case ModEvent::ON_SUN_CHANGED:             return "ON_SUN_CHANGED";
     case ModEvent::ON_BOARD_DRAW_HUD:          return "ON_BOARD_DRAW_HUD";
     case ModEvent::ON_AWARD_SCREEN_DRAW:       return "ON_AWARD_SCREEN_DRAW";
+    case ModEvent::ON_AWARD_SCREEN_UPDATE:     return "ON_AWARD_SCREEN_UPDATE";
     case ModEvent::ON_CRAZY_DAVE_DIALOG_START: return "ON_CRAZY_DAVE_DIALOG_START";
     case ModEvent::ON_CRAZY_DAVE_GET_TEXT:     return "ON_CRAZY_DAVE_GET_TEXT";
     case ModEvent::ON_CRAZY_DAVE_ADVANCE:      return "ON_CRAZY_DAVE_ADVANCE";

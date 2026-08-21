@@ -61,6 +61,35 @@ void ClearCustomChallengeIcons() {
     g_customChallengeIcons.clear();
 }
 
+// 自定义主菜单 Mod 按钮图片：mod 通过 pvz.set_mod_button_image 设置
+// GameSelector 构造 mModCustomButton 后查询并替换 mButtonImage/mOverImage/mDownImage
+// 这三张图归本全局存储所有（MemoryImage），GameSelector 析构不释放
+static struct {
+    Sexy::Image* normal = nullptr;
+    Sexy::Image* over   = nullptr;
+    Sexy::Image* down   = nullptr;
+} g_modButtonImages;
+
+Sexy::Image* GetModButtonImageNormal() { return g_modButtonImages.normal; }
+Sexy::Image* GetModButtonImageOver()   { return g_modButtonImages.over; }
+Sexy::Image* GetModButtonImageDown()   { return g_modButtonImages.down; }
+
+void SetModButtonImages(Sexy::Image* normal, Sexy::Image* over, Sexy::Image* down) {
+    // 释放旧图（mod 提供的 MemoryImage 归本存储所有，覆盖时释放）
+    delete g_modButtonImages.normal;
+    delete g_modButtonImages.over;
+    delete g_modButtonImages.down;
+    g_modButtonImages.normal = normal;
+    g_modButtonImages.over   = over;
+    g_modButtonImages.down   = down;
+}
+
+void ClearModButtonImages() {
+    delete g_modButtonImages.normal; g_modButtonImages.normal = nullptr;
+    delete g_modButtonImages.over;   g_modButtonImages.over   = nullptr;
+    delete g_modButtonImages.down;   g_modButtonImages.down   = nullptr;
+}
+
 // 自定义关卡显示名称（mod 通过 pvz.set_challenge_name 设置）
 static std::unordered_map<int, std::string> g_customChallengeNames;
 

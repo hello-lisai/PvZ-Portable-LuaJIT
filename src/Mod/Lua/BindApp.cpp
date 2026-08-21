@@ -70,6 +70,44 @@ int l_pvz_set_challenge_icon(lua_State* L) {
     return 0;
 }
 
+// pvz.set_mod_button_image(path_normal [, path_over, path_down])
+// 为主菜单 Mod 关卡按钮设置自定义图片（三态：常态/悬停/按下）
+// path_over/path_down 缺省时复用 path_normal
+// mod 加载时调用一次即可，GameSelector 每次构造都会读取应用
+// 例：pvz.set_mod_button_image("images/mod_button.png", "images/mod_button_over.png")
+int l_pvz_set_mod_button_image(lua_State* L) {
+    const char* pathNormal = luaL_checkstring(L, 1);
+    const char* pathOver   = luaL_optstring(L, 2, pathNormal);
+    const char* pathDown   = luaL_optstring(L, 3, pathOver);
+
+    // 复用 set_challenge_icon 的图片加载样板：ImageLib → MemoryImage
+    auto loadImg = [](const char* path) -> MemoryImage* {
+        ImageLib::Image* src = ImageLib::GetImage(path, false);
+        if (!src) {
+            std::fprintf(stderr, "[ModAPI] set_mod_button_image: failed to load '%s'\n", path);
+            return nullptr;
+        }
+        MemoryImage* mem = new MemoryImage(gLawnApp);
+        mem->Create(src->mWidth, src->mHeight);
+        if (src->mBits) {
+            std::memcpy(mem->GetBits(), src->mBits, sizeof(uint32_t) * src->mWidth * src->mHeight);
+        }
+        mem->BitsChanged();
+        delete src;
+        return mem;
+    };
+
+    MemoryImage* normal = loadImg(pathNormal);
+    if (!normal) return 0;  // 常态图加载失败，放弃
+    MemoryImage* over = loadImg(pathOver);
+    if (!over) over = normal;  // 退化：over 复用 normal
+    MemoryImage* down = loadImg(pathDown);
+    if (!down) down = over;    // 退化：down 复用 over
+
+    SetModButtonImages(normal, over, down);
+    return 0;
+}
+
 // pvz.set_challenge_name(game_mode, name) —— 为指定关卡设置自定义显示名称
 // game_mode: pvz.GameMode 枚举值
 // name: 显示名称（明文字符串，不经过翻译表）
@@ -275,6 +313,10 @@ void BindApp(lua_State* L) {
         // pvz.set_challenge_icon(game_mode, image_path) —— 设置自定义关卡封面
         lua_pushcfunction(L, l_pvz_set_challenge_icon);
         lua_setfield(L, -2, "set_challenge_icon");
+
+        // pvz.set_mod_button_image(path_normal [, path_over, path_down]) —— 设置主菜单 Mod 按钮图片
+        lua_pushcfunction(L, l_pvz_set_mod_button_image);
+        lua_setfield(L, -2, "set_mod_button_image");
 
         // pvz.set_challenge_name(game_mode, name) —— 设置自定义关卡显示名称
         lua_pushcfunction(L, l_pvz_set_challenge_name);

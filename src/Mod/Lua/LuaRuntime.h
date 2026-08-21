@@ -63,6 +63,15 @@ Sexy::Image* GetCustomChallengeIcon(int theGameMode);
 void SetCustomChallengeIcon(int theGameMode, Sexy::Image* theImage);
 void ClearCustomChallengeIcons();
 
+// 自定义主菜单 Mod 按钮图片（mod 通过 pvz.set_mod_button_image 设置）
+// GameSelector 构造 mModCustomButton 后查询，存在则替换 mButtonImage/mOverImage/mDownImage
+// 返回 nullptr 表示未设置，使用原版 IMAGE_SEEDCHOOSER_BUTTON
+Sexy::Image* GetModButtonImageNormal();
+Sexy::Image* GetModButtonImageOver();
+Sexy::Image* GetModButtonImageDown();
+void SetModButtonImages(Sexy::Image* normal, Sexy::Image* over, Sexy::Image* down);
+void ClearModButtonImages();
+
 // 自定义关卡显示名称（mod 通过 pvz.set_challenge_name 设置，ChallengeScreen 查询）
 // 返回空字符串表示无自定义名称，使用 gChallengeDefs 中的默认名称
 // theGameMode: GameMode 枚举值
