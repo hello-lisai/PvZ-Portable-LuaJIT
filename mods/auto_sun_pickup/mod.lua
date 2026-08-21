@@ -6,5 +6,6 @@
     version     = "1.0.0",
     author      = "mod",
     description = "阳光落地 2 秒后未被点击则自动拾取",
+    main        = "main.lua",
     enabled     = true,
 }
