@@ -33,7 +33,6 @@ class ToolTipWidget;
 namespace Sexy
 {
     class DialogButton;
-    class ButtonWidget;
 }
 
 using namespace Sexy;
@@ -85,7 +84,7 @@ public:
     NewLawnButton*              mZombatarButton;             //+GOTY @Patoke: 0xC0
     NewLawnButton*              mAchievementsButton;        //+GOTY @Patoke: 0xC4
     NewLawnButton*              mQuickPlayButton;           //+GOTY @Patoke: 0xC8
-    ButtonWidget*               mModCustomButton;          // 自定义关卡入口按钮
+    NewLawnButton*              mModCustomButton;          // 自定义关卡入口按钮
     Widget*                     mOverlayWidget;
     bool                        mStartingGame;
     int                         mStartingGameCounter;

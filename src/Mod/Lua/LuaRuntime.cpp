@@ -160,6 +160,7 @@ const char* EventToLuaName(ModEvent e) {
     case ModEvent::ON_MOUSE_UP_PRE:            return "on_mouse_up";
     case ModEvent::ON_SUN_CHANGED:             return "on_sun_changed";
     case ModEvent::ON_BOARD_DRAW_HUD:          return "on_board_draw_hud";
+    case ModEvent::ON_AWARD_SCREEN_DRAW:       return "on_award_screen_draw";
     case ModEvent::ON_CRAZY_DAVE_DIALOG_START: return "on_crazy_dave_dialog_start";
     case ModEvent::ON_CRAZY_DAVE_GET_TEXT:     return "on_crazy_dave_get_text";
     case ModEvent::ON_CRAZY_DAVE_ADVANCE:      return "on_crazy_dave_advance";
@@ -1543,6 +1544,18 @@ void Initialize() {
     push_img("LOCK_OPEN",            IMAGE_LOCK_OPEN);
     push_img("ALMANAC_PLANTCARD",    IMAGE_ALMANAC_PLANTCARD);
     push_img("ALMANAC_ZOMBIECARD",   IMAGE_ALMANAC_ZOMBIECARD);
+    // 奖杯页面相关图片（供 on_award_screen_draw 自定义奖杯页面使用）
+    push_img("AWARDSCREEN_BACK",     IMAGE_AWARDSCREEN_BACK);
+    push_img("TROPHY_HI_RES",        IMAGE_TROPHY_HI_RES);
+    push_img("SUNFLOWER_TROPHY",     IMAGE_SUNFLOWER_TROPHY);
+    push_img("ZOMBIE_NOTE",          IMAGE_ZOMBIE_NOTE);
+    push_img("ZOMBIE_NOTE1",         IMAGE_ZOMBIE_NOTE1);
+    push_img("ZOMBIE_NOTE2",         IMAGE_ZOMBIE_NOTE2);
+    push_img("ZOMBIE_NOTE3",         IMAGE_ZOMBIE_NOTE3);
+    push_img("ZOMBIE_NOTE4",         IMAGE_ZOMBIE_NOTE4);
+    push_img("ZOMBIE_FINAL_NOTE",    IMAGE_ZOMBIE_FINAL_NOTE);
+    push_img("ZOMBIE_NOTE_HELP",     IMAGE_ZOMBIE_NOTE_HELP);
+    push_img("CREDITS_ZOMBIENOTE",   IMAGE_CREDITS_ZOMBIENOTE);
     // 橄榄球僵尸头盔受损三阶段（用于 set_image_override 实现动态受损表现）
     push_img("ZOMBIE_FOOTBALL_HELMET",  IMAGE_REANIM_ZOMBIE_FOOTBALL_HELMET);
     push_img("ZOMBIE_FOOTBALL_HELMET2", IMAGE_REANIM_ZOMBIE_FOOTBALL_HELMET2);
@@ -1803,6 +1816,17 @@ void DispatchEvent(ModCtx& ctx) {
             PushBoard(g_L, ctx.board);
             PushGraphics(g_L, static_cast<Graphics*>(ctx.graphics));
             nargs = 2;
+            break;
+        case ModEvent::ON_AWARD_SCREEN_DRAW:
+            // 参数：graphics, award_type, level, game_mode, showing_achievements
+            // mod 返回 {cancel=true} 可跳过默认背景/奖杯/文字绘制（按钮仍由原代码绘制）
+            // graphics 是 light userdata，仅在回调期间有效
+            PushGraphics(g_L, static_cast<Graphics*>(ctx.graphics));
+            lua_pushinteger(g_L, ctx.awardType);
+            lua_pushinteger(g_L, ctx.level);
+            lua_pushinteger(g_L, ctx.app ? static_cast<lua_Integer>(ctx.app->mGameMode) : 0);
+            lua_pushboolean(g_L, ctx.showingAchievements ? 1 : 0);
+            nargs = 5;
             break;
         case ModEvent::ON_CRAZY_DAVE_DIALOG_START:
             // 参数：level, game_mode, dialog_start

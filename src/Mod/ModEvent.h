@@ -74,6 +74,11 @@ enum class ModEvent : int32_t {
     // ====== 绘制（只读 POST 事件，mod 可在 HUD 上画自定义内容）======
     ON_BOARD_DRAW_HUD,          // Board::DrawUITop 末尾，ctx.graphics 指向 Graphics*
 
+    // ====== 奖杯页面（可拦截，mod 可接管整页绘制）======
+    // 在 AwardScreen::Draw 开头触发；返回 {cancel=true} 跳过默认背景/奖杯/文字绘制
+    // 按钮和淡入遮罩仍由原代码绘制，保证界面可交互
+    ON_AWARD_SCREEN_DRAW,
+
     // ====== 疯狂戴夫对话 ======
     ON_CRAZY_DAVE_DIALOG_START, // CutScene 决定 mCrazyDaveDialogStart 时，mod 可覆盖起始索引或跳过
     ON_CRAZY_DAVE_GET_TEXT,     // GetCrazyDaveText 被调用时，mod 可覆盖文本
@@ -128,6 +133,7 @@ inline const char* ModEventName(ModEvent e) {
     case ModEvent::ON_MOUSE_UP_PRE:            return "ON_MOUSE_UP_PRE";
     case ModEvent::ON_SUN_CHANGED:             return "ON_SUN_CHANGED";
     case ModEvent::ON_BOARD_DRAW_HUD:          return "ON_BOARD_DRAW_HUD";
+    case ModEvent::ON_AWARD_SCREEN_DRAW:       return "ON_AWARD_SCREEN_DRAW";
     case ModEvent::ON_CRAZY_DAVE_DIALOG_START: return "ON_CRAZY_DAVE_DIALOG_START";
     case ModEvent::ON_CRAZY_DAVE_GET_TEXT:     return "ON_CRAZY_DAVE_GET_TEXT";
     case ModEvent::ON_CRAZY_DAVE_ADVANCE:      return "ON_CRAZY_DAVE_ADVANCE";

@@ -15,10 +15,16 @@ struct ModCtx {
     LawnApp*    app    = nullptr;
     Board*      board  = nullptr;
 
-    // ====== 绘制事件 (ON_BOARD_DRAW_HUD) ======
+    // ====== 绘制事件 (ON_BOARD_DRAW_HUD / ON_AWARD_SCREEN_DRAW) ======
     // Graphics* 指针，仅在绘制事件回调期间有效
     // mod 通过 LuaBridge 的 MT_GRAPHICS 元表访问
     void*       graphics = nullptr;
+
+    // ====== 奖杯页面事件 (ON_AWARD_SCREEN_DRAW) ======
+    // AwardType 枚举值（见 ConstEnums.h），表示当前奖杯类型
+    int32_t     awardType  = 0;
+    // 是否正在显示成就列表（true 时默认会画成就列表而非奖杯，mod 可据此判断是否接管）
+    bool        showingAchievements = false;
 
     // ====== 对象创建/销毁 ======
     // 用 void* 是为了避免引入具体类型头文件（ModBus.cpp 内部会 static_cast）

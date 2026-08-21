@@ -238,6 +238,19 @@ void BindEnums(lua_State* L) {
     RegisterEnum(L, dave_states, sizeof(dave_states)/sizeof(dave_states[0]));
     lua_setfield(L, -2, "CrazyDaveState");
 
+    // === AwardType ===
+    // 供 on_award_screen_draw 回调判断奖杯类型（如通关奖杯、字幕僵尸便条等）
+    lua_newtable(L);
+    static const EnumEntry award_types[] = {
+        {"FORLEVEL",                static_cast<lua_Integer>(AwardType::AWARD_FORLEVEL)},
+        {"CREDITS_ZOMBIENOTE",      static_cast<lua_Integer>(AwardType::AWARD_CREDITS_ZOMBIENOTE)},
+        {"HELP_ZOMBIENOTE",         static_cast<lua_Integer>(AwardType::AWARD_HELP_ZOMBIENOTE)},
+        {"ACHIEVEMENTONLY",         static_cast<lua_Integer>(AwardType::AWARD_ACHIEVEMENTONLY)},
+        {"PRECREDITS_ZOMBIENOTE",   static_cast<lua_Integer>(AwardType::AWARD_PRECREDITS_ZOMBIENOTE)},
+    };
+    RegisterEnum(L, award_types, sizeof(award_types)/sizeof(award_types[0]));
+    lua_setfield(L, -2, "AwardType");
+
     // 设置全局 pvz 表
     lua_setglobal(L, "pvz");
 }

@@ -233,4 +233,76 @@ function M.on_pick_zombie_waves_post(board, level, num_waves)
     return nil
 end
 
+-- ========================================================================
+-- on_award_screen_draw: 自定义奖杯页面
+-- 在 AwardScreen::Draw 开头触发，返回 {cancel=true} 跳过默认绘制
+-- 仅对 mod 自定义关卡（MOD_CUSTOM_1~6）生效，其他模式不接管
+-- 参数: (graphics, award_type, level, game_mode, showing_achievements)
+-- ========================================================================
+local function draw_centered_string(g, font, text, cx, y)
+    g:set_font(font)
+    local w = g:string_width(text)
+    g:draw_string(text, cx - w / 2, y)
+end
+
+function M.on_award_screen_draw(g, award_type, level, game_mode, showing_achievements)
+    local idx = get_custom_level_index(game_mode)
+    if not idx then return nil end  -- 非 mod 自定义关卡，不接管
+
+    -- 仅对通关奖杯页面接管（AWARD_FORLEVEL）；其他类型（如成就页）不接管
+    if award_type ~= pvz.AwardType.FORLEVEL then
+        return nil
+    end
+
+    -- 如果正在显示成就列表，让默认绘制跑完（不接管），成就显示完后再接管
+    if showing_achievements then
+        return nil
+    end
+
+    -- 1. 绘制奖杯页面背景（与原版 DrawBottom 一致）
+    local bg = pvz.images.AWARDSCREEN_BACK
+    if bg then
+        g:draw_image(bg, 0, 0)
+    end
+
+    -- 2. 绘制奖杯图片（居中）
+    local trophy = pvz.images.TROPHY_HI_RES
+    if trophy then
+        g:draw_image(trophy, 450 - trophy:width() / 2, 137)
+    end
+
+    -- 3. 绘制自定义标题
+    local cfg = LEVEL_CONFIG[idx]
+    draw_centered_string(g, pvz.fonts.DWARVENTODCRAFT24,
+        string.format("[ Lv.%d  %s  通关 ]", idx, cfg.name), 450, 58)
+
+    -- 4. 绘制奖项名称
+    draw_centered_string(g, pvz.fonts.DWARVENTODCRAFT18YELLOW,
+        "[TROPHY]", 450, 326)
+
+    -- 5. 绘制消息文本（手动按行换行以适配 230x90 区域）
+    local message_lines
+    if idx < 6 then
+        message_lines = {
+            string.format("[ 恭喜通关 Lv.%d ]", idx),
+            string.format("[ 已解锁 Lv.%d: %s ]", idx + 1, LEVEL_CONFIG[idx + 1].name),
+            "[ 点击下方按钮继续 ]",
+        }
+    else
+        message_lines = {
+            "[ 恭喜通关全部 6 个自定义关卡 ]",
+            "[ 你已证明自己的实力 ]",
+            "[ 点击下方按钮返回菜单 ]",
+        }
+    end
+    local msg_y = 360
+    for _, line in ipairs(message_lines) do
+        draw_centered_string(g, pvz.fonts.BRIANNETOD16, line, 450, msg_y)
+        msg_y = msg_y + 22  -- 行距
+    end
+
+    -- 返回 cancel=true 跳过默认绘制（按钮和淡入遮罩仍由原代码绘制）
+    return { cancel = true }
+end
+
 return M

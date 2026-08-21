@@ -190,9 +190,17 @@ GameSelector::GameSelector(LawnApp* theApp)
 	mQuickPlayButton->Resize(mApp->mWidth - 150, 455, Sexy::IMAGE_QUICKPLAY_BACK_BUTTON->mWidth, Sexy::IMAGE_QUICKPLAY_BACK_BUTTON->mHeight);
 
 	// 自定义关卡入口按钮（右下角空位）
-	mModCustomButton = new ButtonWidget(GameSelector::GameSelector_ModCustom, this);
-	mModCustomButton->mLabel = "Mod 关卡";
-	mModCustomButton->Resize(mApp->mWidth - 160, 500, 150, 35);
+	mModCustomButton = MakeNewButton(
+		GameSelector::GameSelector_ModCustom,
+		this,
+		"Mod 关卡",
+		nullptr,
+		Sexy::IMAGE_SEEDCHOOSER_BUTTON,
+		Sexy::IMAGE_SEEDCHOOSER_BUTTON_GLOW,
+		Sexy::IMAGE_SEEDCHOOSER_BUTTON_GLOW
+	);
+	mModCustomButton->Resize(mApp->mWidth - 160, 500, Sexy::IMAGE_SEEDCHOOSER_BUTTON->mWidth, Sexy::IMAGE_SEEDCHOOSER_BUTTON->mHeight);
+	mModCustomButton->mClip = false;
 
 	mZenGardenButton = MakeNewButton(
 		GameSelector::GameSelector_ZenGarden, 
@@ -812,6 +820,7 @@ void GameSelector::Update()
 		mZombatarButton->SetOffset(aNewX, aNewY);
 		mAchievementsButton->SetOffset(aNewX, aNewY);
 		mQuickPlayButton->SetOffset(aNewX, aNewY);
+		mModCustomButton->SetOffset(aNewX, aNewY);
 
 		// Make sure these are drawn even outside of bounds (force redraw)
 		mAchievementsButton->MarkDirty();
@@ -1084,6 +1093,7 @@ void GameSelector::OrderInManagerChanged()
 	mWidgetManager->PutInfront(mChangeUserButton, this);
 	mWidgetManager->PutInfront(mZombatarButton, this); // @Patoke: z order for new widgets
 	mWidgetManager->PutInfront(mAchievementsButton, this);
+	mWidgetManager->PutInfront(mModCustomButton, this);
 	//mWidgetManager->PutInfront(mQuickPlayButton, this);
 }
 
