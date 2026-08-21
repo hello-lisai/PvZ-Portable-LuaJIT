@@ -8,11 +8,13 @@
 
 local M = {}
 
--- 阳光类型集合
-local SUN_TYPES = {
-    [pvz.CoinType.SUN]       = true,
-    [pvz.CoinType.SMALL_SUN] = true,
-    [pvz.CoinType.BIG_SUN]   = true,
+-- 自动拾取的 Coin 类型集合（阳光、金币、银币）
+local AUTO_PICKUP_TYPES = {
+    [pvz.CoinType.SUN]         = true,
+    [pvz.CoinType.SMALL_SUN]   = true,
+    [pvz.CoinType.BIG_SUN]     = true,
+    [pvz.CoinType.COIN_SILVER] = true,
+    [pvz.CoinType.COIN_GOLD]   = true,
 }
 
 -- 2 秒对应的帧数（游戏逻辑 60 FPS → 120 帧）
@@ -20,11 +22,11 @@ local PICKUP_DELAY_FRAMES = 120
 
 function M.on_board_update_post(board)
     board:for_each_coin(function(coin)
-        -- 只处理阳光类型
-        if not SUN_TYPES[coin.type] then return end
+        -- 只处理需要自动拾取的类型
+        if not AUTO_PICKUP_TYPES[coin.type] then return end
         -- 跳过已死亡或正在被收集的
         if coin.dead or coin.is_being_collected then return end
-        -- 只处理已落地的阳光
+        -- 只处理已落地的
         if not coin.is_on_ground then return end
         -- 落地后超过 2 秒未被拾取，自动收集
         if coin.disappear_counter >= PICKUP_DELAY_FRAMES then
